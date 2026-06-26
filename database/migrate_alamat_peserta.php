@@ -175,7 +175,7 @@ function migrateRecord(array $row, array $kecamatanList, array &$villageCache): 
     $row['kode_kelurahan'] = $kelurahan['code'] ?? null;
     $row['nama_kelurahan'] = $kelurahan['name'] ?? null;
     $row['alamat_detail'] = $alamatAsli;
-    $row['alamat_lembaga'] = $alamatAsli;
+    $row['alamat_lembaga'] = buildAlamatLembaga($row);
 
     return $row;
 }
@@ -385,10 +385,6 @@ try {
                 ':alat_transportasi' => $row['alat_transportasi'],
                 ':created_at' => $row['created_at'],
             ]);
-            continue;
-        }
-
-        if (!empty($row['kode_provinsi']) && !empty($row['alamat_detail'])) {
             continue;
         }
 

@@ -20,5 +20,7 @@ function getDb(): PDO
         PDO::ATTR_EMULATE_PREPARES => false,
     ]);
 
+    $pdo->exec("SET time_zone = '+07:00'");
+
     return $pdo;
 }

@@ -9,7 +9,7 @@ function sanitize(string $value): string
     return htmlspecialchars(trim($value), ENT_QUOTES, 'UTF-8');
 }
 
-function validatePendaftaran(array $input, ?int $excludeId = null): array
+function validatePendaftaran(array $input, ?int $excludeId = null, bool $simpleWilayah = false): array
 {
     $errors = [];
     $data = [];
@@ -55,16 +55,27 @@ function validatePendaftaran(array $input, ?int $excludeId = null): array
         $data['jenis_lembaga'] = $jenis;
     }
 
-    $wilayahFields = [
-        'kode_provinsi' => 'Provinsi',
-        'nama_provinsi' => 'Provinsi',
-        'kode_kabupaten' => 'Kabupaten/Kota',
-        'nama_kabupaten' => 'Kabupaten/Kota',
-        'kode_kecamatan' => 'Kecamatan',
-        'nama_kecamatan' => 'Kecamatan',
-        'kode_kelurahan' => 'Kelurahan/Desa',
-        'nama_kelurahan' => 'Kelurahan/Desa',
-    ];
+    $wilayahFields = $simpleWilayah
+        ? [
+            'kode_kecamatan' => 'Kecamatan',
+            'nama_kecamatan' => 'Kecamatan',
+        ]
+        : [
+            'kode_provinsi' => 'Provinsi',
+            'nama_provinsi' => 'Provinsi',
+            'kode_kabupaten' => 'Kabupaten/Kota',
+            'nama_kabupaten' => 'Kabupaten/Kota',
+            'kode_kecamatan' => 'Kecamatan',
+            'nama_kecamatan' => 'Kecamatan',
+            'kode_kelurahan' => 'Kelurahan/Desa',
+            'nama_kelurahan' => 'Kelurahan/Desa',
+        ];
+
+    if ($simpleWilayah) {
+        foreach (defaultWilayahMagelang() as $key => $value) {
+            $data[$key] = $value;
+        }
+    }
 
     foreach ($wilayahFields as $field => $label) {
         $value = trim($input[$field] ?? '');
@@ -73,6 +84,11 @@ function validatePendaftaran(array $input, ?int $excludeId = null): array
             continue;
         }
         $data[$field] = $value;
+    }
+
+    if ($simpleWilayah) {
+        $data['kode_kelurahan'] = trim($input['kode_kelurahan'] ?? '');
+        $data['nama_kelurahan'] = trim($input['nama_kelurahan'] ?? '');
     }
 
     $data['alamat_detail'] = trim($input['alamat_detail'] ?? '');
@@ -307,9 +323,19 @@ function updatePeserta(int $id, array $data): bool
     }
 }
 
+function defaultWilayahMagelang(): array
+{
+    return [
+        'kode_provinsi' => '33',
+        'nama_provinsi' => 'Jawa Tengah',
+        'kode_kabupaten' => '33.08',
+        'nama_kabupaten' => 'Kabupaten Magelang',
+    ];
+}
+
 function jenisLembagaOptions(): array
 {
-    return ['MI', 'MTS', 'MA', 'SD', 'SMP', 'SMK', 'SMA', 'Lainnya'];
+    return ['MI', 'MTS', 'MA', 'SD', 'SMP', 'SMK', 'SMA', 'SLB', 'Lainnya'];
 }
 
 function jabatanOptions(): array
@@ -424,7 +450,7 @@ function parseJenisLembaga(string $asal): string
         return 'MI';
     }
 
-    foreach (['SMP', 'SMK', 'SMA', 'MTS', 'MI', 'MA', 'SD'] as $type) {
+    foreach (['SMP', 'SMK', 'SMA', 'MTS', 'SLB', 'MI', 'MA', 'SD'] as $type) {
         if ($token === $type) {
             return $type;
         }

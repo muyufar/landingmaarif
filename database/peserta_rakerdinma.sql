@@ -3,8 +3,8 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Jun 26, 2026 at 02:05 PM
--- Server version: 11.8.6-MariaDB-log
+-- Generation Time: Jun 26, 2026 at 03:17 PM
+-- Server version: 11.8.8-MariaDB-log
 -- PHP Version: 7.2.34
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
@@ -78,7 +78,6 @@ INSERT INTO `peserta_rakerdinma` (`id`, `nama`, `nip`, `nomor_wa`, `tempat_lahir
 (31, 'LUTFIATUL BANAT', '-', '083867993146', 'Magelang', '1983-10-20', 'Kepala Madrasah', 'MI MA\'ARIF KRADENAN', 'Jelehan, Kradenan, Srumbung', 'Motor', '2026-06-26 11:42:24'),
 (32, 'Asmawi', '-', '083199106540', 'Magelang', '1981-01-13', 'Kepala Madrasah', 'Grabag', 'Kalipucang, Banyusari, Grabag, Magelang', 'Mobil', '2026-06-26 11:48:59'),
 (33, 'Ngatiyem,S.Pd', '0', '085700126302', 'Magelang', '1981-03-07', 'Kepala Madrasah', 'MI Ma\'arif Bringin', 'Dermo II,Bringin ,Srumbung,Magelang', 'Motor', '2026-06-26 11:50:17'),
-(34, 'Ngatiyem,S.Pd', '0', '085700126302', 'Magelang', '1981-03-07', 'Kepala Madrasah', 'MI Ma\'arif Bringin', 'Dermo II,Bringin ,Srumbung,Magelang', 'Motor', '2026-06-26 11:50:55'),
 (35, 'Nasriyati, S.Pd', '196804152005012001', '082328177542', 'Magelang', '1968-04-15', 'Kepala Madrasah', 'MI Ma\'arif Ngadiharjo', 'Karangtengah Ngadiharjo Borobudur', 'Motor', '2026-06-26 11:51:10'),
 (36, 'Siti Umayah,M.Pd.I', '197504281998032001', '081326121865', 'Magelang', '1975-04-28', 'Kepala MI', 'MI Ma\'arif Pernolo Seloprojo', 'Pernolo Seloprojo Ngablak Magelang', 'BUS', '2026-06-26 11:53:30'),
 (37, 'Musta\'in', NULL, '081215727733', 'Semarang', '1985-11-17', 'Kepala Madrasah', 'MI Ma\'arif Sidomulyo', 'Drojogan, Sidomulyo, Salaman', 'Motor', '2026-06-26 11:57:36'),
@@ -86,12 +85,10 @@ INSERT INTO `peserta_rakerdinma` (`id`, `nama`, `nip`, `nomor_wa`, `tempat_lahir
 (39, 'Yatin Al Fatoni', NULL, '085641982591', 'Magelang', '1970-11-25', 'Kepala Madrasah', 'Mi Maarif Tanjunganom', 'Rejosari 02 rt 02 rw 02 Tanjunganom Salaman Magelang', 'Mobil', '2026-06-26 12:00:06'),
 (40, 'Muh Zuhdi, S.Pd.I', '-', '+62881-8789-050', 'Magelang', '1972-03-08', 'Kepala Madrasah', 'MI TUHFATUL MUBTADIIN 1 KALINEGORO', 'Dusun Jetis, Desa Kalinegoro, Kecamatan Mertoyudan', 'Motor', '2026-06-26 12:06:45'),
 (41, 'Nasrodin,S.Pd.I', '-', '081390308035', 'Magelang', '1980-08-06', 'Kepala Madrasah', 'MI MA\'ARIF BANDUNGREJO', 'Jl. Nemplak Kanigoro Km.01 Noyogaten Bandungrejo Ngablak', 'Sepeda Motor', '2026-06-26 12:07:18'),
-(42, 'Nasrodin,S.Pd.I', '-', '081390308035', 'Magelang', '1980-08-06', 'Kepala Madrasah', 'MI MA\'ARIF BANDUNGREJO', 'Jl. Nemplak Kanigoro Km.01 Noyogaten Bandungrejo Ngablak', 'Sepeda Motor', '2026-06-26 12:07:30'),
 (43, 'Ismiyati', '-', '081229249662', 'Magelang', '1971-12-07', 'Kepala Madrasah', 'Mi Maarif', 'Tuksongo Borobudur', 'Motor', '2026-06-26 12:11:19'),
 (44, 'Muhammad Zubaidah S.Pd.I', '198001082007101002', '085290870008', 'Magelang', '1980-01-08', 'Kepala Madrasah', 'MI Ma\'arif Tejosari', 'Klimahan. Desa Tejosari Kec.Ngablak', 'Motor', '2026-06-26 12:13:56'),
 (45, 'SITI MUFIDAH, S.Pd.I', '-', '085326886514', 'MAGELANG', '1987-02-21', 'KEPALA MADRASAH', 'MI MA\'ARIF PRANTEN SELOPROJO', 'DUSUN PRANTEN DESA SELOPROJO KEC. NGABLAK', 'MOTOR', '2026-06-26 12:14:07'),
 (46, 'YUN KHOIRIYAH', '196612311990022001', '081227004355', 'Magelang', '1966-12-31', 'Kepala Madrasah', 'MI Ma\'arif Ngargogondo', 'Kujon Ngargogondo Borobudur', 'Sepeda motor', '2026-06-26 12:15:24'),
-(47, 'YUN KHOIRIYAH', '196612311990022001', '081227004355', 'Magelang', '1966-12-31', 'Kepala Madrasah', 'MI Ma\'arif Ngargogondo', 'Kujon Ngargogondo Borobudur', 'Sepeda motor', '2026-06-26 12:15:24'),
 (48, 'Tri Sulistyowati, S.Pd.I.,  M.Pd.', '197204092005012002', '081328565655', 'Magelang', '1972-04-09', 'Kepala Madrasah', 'MI Tarbiyatussibyan01 Sidosari', 'Kauman Sidosari Salaman Magelang', 'Motor', '2026-06-26 12:18:58'),
 (49, 'Anna Dewi Wijiati', '-', '085743892624', 'Magelang', '1983-03-16', 'Kepala Madrasah', 'MI MA\'ARIF NGADIPURO', 'Ngadipuro 1,Ngadipuro, Dukun', 'Mobil', '2026-06-26 12:27:38'),
 (50, 'Atik Zuliastutik', '3308015311710002', '081573641704', 'Magelang', '1971-11-13', 'Guru', 'MI Al Islam Banjarharjo', 'Jengkeling.Banjarharjo.Salaman.', 'Motor', '2026-06-26 12:31:55'),
@@ -99,8 +96,6 @@ INSERT INTO `peserta_rakerdinma` (`id`, `nama`, `nip`, `nomor_wa`, `tempat_lahir
 (52, 'FADHOIL,S.Ag,M PD.I', '197311152005011003', '081328841779', 'Magelang', '1973-11-15', 'Kepala Madrasah', 'MI AL ISLAM KRASAK SALAMAN', 'Gejiwan Krasak salaman Magelang', 'Mobil', '2026-06-26 12:36:08'),
 (53, 'Sumartijah', NULL, '081953208788', 'Magelang', '1980-03-15', 'Kepala Madrasah', 'MI Ma\'arif Kenalan', 'Nalan II, Kenalan, Borobudur, Magelang', 'Motor', '2026-06-26 12:40:41'),
 (54, 'SUYATI, S.Ag.,M.Pd.I.', NULL, '083195797893', 'Kebumen', '1970-11-15', 'Kepala Madrasah', 'MI Ma\'arif Ngargosoka', 'Gedangan Rt. 01 Rw. 05 Ngargosoka Srumbung Magelang Jawa Tengah', 'Sepeda motor', '2026-06-26 12:47:48'),
-(55, 'Siti Windaryati, S. Pd. I.', '-', '082225404050', 'Magelang', '1972-06-12', 'Kepala Madrasah', 'MI Ma\'arif Bigaran', 'Dawung RT 003 RW 002   Bicaranya, Borobudur, Magelang', 'Motor', '2026-06-26 12:50:01'),
-(56, 'Siti Windaryati, S. Pd. I.', '-', '082225404050', 'Magelang', '1972-06-12', 'Kepala Madrasah', 'MI Ma\'arif Bigaran', 'Dawung RT 003 RW 002   Bicaranya, Borobudur, Magelang', 'Motor', '2026-06-26 12:50:15'),
 (57, 'Siti Windaryati, S. Pd. I.', '-', '082225404050', 'Magelang', '1972-06-12', 'Kepala Madrasah', 'MI Ma\'arif Bigaran', 'Dawung RT 003 RW 002   Bicaranya, Borobudur, Magelang', 'Motor', '2026-06-26 12:50:41'),
 (58, 'Nurul Fitria, S. Pd. I', '197604052007102005', '085601790927', 'Magelang', '1976-04-05', 'Kepala Madrasah', 'MI Ma\'arif Sumberejo', 'Banaran, Sumberejo, Ngablak, Magelang', 'Motor', '2026-06-26 12:53:28'),
 (59, 'MUNTOHA, S.Pd.', '197309272005011005', '082133068677', 'Magelang', '1973-09-27', 'Kepala Madrasah', 'MI Ma\'arif Karangrejo', 'Kurahan RT. 001/RT. 001, Karangrejo, Borobudur, 56553', 'Sepeda Motor', '2026-06-26 13:05:19'),
@@ -109,7 +104,13 @@ INSERT INTO `peserta_rakerdinma` (`id`, `nama`, `nip`, `nomor_wa`, `tempat_lahir
 (62, 'Ruayda Nazila', '-', '083897815235', 'Magelang', '1978-08-08', 'Kepala Madrasah', 'MI Ma\'arif Giritengah', 'Kalitengah, Giritengah, Borobudur', 'Motor', '2026-06-26 13:20:06'),
 (63, 'Suhartinah,S.Pd', '-', '085743651076', 'Magelang', '1983-12-26', 'Kepala Madrasah', 'MI Tarbiyatul Muslim', 'Dsn Dalangan, Ds Candimulyo, Kec Candimulyo Kab Magelang', 'sepeda motor', '2026-06-26 13:23:32'),
 (64, 'Siti Ilmi Shohiyah, S.Pd.I', '197206132005012009', '082134722225', 'Magelang', '1972-06-13', 'Kepala Madrasah', 'MI Al-Islah Kalegen', 'Karanglo Rt.003/ RW.001 Karanglo Kalegen Bandongan Magelang', 'Motor', '2026-06-26 13:32:08'),
-(65, 'SITI MAIMUNAH', '197304152001122001', '085870176482', 'MAGELANG', '1973-04-15', 'KEPALA MADRASAH', 'MI RAUDLATUDDIN SALAMKANCI', 'KAMCI I SALAMKANCI BANDONGAN MAGELANG', 'sepeda motor', '2026-06-26 13:37:32');
+(65, 'SITI MAIMUNAH', '197304152001122001', '085870176482', 'MAGELANG', '1973-04-15', 'KEPALA MADRASAH', 'MI RAUDLATUDDIN SALAMKANCI', 'KAMCI I SALAMKANCI BANDONGAN MAGELANG', 'sepeda motor', '2026-06-26 13:37:32'),
+(66, 'Muhammad Masyruh, S. Pd.I', NULL, '08174124213', 'Magelang', '1976-08-21', 'Kepala Madrasah', 'MI Ma\'arif Madusari', 'Jl. KH. M. Sururi No. 2/A Madusari Secang Magelang 56195', 'Motor', '2026-06-26 14:21:07'),
+(68, 'Nuzul Nur Faidha', '196712191990032001', '081393813956', 'Magelang', '1967-12-19', 'Kamad', 'MI Arrosyidin Sempu', 'Sempu Ngadirojo Secang Magelang', 'Motor', '2026-06-26 14:27:55'),
+(69, 'Rumisih, S.Pd.SD', NULL, '085643978650', 'Pati', '1977-06-27', 'Kepala Madrasah', 'MI Ma\'arif Dukun', 'Dukun 1, Dukun, Dukun, Magelang', 'Sepeda motor', '2026-06-26 14:32:22'),
+(70, 'SUYATI, S.Ag.,M.Pd.I.', NULL, '083195797893', 'Kebumen', '1970-11-15', 'Kepala Madrasah', 'MI Ma\'arif Ngargosoka', 'Gedangan Rt. 01 Rw. 05 Ngargosoka Srumbung Magelang Jawa Tengah', 'Sepeda motor', '2026-06-26 14:39:27'),
+(71, 'Teguh Budi Santoso, S.Pd.I.', '-', '085879608111', 'Magelang', '1983-10-11', 'Kepala Madrasah', 'MI Al Islam Sawangargo', 'Dukuh Wetan 003/003 Sawangargo Salaman Magelang', 'Motor', '2026-06-26 14:44:09'),
+(72, 'Bakhrudin Rifai, S. Pd. I.', NULL, '085743035058', 'Magelang', '1981-05-19', 'Kepala Madrasah', 'MI Ma\'arif Arrosyidin Pucang', 'Jl. Kyai Sekuncen 342 Karang Kulon Pucang Secang Magelang', 'Mobil', '2026-06-26 15:01:59');
 
 --
 -- Indexes for dumped tables
@@ -131,7 +132,7 @@ ALTER TABLE `peserta_rakerdinma`
 -- AUTO_INCREMENT for table `peserta_rakerdinma`
 --
 ALTER TABLE `peserta_rakerdinma`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=66;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=73;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

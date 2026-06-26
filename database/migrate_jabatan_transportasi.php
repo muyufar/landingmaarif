@@ -13,27 +13,33 @@ $apply = in_array('--apply', $argv ?? [], true);
 
 function loadOriginalJabatanBackup(): array
 {
-    $path = __DIR__ . '/peserta_rakerdinma.sql';
-    if (!is_file($path)) {
-        return [];
+    foreach (['peserta_rakerdinma (1).sql', 'peserta_rakerdinma.sql'] as $file) {
+        $path = __DIR__ . '/' . $file;
+        if (!is_file($path)) {
+            continue;
+        }
+
+        $map = [];
+        $sql = file_get_contents($path);
+        if (!preg_match_all(
+            "/\((\d+),\s*'(?:[^'\\\\]|\\\\.)*',\s*(?:NULL|'(?:[^'\\\\]|\\\\.)*'),\s*'(?:[^'\\\\]|\\\\.)*',\s*'(?:[^'\\\\]|\\\\.)*',\s*'(?:[^'\\\\]|\\\\.)*',\s*'((?:[^'\\\\]|\\\\.)*)'/",
+            $sql,
+            $matches,
+            PREG_SET_ORDER
+        )) {
+            continue;
+        }
+
+        foreach ($matches as $match) {
+            $map[(int) $match[1]] = stripcslashes($match[2]);
+        }
+
+        if ($map !== []) {
+            return $map;
+        }
     }
 
-    $map = [];
-    $sql = file_get_contents($path);
-    if (!preg_match_all(
-        "/\((\d+),\s*'(?:[^'\\\\]|\\\\.)*',\s*'(?:[^'\\\\]|\\\\.)*',\s*'(?:[^'\\\\]|\\\\.)*',\s*'(?:[^'\\\\]|\\\\.)*',\s*'(?:[^'\\\\]|\\\\.)*',\s*'((?:[^'\\\\]|\\\\.)*)'/",
-        $sql,
-        $matches,
-        PREG_SET_ORDER
-    )) {
-        return [];
-    }
-
-    foreach ($matches as $match) {
-        $map[(int) $match[1]] = stripcslashes($match[2]);
-    }
-
-    return $map;
+    return [];
 }
 
 $originalJabatan = loadOriginalJabatanBackup();

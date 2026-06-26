@@ -33,6 +33,9 @@ function adminNavClass(string $page, string $current): string
           </div>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
+          <a href="<?= url() ?>"
+             class="text-sm bg-green-900 hover:bg-green-950 px-4 py-2 rounded-lg transition">Home</a>
+          <?php if (function_exists('isAdminLoggedIn') && isAdminLoggedIn()): ?>
           <nav class="flex rounded-lg overflow-hidden border border-green-700 text-sm font-medium">
             <a href="<?= url('pesertakerdinma/?page=dashboard') ?>"
                class="px-4 py-2 transition <?= adminNavClass('dashboard', $currentPage ?? '') ?>">Dashboard</a>
@@ -41,6 +44,7 @@ function adminNavClass(string $page, string $current): string
           </nav>
           <a href="<?= url('pesertakerdinma/?logout=1') ?>"
              class="text-sm bg-green-900 hover:bg-green-950 px-4 py-2 rounded-lg transition">Logout</a>
+          <?php endif; ?>
         </div>
       </div>
     </div>

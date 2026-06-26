@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 define('APP_ROOT', dirname(__DIR__));
 
+date_default_timezone_set('Asia/Jakarta');
+
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'u700125577_maarifnu');
 define('DB_CHARSET', 'utf8mb4');

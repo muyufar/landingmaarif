@@ -15,5 +15,5 @@ $selected = $formData['jenis_lembaga'] ?? '';
       <option value="<?= sanitize($opt) ?>" <?= $selected === $opt ? 'selected' : '' ?>><?= sanitize($opt) ?></option>
     <?php endforeach; ?>
   </select>
-  <p class="text-xs text-gray-500 mt-1">Contoh: MI, MTS, MA, SD, SMP, SMK, SMA</p>
+  <p class="text-xs text-gray-500 mt-1">Contoh: MI, MTS, MA, SD, SMP, SMK, SMA, SLB</p>
 </div>
