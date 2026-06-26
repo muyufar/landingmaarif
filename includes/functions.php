@@ -9,7 +9,7 @@ function sanitize(string $value): string
     return htmlspecialchars(trim($value), ENT_QUOTES, 'UTF-8');
 }
 
-function validatePendaftaran(array $input): array
+function validatePendaftaran(array $input, ?int $excludeId = null): array
 {
     $errors = [];
     $data = [];
@@ -19,10 +19,8 @@ function validatePendaftaran(array $input): array
         'nomor_wa' => 'Nomor WA',
         'tempat_lahir' => 'Tempat Lahir',
         'tanggal_lahir' => 'Tanggal Lahir',
-        'jabatan' => 'Jabatan',
+        'jenis_lembaga' => 'Jenis Lembaga',
         'asal_lembaga' => 'Asal Lembaga',
-        'alamat_lembaga' => 'Alamat Lembaga',
-        'alat_transportasi' => 'Alat Transportasi',
     ];
 
     foreach ($required as $field => $label) {
@@ -36,8 +34,58 @@ function validatePendaftaran(array $input): array
 
     $data['nip'] = trim($input['nip'] ?? '');
 
+    $jabatanResult = resolveChoiceField($input, 'jabatan_pilihan', jabatanOptions(), 'jabatan_lainnya', 'Jabatan');
+    if ($jabatanResult['error'] !== null) {
+        $errors[] = $jabatanResult['error'];
+    } else {
+        $data['jabatan'] = $jabatanResult['value'];
+    }
+
+    $transportResult = resolveChoiceField($input, 'transportasi_pilihan', transportasiOptions(), 'transportasi_lainnya', 'Alat Transportasi');
+    if ($transportResult['error'] !== null) {
+        $errors[] = $transportResult['error'];
+    } else {
+        $data['alat_transportasi'] = $transportResult['value'];
+    }
+
+    $jenis = strtoupper(trim($input['jenis_lembaga'] ?? ''));
+    if ($jenis === '' || !in_array($jenis, jenisLembagaOptions(), true)) {
+        $errors[] = 'Field Jenis Lembaga wajib dipilih.';
+    } else {
+        $data['jenis_lembaga'] = $jenis;
+    }
+
+    $wilayahFields = [
+        'kode_provinsi' => 'Provinsi',
+        'nama_provinsi' => 'Provinsi',
+        'kode_kabupaten' => 'Kabupaten/Kota',
+        'nama_kabupaten' => 'Kabupaten/Kota',
+        'kode_kecamatan' => 'Kecamatan',
+        'nama_kecamatan' => 'Kecamatan',
+        'kode_kelurahan' => 'Kelurahan/Desa',
+        'nama_kelurahan' => 'Kelurahan/Desa',
+    ];
+
+    foreach ($wilayahFields as $field => $label) {
+        $value = trim($input[$field] ?? '');
+        if ($value === '') {
+            $errors[] = "Field {$label} wajib dipilih.";
+            continue;
+        }
+        $data[$field] = $value;
+    }
+
+    $data['alamat_detail'] = trim($input['alamat_detail'] ?? '');
+    if ($data['alamat_detail'] === '') {
+        $errors[] = 'Field Alamat Detail (jalan, RT/RW, dll.) wajib diisi.';
+    }
+
+    $data['alamat_lembaga'] = buildAlamatLembaga($data);
+
     if (!empty($data['nomor_wa']) && !preg_match('/^[0-9+\-\s()]{8,20}$/', $data['nomor_wa'])) {
         $errors[] = 'Nomor WA tidak valid.';
+    } elseif (!empty($data['nomor_wa']) && nomorWaSudahTerdaftar($data['nomor_wa'], $excludeId)) {
+        $errors[] = 'Nomor WA sudah terdaftar. Satu nomor hanya dapat mendaftar sekali.';
     }
 
     if (!empty($data['tanggal_lahir'])) {
@@ -47,25 +95,136 @@ function validatePendaftaran(array $input): array
         }
     }
 
+    $data['jabatan_pilihan'] = trim($input['jabatan_pilihan'] ?? '');
+    $data['jabatan_lainnya'] = trim($input['jabatan_lainnya'] ?? '');
+    $data['transportasi_pilihan'] = trim($input['transportasi_pilihan'] ?? '');
+    $data['transportasi_lainnya'] = trim($input['transportasi_lainnya'] ?? '');
+
     return ['errors' => $errors, 'data' => $data];
 }
 
-function loadPeserta(string $search = ''): array
+function normalizeNomorWa(string $nomor): string
+{
+    $digits = preg_replace('/\D/', '', trim($nomor)) ?? '';
+    if ($digits === '') {
+        return '';
+    }
+
+    if (str_starts_with($digits, '62')) {
+        $digits = '0' . substr($digits, 2);
+    } elseif (!str_starts_with($digits, '0') && str_starts_with($digits, '8')) {
+        $digits = '0' . $digits;
+    }
+
+    return $digits;
+}
+
+function nomorWaSudahTerdaftar(string $nomorWa, ?int $excludeId = null): bool
+{
+    $target = normalizeNomorWa($nomorWa);
+    if ($target === '') {
+        return false;
+    }
+
+    $pdo = getDb();
+    $sql = 'SELECT id FROM peserta_rakerdinma WHERE nomor_wa_norm = :norm';
+    $params = [':norm' => $target];
+
+    if ($excludeId !== null && $excludeId > 0) {
+        $sql .= ' AND id != :id';
+        $params[':id'] = $excludeId;
+    }
+
+    $sql .= ' LIMIT 1';
+
+    try {
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return (bool) $stmt->fetch();
+    } catch (PDOException) {
+        // Fallback jika kolom nomor_wa_norm belum dimigrasi
+        $sql = 'SELECT id, nomor_wa FROM peserta_rakerdinma';
+        $params = [];
+        if ($excludeId !== null && $excludeId > 0) {
+            $sql .= ' WHERE id != :id';
+            $params[':id'] = $excludeId;
+        }
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+
+        foreach ($stmt->fetchAll() as $row) {
+            if (normalizeNomorWa($row['nomor_wa'] ?? '') === $target) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
+function buildAlamatLembaga(array $data): string
+{
+    $parts = [$data['alamat_detail']];
+
+    if (!empty($data['nama_kelurahan'])) {
+        $parts[] = 'Kel. ' . $data['nama_kelurahan'];
+    }
+    if (!empty($data['nama_kecamatan'])) {
+        $parts[] = 'Kec. ' . $data['nama_kecamatan'];
+    }
+    if (!empty($data['nama_kabupaten'])) {
+        $parts[] = $data['nama_kabupaten'];
+    }
+    if (!empty($data['nama_provinsi'])) {
+        $parts[] = $data['nama_provinsi'];
+    }
+
+    return implode(', ', array_filter($parts));
+}
+
+function loadPeserta(string $search = '', array $filters = []): array
 {
     $pdo = getDb();
 
     $sql = 'SELECT id, nama, nip, nomor_wa, tempat_lahir,
                    DATE_FORMAT(tanggal_lahir, "%Y-%m-%d") AS tanggal_lahir,
-                   jabatan, asal_lembaga, alamat_lembaga, alat_transportasi,
+                   jabatan, jenis_lembaga, asal_lembaga, alamat_lembaga,
+                   kode_provinsi, nama_provinsi, kode_kabupaten, nama_kabupaten,
+                   kode_kecamatan, nama_kecamatan, kode_kelurahan, nama_kelurahan,
+                   alamat_detail, alat_transportasi,
                    DATE_FORMAT(created_at, "%Y-%m-%d %H:%i:%s") AS created_at
-            FROM peserta_rakerdinma';
+            FROM peserta_rakerdinma WHERE 1=1';
 
     $params = [];
 
     if ($search !== '') {
-        $sql .= ' WHERE nama LIKE :q OR nip LIKE :q OR nomor_wa LIKE :q
-                  OR asal_lembaga LIKE :q OR jabatan LIKE :q';
+        $sql .= ' AND (nama LIKE :q OR nip LIKE :q OR nomor_wa LIKE :q
+                  OR asal_lembaga LIKE :q OR jabatan LIKE :q
+                  OR nama_provinsi LIKE :q OR nama_kabupaten LIKE :q
+                  OR nama_kecamatan LIKE :q OR nama_kelurahan LIKE :q
+                  OR alamat_detail LIKE :q OR alamat_lembaga LIKE :q)';
         $params[':q'] = '%' . $search . '%';
+    }
+
+    if (!empty($filters['kecamatan'])) {
+        $sql .= ' AND nama_kecamatan = :kecamatan';
+        $params[':kecamatan'] = $filters['kecamatan'];
+    }
+
+    if (!empty($filters['jabatan'])) {
+        $sql .= ' AND jabatan = :jabatan';
+        $params[':jabatan'] = $filters['jabatan'];
+    }
+
+    if (!empty($filters['transportasi'])) {
+        $sql .= ' AND alat_transportasi = :transportasi';
+        $params[':transportasi'] = $filters['transportasi'];
+    }
+
+    if (!empty($filters['jenis_lembaga'])) {
+        $sql .= ' AND jenis_lembaga = :jenis_lembaga';
+        $params[':jenis_lembaga'] = $filters['jenis_lembaga'];
     }
 
     $sql .= ' ORDER BY created_at DESC';
@@ -76,28 +235,413 @@ function loadPeserta(string $search = ''): array
     return $stmt->fetchAll();
 }
 
-function addPeserta(array $data): bool
+function getPesertaById(int $id): ?array
+{
+    $pdo = getDb();
+    $stmt = $pdo->prepare(
+        'SELECT id, nama, nip, nomor_wa, tempat_lahir,
+                DATE_FORMAT(tanggal_lahir, "%Y-%m-%d") AS tanggal_lahir,
+                jabatan, jenis_lembaga, asal_lembaga, alamat_lembaga,
+                kode_provinsi, nama_provinsi, kode_kabupaten, nama_kabupaten,
+                kode_kecamatan, nama_kecamatan, kode_kelurahan, nama_kelurahan,
+                alamat_detail, alat_transportasi,
+                DATE_FORMAT(created_at, "%Y-%m-%d %H:%i:%s") AS created_at
+         FROM peserta_rakerdinma WHERE id = :id'
+    );
+    $stmt->execute([':id' => $id]);
+    $row = $stmt->fetch();
+
+    return $row ?: null;
+}
+
+function updatePeserta(int $id, array $data): bool
 {
     $pdo = getDb();
 
     $stmt = $pdo->prepare(
-        'INSERT INTO peserta_rakerdinma
-            (nama, nip, nomor_wa, tempat_lahir, tanggal_lahir, jabatan, asal_lembaga, alamat_lembaga, alat_transportasi)
-         VALUES
-            (:nama, :nip, :nomor_wa, :tempat_lahir, :tanggal_lahir, :jabatan, :asal_lembaga, :alamat_lembaga, :alat_transportasi)'
+        'UPDATE peserta_rakerdinma SET
+            nama = :nama, nip = :nip, nomor_wa = :nomor_wa, nomor_wa_norm = :nomor_wa_norm,
+            tempat_lahir = :tempat_lahir, tanggal_lahir = :tanggal_lahir,
+            jabatan = :jabatan, jenis_lembaga = :jenis_lembaga, asal_lembaga = :asal_lembaga,
+            alamat_lembaga = :alamat_lembaga,
+            kode_provinsi = :kode_provinsi, nama_provinsi = :nama_provinsi,
+            kode_kabupaten = :kode_kabupaten, nama_kabupaten = :nama_kabupaten,
+            kode_kecamatan = :kode_kecamatan, nama_kecamatan = :nama_kecamatan,
+            kode_kelurahan = :kode_kelurahan, nama_kelurahan = :nama_kelurahan,
+            alamat_detail = :alamat_detail, alat_transportasi = :alat_transportasi
+         WHERE id = :id'
     );
 
-    return $stmt->execute([
-        ':nama' => $data['nama'],
-        ':nip' => $data['nip'] !== '' ? $data['nip'] : null,
-        ':nomor_wa' => $data['nomor_wa'],
-        ':tempat_lahir' => $data['tempat_lahir'],
-        ':tanggal_lahir' => $data['tanggal_lahir'],
-        ':jabatan' => $data['jabatan'],
-        ':asal_lembaga' => $data['asal_lembaga'],
-        ':alamat_lembaga' => $data['alamat_lembaga'],
-        ':alat_transportasi' => $data['alat_transportasi'],
-    ]);
+    $norm = normalizeNomorWa($data['nomor_wa']);
+
+    try {
+        return $stmt->execute([
+            ':id' => $id,
+            ':nama' => $data['nama'],
+            ':nip' => $data['nip'] !== '' ? $data['nip'] : null,
+            ':nomor_wa' => $data['nomor_wa'],
+            ':nomor_wa_norm' => $norm !== '' ? $norm : null,
+            ':tempat_lahir' => $data['tempat_lahir'],
+            ':tanggal_lahir' => $data['tanggal_lahir'],
+            ':jabatan' => $data['jabatan'],
+            ':jenis_lembaga' => $data['jenis_lembaga'],
+            ':asal_lembaga' => $data['asal_lembaga'],
+            ':alamat_lembaga' => $data['alamat_lembaga'],
+            ':kode_provinsi' => $data['kode_provinsi'],
+            ':nama_provinsi' => $data['nama_provinsi'],
+            ':kode_kabupaten' => $data['kode_kabupaten'],
+            ':nama_kabupaten' => $data['nama_kabupaten'],
+            ':kode_kecamatan' => $data['kode_kecamatan'],
+            ':nama_kecamatan' => $data['nama_kecamatan'],
+            ':kode_kelurahan' => $data['kode_kelurahan'],
+            ':nama_kelurahan' => $data['nama_kelurahan'],
+            ':alamat_detail' => $data['alamat_detail'],
+            ':alat_transportasi' => $data['alat_transportasi'],
+        ]);
+    } catch (PDOException $e) {
+        if ((int) ($e->errorInfo[1] ?? 0) === 1062) {
+            return false;
+        }
+
+        throw $e;
+    }
+}
+
+function jenisLembagaOptions(): array
+{
+    return ['MI', 'MTS', 'MA', 'SD', 'SMP', 'SMK', 'SMA', 'Lainnya'];
+}
+
+function jabatanOptions(): array
+{
+    return ['Kepala', 'Guru', 'Lainnya'];
+}
+
+function transportasiOptions(): array
+{
+    return ['Sepeda Motor', 'Mobil', 'Lainnya'];
+}
+
+function resolveChoiceField(array $input, string $selectField, array $options, string $otherField, string $label): array
+{
+    $choice = trim($input[$selectField] ?? '');
+    if ($choice === '' || !in_array($choice, $options, true)) {
+        return ['error' => "Field {$label} wajib dipilih.", 'value' => ''];
+    }
+
+    if ($choice === 'Lainnya') {
+        $custom = trim($input[$otherField] ?? '');
+        if ($custom === '') {
+            return ['error' => "Field {$label} (lainnya) wajib diisi.", 'value' => ''];
+        }
+
+        return ['error' => null, 'value' => $custom];
+    }
+
+    return ['error' => null, 'value' => $choice];
+}
+
+function choiceFieldFormState(string $value, array $options): array
+{
+    $standard = array_values(array_filter($options, static fn (string $opt): bool => $opt !== 'Lainnya'));
+
+    if (in_array($value, $standard, true)) {
+        return ['pilihan' => $value, 'lainnya' => ''];
+    }
+
+    if ($value === '') {
+        return ['pilihan' => '', 'lainnya' => ''];
+    }
+
+    return ['pilihan' => 'Lainnya', 'lainnya' => $value];
+}
+
+function normalizeJabatan(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return 'Lainnya';
+    }
+
+    if (in_array($value, ['Kepala', 'Guru'], true)) {
+        return $value;
+    }
+
+    $upper = strtoupper($value);
+
+    // Wakil kepala / wakasek bukan kategori Kepala — simpan teks asli (Lainnya)
+    if (preg_match('/WAKASEK|WAKIL|\bWAKA\b/', $upper)) {
+        return $value;
+    }
+
+    if (preg_match('/\b(GURU|GMP)\b/', $upper) && !preg_match('/KEPALA|KAMAD|SEKOLAH|MADRASAH/', $upper)) {
+        return 'Guru';
+    }
+
+    if (preg_match('/KEPALA|KAMAD|KEPADA/', $upper)) {
+        return 'Kepala';
+    }
+
+    return $value;
+}
+
+function normalizeTransportasi(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return 'Lainnya';
+    }
+
+    if (in_array($value, ['Sepeda Motor', 'Mobil'], true)) {
+        return $value;
+    }
+
+    $lower = strtolower($value);
+
+    if (preg_match('/motor|mtr|mtor|mator|sepeda/', $lower)) {
+        return 'Sepeda Motor';
+    }
+
+    if (preg_match('/mobil|bus|angkot|pick\s?up|minibus/', $lower)) {
+        return 'Mobil';
+    }
+
+    return $value;
+}
+
+function parseJenisLembaga(string $asal): string
+{
+    $asal = trim($asal);
+    if ($asal === '') {
+        return 'Lainnya';
+    }
+
+    $parts = preg_split('/[\s\.]+/', $asal);
+    $token = strtoupper(rtrim($parts[0] ?? '', '.'));
+    $token = preg_replace('/[^A-Z]/', '', $token) ?? $token;
+
+    if ($token === 'MIS') {
+        return 'MI';
+    }
+
+    foreach (['SMP', 'SMK', 'SMA', 'MTS', 'MI', 'MA', 'SD'] as $type) {
+        if ($token === $type) {
+            return $type;
+        }
+    }
+
+    return 'Lainnya';
+}
+
+function resolveJenisLembaga(string $asal, string $explicit = ''): string
+{
+    $explicit = strtoupper(trim($explicit));
+    if ($explicit !== '' && in_array($explicit, jenisLembagaOptions(), true)) {
+        return $explicit;
+    }
+
+    return parseJenisLembaga($asal);
+}
+
+function hitungUmur(string $tanggalLahir): ?int
+{
+    $date = DateTime::createFromFormat('Y-m-d', $tanggalLahir);
+    if (!$date) {
+        return null;
+    }
+
+    return (int) $date->diff(new DateTime('today'))->y;
+}
+
+function kelompokUmur(?int $umur): string
+{
+    if ($umur === null) {
+        return 'Tidak diketahui';
+    }
+    if ($umur < 30) {
+        return '< 30 tahun';
+    }
+    if ($umur <= 40) {
+        return '30–40 tahun';
+    }
+    if ($umur <= 50) {
+        return '41–50 tahun';
+    }
+    if ($umur <= 60) {
+        return '51–60 tahun';
+    }
+
+    return '> 60 tahun';
+}
+
+function getFilterOptions(): array
+{
+    $pdo = getDb();
+
+    $fetchDistinct = static function (string $column) use ($pdo): array {
+        $stmt = $pdo->query(
+            "SELECT DISTINCT {$column} AS val FROM peserta_rakerdinma
+             WHERE {$column} IS NOT NULL AND {$column} != ''
+             ORDER BY val ASC"
+        );
+
+        return array_column($stmt->fetchAll(), 'val');
+    };
+
+    return [
+        'kecamatan' => $fetchDistinct('nama_kecamatan'),
+        'jabatan' => array_values(array_unique(array_merge(
+            ['Kepala', 'Guru'],
+            $fetchDistinct('jabatan')
+        ))),
+        'transportasi' => array_values(array_unique(array_merge(
+            ['Sepeda Motor', 'Mobil'],
+            $fetchDistinct('alat_transportasi')
+        ))),
+        'jenis_lembaga' => $fetchDistinct('jenis_lembaga'),
+    ];
+}
+
+function getDashboardStats(array $peserta): array
+{
+    $kecamatan = [];
+    $jabatan = [];
+    $transportasi = [];
+    $umur = [];
+    $lembaga = [];
+
+    foreach ($peserta as $row) {
+        $kec = trim($row['nama_kecamatan'] ?? '');
+        if ($kec !== '') {
+            $kecamatan[$kec] = ($kecamatan[$kec] ?? 0) + 1;
+        }
+
+        $jab = trim($row['jabatan'] ?? '');
+        if ($jab !== '') {
+            $jabatan[$jab] = ($jabatan[$jab] ?? 0) + 1;
+        }
+
+        $trans = trim($row['alat_transportasi'] ?? '');
+        if ($trans !== '') {
+            $transportasi[$trans] = ($transportasi[$trans] ?? 0) + 1;
+        }
+
+        $group = kelompokUmur(hitungUmur($row['tanggal_lahir'] ?? ''));
+        $umur[$group] = ($umur[$group] ?? 0) + 1;
+
+        $jenis = trim($row['jenis_lembaga'] ?? '');
+        if ($jenis === '') {
+            $jenis = parseJenisLembaga($row['asal_lembaga'] ?? '');
+        }
+        $lembaga[$jenis] = ($lembaga[$jenis] ?? 0) + 1;
+    }
+
+    arsort($kecamatan);
+    arsort($jabatan);
+    arsort($transportasi);
+    arsort($lembaga);
+
+    $umurOrder = ['< 30 tahun', '30–40 tahun', '41–50 tahun', '51–60 tahun', '> 60 tahun', 'Tidak diketahui'];
+    $umurSorted = [];
+    foreach ($umurOrder as $key) {
+        if (isset($umur[$key])) {
+            $umurSorted[$key] = $umur[$key];
+        }
+    }
+
+    return [
+        'total' => count($peserta),
+        'kecamatan' => $kecamatan,
+        'jabatan' => $jabatan,
+        'transportasi' => $transportasi,
+        'umur' => $umurSorted,
+        'lembaga' => $lembaga,
+    ];
+}
+
+function pesertaFormDefaults(?array $row = null): array
+{
+    $jabatanState = choiceFieldFormState($row['jabatan'] ?? '', jabatanOptions());
+    $transportState = choiceFieldFormState($row['alat_transportasi'] ?? '', transportasiOptions());
+
+    return [
+        'nama' => $row['nama'] ?? '',
+        'nip' => $row['nip'] ?? '',
+        'nomor_wa' => $row['nomor_wa'] ?? '',
+        'tempat_lahir' => $row['tempat_lahir'] ?? '',
+        'tanggal_lahir' => $row['tanggal_lahir'] ?? '',
+        'jabatan' => $row['jabatan'] ?? '',
+        'jabatan_pilihan' => $jabatanState['pilihan'],
+        'jabatan_lainnya' => $jabatanState['lainnya'],
+        'jenis_lembaga' => $row['jenis_lembaga'] ?? '',
+        'asal_lembaga' => $row['asal_lembaga'] ?? '',
+        'kode_provinsi' => $row['kode_provinsi'] ?? '',
+        'nama_provinsi' => $row['nama_provinsi'] ?? '',
+        'kode_kabupaten' => $row['kode_kabupaten'] ?? '',
+        'nama_kabupaten' => $row['nama_kabupaten'] ?? '',
+        'kode_kecamatan' => $row['kode_kecamatan'] ?? '',
+        'nama_kecamatan' => $row['nama_kecamatan'] ?? '',
+        'kode_kelurahan' => $row['kode_kelurahan'] ?? '',
+        'nama_kelurahan' => $row['nama_kelurahan'] ?? '',
+        'alamat_detail' => $row['alamat_detail'] ?? '',
+        'alat_transportasi' => $row['alat_transportasi'] ?? '',
+        'transportasi_pilihan' => $transportState['pilihan'],
+        'transportasi_lainnya' => $transportState['lainnya'],
+    ];
+}
+
+function addPeserta(array $data): bool
+{
+    if (nomorWaSudahTerdaftar($data['nomor_wa'])) {
+        return false;
+    }
+
+    $pdo = getDb();
+    $norm = normalizeNomorWa($data['nomor_wa']);
+
+    $stmt = $pdo->prepare(
+        'INSERT INTO peserta_rakerdinma
+            (nama, nip, nomor_wa, nomor_wa_norm, tempat_lahir, tanggal_lahir, jabatan, jenis_lembaga, asal_lembaga,
+             alamat_lembaga, kode_provinsi, nama_provinsi, kode_kabupaten, nama_kabupaten,
+             kode_kecamatan, nama_kecamatan, kode_kelurahan, nama_kelurahan, alamat_detail,
+             alat_transportasi)
+         VALUES
+            (:nama, :nip, :nomor_wa, :nomor_wa_norm, :tempat_lahir, :tanggal_lahir, :jabatan, :jenis_lembaga, :asal_lembaga,
+             :alamat_lembaga, :kode_provinsi, :nama_provinsi, :kode_kabupaten, :nama_kabupaten,
+             :kode_kecamatan, :nama_kecamatan, :kode_kelurahan, :nama_kelurahan, :alamat_detail,
+             :alat_transportasi)'
+    );
+
+    try {
+        return $stmt->execute([
+            ':nama' => $data['nama'],
+            ':nip' => $data['nip'] !== '' ? $data['nip'] : null,
+            ':nomor_wa' => $data['nomor_wa'],
+            ':nomor_wa_norm' => $norm !== '' ? $norm : null,
+            ':tempat_lahir' => $data['tempat_lahir'],
+            ':tanggal_lahir' => $data['tanggal_lahir'],
+            ':jabatan' => $data['jabatan'],
+            ':jenis_lembaga' => $data['jenis_lembaga'],
+            ':asal_lembaga' => $data['asal_lembaga'],
+            ':alamat_lembaga' => $data['alamat_lembaga'],
+            ':kode_provinsi' => $data['kode_provinsi'],
+            ':nama_provinsi' => $data['nama_provinsi'],
+            ':kode_kabupaten' => $data['kode_kabupaten'],
+            ':nama_kabupaten' => $data['nama_kabupaten'],
+            ':kode_kecamatan' => $data['kode_kecamatan'],
+            ':nama_kecamatan' => $data['nama_kecamatan'],
+            ':kode_kelurahan' => $data['kode_kelurahan'],
+            ':nama_kelurahan' => $data['nama_kelurahan'],
+            ':alamat_detail' => $data['alamat_detail'],
+            ':alat_transportasi' => $data['alat_transportasi'],
+        ]);
+    } catch (PDOException $e) {
+        if ((int) ($e->errorInfo[1] ?? 0) === 1062) {
+            return false;
+        }
+
+        throw $e;
+    }
 }
 
 function deletePeserta(string $id): bool
@@ -143,8 +687,14 @@ function exportCsv(array $peserta): void
         'Tempat Lahir',
         'Tanggal Lahir',
         'Jabatan',
+        'Jenis Lembaga',
         'Asal Lembaga',
-        'Alamat Lembaga',
+        'Alamat Detail',
+        'Kelurahan/Desa',
+        'Kecamatan',
+        'Kabupaten/Kota',
+        'Provinsi',
+        'Alamat Lembaga (Lengkap)',
         'Alat Transportasi',
     ]);
 
@@ -158,7 +708,13 @@ function exportCsv(array $peserta): void
             $row['tempat_lahir'] ?? '',
             $row['tanggal_lahir'] ?? '',
             $row['jabatan'] ?? '',
+            $row['jenis_lembaga'] ?? parseJenisLembaga($row['asal_lembaga'] ?? ''),
             $row['asal_lembaga'] ?? '',
+            $row['alamat_detail'] ?? '',
+            $row['nama_kelurahan'] ?? '',
+            $row['nama_kecamatan'] ?? '',
+            $row['nama_kabupaten'] ?? '',
+            $row['nama_provinsi'] ?? '',
             $row['alamat_lembaga'] ?? '',
             $row['alat_transportasi'] ?? '',
         ]);

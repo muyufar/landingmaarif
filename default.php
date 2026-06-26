@@ -1,3 +1,9 @@
+<?php
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/includes/config.php';
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -12,7 +18,7 @@
   <header class="bg-green-800 text-white shadow-lg">
     <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
       <div class="flex items-center space-x-4">
-        <img src="/image/logo.png" alt="Logo LP Ma'arif NU" class="w-14 h-14 rounded-full bg-white p-1">
+        <img src="<?= url('image/logo.png') ?>" alt="Logo LP Ma'arif NU" class="w-14 h-14 rounded-full bg-white p-1">
         <div>
           <h1 class="text-xl md:text-2xl font-bold">LP Ma'arif NU Kabupaten Magelang</h1>
           <p class="text-sm text-green-100">Lembaga Pendidikan Nahdlatul Ulama</p>
@@ -43,7 +49,7 @@
              class="inline-block text-center bg-yellow-400 hover:bg-yellow-500 text-green-900 font-semibold px-6 py-3 rounded-full shadow-lg transition">
             Pelajari Lebih Lanjut
           </a>
-          <a href="/rakerdinma"
+          <a href="<?= url('rakerdinma') ?>"
              class="inline-block text-center bg-white hover:bg-green-50 text-green-800 font-semibold px-6 py-3 rounded-full shadow-lg transition border-2 border-white">
             Pendaftaran RAKERDINMA 2026
           </a>
