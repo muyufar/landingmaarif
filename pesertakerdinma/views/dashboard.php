@@ -5,23 +5,46 @@ declare(strict_types=1);
 /** @var array $stats */
 $labels = fn(array $data): array => array_keys($data);
 $values = fn(array $data): array => array_values($data);
+
+$now = new DateTime('now', new DateTimeZone('Asia/Jakarta'));
+$hariId = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+$bulanId = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+$tanggalLaporan = $hariId[(int) $now->format('w')] . ', ' . (int) $now->format('j') . ' ' . $bulanId[(int) $now->format('n')] . ' ' . $now->format('Y');
+$jamLaporan = $now->format('H:i:s');
 ?>
 <div class="bg-white rounded-2xl shadow border border-green-100 p-5 sm:p-6 mb-6">
-  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
     <div>
       <h2 class="text-2xl font-bold text-green-800">Dashboard Utama</h2>
       <p class="text-sm text-gray-500 mt-1">Ringkasan pendaftaran RAKERDINMA 2026</p>
     </div>
-    <div class="flex items-center gap-4 md:pl-6 md:border-l md:border-green-100 shrink-0">
-      <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-green-700">
-        <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-        </svg>
+    <div class="flex flex-col sm:flex-row sm:items-center gap-4 lg:gap-6 md:pl-0 lg:pl-6 lg:border-l lg:border-green-100 shrink-0">
+      <div class="flex items-center gap-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-green-700">
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Total Peserta</p>
+          <p class="text-4xl sm:text-5xl font-extrabold text-green-700 leading-none tabular-nums mt-0.5"><?= (int) $stats['total'] ?></p>
+          <p class="text-xs text-gray-500 mt-1">terdaftar</p>
+        </div>
       </div>
-      <div>
-        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Total Peserta</p>
-        <p class="text-4xl sm:text-5xl font-extrabold text-green-700 leading-none tabular-nums mt-0.5"><?= (int) $stats['total'] ?></p>
-        <p class="text-xs text-gray-500 mt-1">terdaftar</p>
+      <div class="hidden sm:block w-px self-stretch bg-green-100 min-h-[4rem]"></div>
+      <div class="flex items-center gap-4 sm:pl-0">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-green-700">
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Waktu Laporan</p>
+          <p class="text-sm font-semibold text-gray-800 mt-0.5"><?= sanitize($tanggalLaporan) ?></p>
+          <p class="text-2xl font-bold text-green-700 tabular-nums leading-tight mt-0.5">
+            <span id="waktu-laporan-jam"><?= sanitize($jamLaporan) ?></span> <span class="text-sm font-semibold">WIB</span>
+          </p>
+        </div>
       </div>
     </div>
   </div>
@@ -79,4 +102,17 @@ makeChart('chartUmur', 'bar', <?= json_encode($labels($stats['umur'])) ?>, <?= j
   scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
   plugins: { legend: { display: false } }
 });
+(function () {
+  var el = document.getElementById('waktu-laporan-jam');
+  if (!el) return;
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function tick() {
+    var now = new Date();
+    var utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    var wib = new Date(utc + 7 * 3600000);
+    el.textContent = pad(wib.getHours()) + ':' + pad(wib.getMinutes()) + ':' + pad(wib.getSeconds());
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
 </script>
