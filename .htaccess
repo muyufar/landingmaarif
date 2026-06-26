@@ -1,0 +1,9 @@
+DirectoryIndex default.php index.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  RewriteRule ^rakerdinma/?$ rakerdinma/index.php [L]
+  RewriteRule ^pesertakerdinma/?$ pesertakerdinma/index.php [L]
+</IfModule>
