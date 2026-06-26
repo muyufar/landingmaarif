@@ -6,9 +6,25 @@ declare(strict_types=1);
 $labels = fn(array $data): array => array_keys($data);
 $values = fn(array $data): array => array_values($data);
 ?>
-<div class="mb-6">
-  <h2 class="text-2xl font-bold text-green-800">Dashboard Utama</h2>
-  <p class="text-sm text-gray-500 mt-1">Ringkasan pendaftaran RAKERDINMA 2026 — Total <strong><?= $stats['total'] ?></strong> peserta</p>
+<div class="bg-white rounded-2xl shadow border border-green-100 p-5 sm:p-6 mb-6">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+    <div>
+      <h2 class="text-2xl font-bold text-green-800">Dashboard Utama</h2>
+      <p class="text-sm text-gray-500 mt-1">Ringkasan pendaftaran RAKERDINMA 2026</p>
+    </div>
+    <div class="flex items-center gap-4 md:pl-6 md:border-l md:border-green-100 shrink-0">
+      <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-green-700">
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+      </div>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Total Peserta</p>
+        <p class="text-4xl sm:text-5xl font-extrabold text-green-700 leading-none tabular-nums mt-0.5"><?= (int) $stats['total'] ?></p>
+        <p class="text-xs text-gray-500 mt-1">terdaftar</p>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
