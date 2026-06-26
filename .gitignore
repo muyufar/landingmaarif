@@ -1,0 +1,11 @@
+# Pengembangan lokal — jangan deploy ke Hostinger
+includes/config.local.php
+
+# File debug sementara — jangan commit
+db_check.php
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
