@@ -77,7 +77,7 @@ $catalog = pemesananLayananCatalog();
                 <p class="text-xs text-gray-500"><?= sanitize($row['nama_kepala'] ?? '') ?></p>
               </td>
               <td class="px-4 py-3 text-green-700"><?= sanitize($row['nomor_wa'] ?? '') ?></td>
-              <td class="px-4 py-3"><?= sanitize($row['jenjang'] ?? '') ?></td>
+              <td class="px-4 py-3"><?= sanitize(normalizeJenjangPemesanan($row['jenjang'] ?? '')) ?></td>
               <td class="px-4 py-3 text-xs"><?= sanitize(formatRingkasanPemesanan($row)) ?></td>
               <td class="px-4 py-3">
                 <div class="flex items-center justify-center gap-2">

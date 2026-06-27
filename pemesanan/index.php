@@ -238,9 +238,10 @@ function fieldValue(string $key, array $formData): string
           <?php elseif ($layanan['tipe'] === 'kenuan'): ?>
           <?php
             $kelasFields = bukuKenuanKelasFields();
-            $selectedKenuanJenjang = in_array($formData['jenjang'] ?? '', bukuKenuanJenjangOptions(), true)
-                ? ($formData['jenjang'] ?? '')
-                : '';
+            $selectedKenuanJenjang = normalizeJenjangPemesanan($formData['jenjang'] ?? '');
+            if (!in_array($selectedKenuanJenjang, bukuKenuanJenjangOptions(), true)) {
+                $selectedKenuanJenjang = '';
+            }
           ?>
           <div class="border-t border-gray-200 pt-8 space-y-6" id="kenuan-form">
             <fieldset>
@@ -316,7 +317,7 @@ function fieldValue(string $key, array $formData): string
           var jenjangSelected = form.querySelector('input.kenuan-jenjang-radio:checked');
           if (!jenjangSelected) {
             e.preventDefault();
-            alert('Pilih jenjang terlebih dahulu (MI, MTS, atau MA).');
+            alert('Pilih jenjang terlebih dahulu (MI/SD, MTS/SMP, atau MA/SMA/SMK).');
             return;
           }
           var visibleGroup = kenuanPanel.querySelector('.kenuan-kelas-group:not(.hidden)');

@@ -149,8 +149,43 @@ function ensurePemesananSchema(): void
     $done = true;
 }
 
+function jenjangPemesananOptions(): array
+{
+    return ['MI/SD', 'MTS/SMP', 'MA/SMA/SMK'];
+}
+
+function normalizeJenjangPemesanan(?string $jenjang): string
+{
+    $jenjang = trim((string) $jenjang);
+    $legacy = [
+        'MI' => 'MI/SD',
+        'SD' => 'MI/SD',
+        'MTS' => 'MTS/SMP',
+        'SMP' => 'MTS/SMP',
+        'MA' => 'MA/SMA/SMK',
+        'SMA' => 'MA/SMA/SMK',
+        'SMK' => 'MA/SMA/SMK',
+    ];
+
+    return $legacy[$jenjang] ?? $jenjang;
+}
+
+function jenjangPemesananFilterValues(string $jenjang): array
+{
+    $jenjang = normalizeJenjangPemesanan($jenjang);
+    $groups = [
+        'MI/SD' => ['MI/SD', 'MI', 'SD'],
+        'MTS/SMP' => ['MTS/SMP', 'MTS', 'SMP'],
+        'MA/SMA/SMK' => ['MA/SMA/SMK', 'MA', 'SMA', 'SMK'],
+    ];
+
+    return $groups[$jenjang] ?? [$jenjang];
+}
+
 function pemesananLayananCatalog(): array
 {
+    $jenjangSemua = jenjangPemesananOptions();
+
     return [
         'mopdik' => [
             'label' => 'Paket Majalah MOPDIK dan Buku Saku IPNU-IPPNU',
@@ -167,7 +202,7 @@ function pemesananLayananCatalog(): array
             'title' => 'FORM PEMESANAN BATIK MA\'ARIF',
             'subtitle' => 'Kain Batik Siswa & Guru — Semua Jenjang',
             'icon' => '👔',
-            'jenjang' => ['MI/SD', 'MTS/SMP', 'MA/SMA/SMK'],
+            'jenjang' => $jenjangSemua,
             'jenjang_label' => 'Pilih Jenjang',
             'tipe' => 'batik',
         ],
@@ -176,6 +211,7 @@ function pemesananLayananCatalog(): array
             'title' => 'FORM PEMESANAN BUKU KE NU AN',
             'subtitle' => 'Pilih jenjang lalu isi jumlah buku per kelas',
             'icon' => '📖',
+            'jenjang' => $jenjangSemua,
             'tipe' => 'kenuan',
         ],
         'buku_aswaja' => [
@@ -183,7 +219,7 @@ function pemesananLayananCatalog(): array
             'title' => 'FORM PEMESANAN BUKU TULIS KARAKTER ASWAJA',
             'subtitle' => 'Semua Jenjang',
             'icon' => '📝',
-            'jenjang' => ['MI/SD', 'MTS/SMP', 'MA/SMA/SMK'],
+            'jenjang' => $jenjangSemua,
             'jenjang_label' => 'Pilih Jenjang',
             'tipe' => 'jumlah',
             'jumlah_label' => 'Jumlah Buku',
@@ -229,7 +265,7 @@ function satuanBatikOptions(): array
 
 function bukuKenuanJenjangOptions(): array
 {
-    return ['MI', 'MTS', 'MA'];
+    return jenjangPemesananOptions();
 }
 
 function bukuKenuanKelasFields(): array
@@ -250,9 +286,9 @@ function bukuKenuanKelasFields(): array
 function bukuKenuanKelasGroups(): array
 {
     return [
-        'MI' => ['kelas_iv_mi', 'kelas_v_mi', 'kelas_vi_mi'],
-        'MTS' => ['kelas_vii_mts', 'kelas_viii_mts', 'kelas_ix_mts'],
-        'MA' => ['kelas_x_ma', 'kelas_xi_ma', 'kelas_xii_ma'],
+        'MI/SD' => ['kelas_iv_mi', 'kelas_v_mi', 'kelas_vi_mi'],
+        'MTS/SMP' => ['kelas_vii_mts', 'kelas_viii_mts', 'kelas_ix_mts'],
+        'MA/SMA/SMK' => ['kelas_x_ma', 'kelas_xi_ma', 'kelas_xii_ma'],
     ];
 }
 
@@ -350,7 +386,7 @@ function validatePemesanan(array $input, string $jenis): array
 
     $needsJenjang = !empty($layanan['jenjang']) && ($layanan['tipe'] ?? '') !== 'kenuan';
     if ($needsJenjang) {
-        $jenjang = trim($input['jenjang'] ?? '');
+        $jenjang = normalizeJenjangPemesanan($input['jenjang'] ?? '');
         if ($jenjang === '' || !in_array($jenjang, $layanan['jenjang'], true)) {
             $errors[] = 'Field ' . ($layanan['jenjang_label'] ?? 'Jenjang') . ' wajib dipilih.';
         } else {
@@ -416,9 +452,9 @@ function validatePemesanan(array $input, string $jenis): array
 
         $data['jumlah'] = null;
     } elseif ($layanan['tipe'] === 'kenuan') {
-        $jenjangKenuan = trim($input['jenjang'] ?? '');
+        $jenjangKenuan = normalizeJenjangPemesanan($input['jenjang'] ?? '');
         if ($jenjangKenuan === '' || !in_array($jenjangKenuan, bukuKenuanJenjangOptions(), true)) {
-            $errors[] = 'Pilih jenjang terlebih dahulu (MI, MTS, atau MA).';
+            $errors[] = 'Pilih jenjang terlebih dahulu (MI/SD, MTS/SMP, atau MA/SMA/SMK).';
         } else {
             $data['jenjang'] = $jenjangKenuan;
         }
@@ -536,8 +572,14 @@ function loadPemesanan(string $search = '', array $filters = []): array
     }
 
     if (!empty($filters['jenjang'])) {
-        $sql .= ' AND jenjang = :jenjang';
-        $params[':jenjang'] = $filters['jenjang'];
+        $jenjangValues = jenjangPemesananFilterValues($filters['jenjang']);
+        $placeholders = [];
+        foreach ($jenjangValues as $i => $value) {
+            $key = ':jenjang_' . $i;
+            $placeholders[] = $key;
+            $params[$key] = $value;
+        }
+        $sql .= ' AND jenjang IN (' . implode(', ', $placeholders) . ')';
     }
 
     if (!empty($filters['jenis_layanan'])) {
@@ -596,7 +638,7 @@ function getPemesananDashboardStats(array $rows): array
             $stats['total_jumlah'] += getJumlahPemesanan($row);
         }
 
-        $jenjang = $row['jenjang'] ?? 'Lainnya';
+        $jenjang = normalizeJenjangPemesanan($row['jenjang'] ?? '') ?: 'Lainnya';
         $stats['jenjang'][$jenjang] = ($stats['jenjang'][$jenjang] ?? 0) + 1;
     }
 
@@ -685,7 +727,7 @@ function exportPemesananCsv(array $rows): void
             $row['nama_madrasah'] ?? '',
             $row['nama_kepala'] ?? '',
             $row['nomor_wa'] ?? '',
-            $row['jenjang'] ?? '',
+            normalizeJenjangPemesanan($row['jenjang'] ?? ''),
             getJumlahPemesanan($row),
             $row['jenis_batik'] ?? '',
             $row['satuan_jenis_1'] ?? '',
@@ -711,8 +753,3 @@ function isPemesananAdminLoggedIn(): bool
     return !empty($_SESSION['pemesanan_buku_admin']);
 }
 
-/** @deprecated */
-function jenjangPemesananOptions(): array
-{
-    return getPemesananLayanan('mopdik')['jenjang'] ?? [];
-}

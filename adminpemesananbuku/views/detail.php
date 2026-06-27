@@ -28,7 +28,7 @@ $layanan = getPemesananLayanan($jenis);
       <div><dt class="font-semibold text-gray-500">Nama Madrasah/Sekolah</dt><dd class="mt-0.5"><?= sanitize($row['nama_madrasah'] ?? '') ?></dd></div>
       <div><dt class="font-semibold text-gray-500">Nama Kepala/Kepsek</dt><dd class="mt-0.5"><?= sanitize($row['nama_kepala'] ?? '') ?></dd></div>
       <div><dt class="font-semibold text-gray-500">Nomor WA</dt><dd class="mt-0.5 text-green-700"><?= sanitize($row['nomor_wa'] ?? '') ?></dd></div>
-      <div><dt class="font-semibold text-gray-500">Jenjang</dt><dd class="mt-0.5"><?= sanitize($row['jenjang'] ?? '') ?></dd></div>
+      <div><dt class="font-semibold text-gray-500">Jenjang</dt><dd class="mt-0.5"><?= sanitize(normalizeJenjangPemesanan($row['jenjang'] ?? '')) ?></dd></div>
 
       <?php if (($layanan['tipe'] ?? '') === 'kenuan'): ?>
       <div class="sm:col-span-2">
