@@ -70,6 +70,15 @@ function ensurePemesananSchema(): void
               `ukuran_l` int(10) unsigned NOT NULL DEFAULT 0,
               `ukuran_xl` int(10) unsigned NOT NULL DEFAULT 0,
               `ukuran_xxl` int(10) unsigned NOT NULL DEFAULT 0,
+              `kelas_iv_mi` int(10) unsigned NOT NULL DEFAULT 0,
+              `kelas_v_mi` int(10) unsigned NOT NULL DEFAULT 0,
+              `kelas_vi_mi` int(10) unsigned NOT NULL DEFAULT 0,
+              `kelas_vii_mts` int(10) unsigned NOT NULL DEFAULT 0,
+              `kelas_viii_mts` int(10) unsigned NOT NULL DEFAULT 0,
+              `kelas_ix_mts` int(10) unsigned NOT NULL DEFAULT 0,
+              `kelas_x_ma` int(10) unsigned NOT NULL DEFAULT 0,
+              `kelas_xi_ma` int(10) unsigned NOT NULL DEFAULT 0,
+              `kelas_xii_ma` int(10) unsigned NOT NULL DEFAULT 0,
               `catatan` text DEFAULT NULL,
               `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
               PRIMARY KEY (`id`),
@@ -99,6 +108,15 @@ function ensurePemesananSchema(): void
         'ukuran_l' => '`ukuran_l` int(10) unsigned NOT NULL DEFAULT 0',
         'ukuran_xl' => '`ukuran_xl` int(10) unsigned NOT NULL DEFAULT 0',
         'ukuran_xxl' => '`ukuran_xxl` int(10) unsigned NOT NULL DEFAULT 0',
+        'kelas_iv_mi' => '`kelas_iv_mi` int(10) unsigned NOT NULL DEFAULT 0',
+        'kelas_v_mi' => '`kelas_v_mi` int(10) unsigned NOT NULL DEFAULT 0',
+        'kelas_vi_mi' => '`kelas_vi_mi` int(10) unsigned NOT NULL DEFAULT 0',
+        'kelas_vii_mts' => '`kelas_vii_mts` int(10) unsigned NOT NULL DEFAULT 0',
+        'kelas_viii_mts' => '`kelas_viii_mts` int(10) unsigned NOT NULL DEFAULT 0',
+        'kelas_ix_mts' => '`kelas_ix_mts` int(10) unsigned NOT NULL DEFAULT 0',
+        'kelas_x_ma' => '`kelas_x_ma` int(10) unsigned NOT NULL DEFAULT 0',
+        'kelas_xi_ma' => '`kelas_xi_ma` int(10) unsigned NOT NULL DEFAULT 0',
+        'kelas_xii_ma' => '`kelas_xii_ma` int(10) unsigned NOT NULL DEFAULT 0',
     ];
 
     foreach ($additions as $column => $definition) {
@@ -156,12 +174,9 @@ function pemesananLayananCatalog(): array
         'buku_kenuan' => [
             'label' => 'Buku Ke-NU-an',
             'title' => 'FORM PEMESANAN BUKU KE NU AN',
-            'subtitle' => 'Untuk jenjang SMP/MTs dan SLTA',
+            'subtitle' => 'Semua Jenjang — isi jumlah buku per kelas',
             'icon' => '📖',
-            'jenjang' => ['MTS/SMP', 'MA/SMA/SMK'],
-            'jenjang_label' => 'Pilih Jenjang (SMP/MTs atau SLTA)',
-            'tipe' => 'jumlah',
-            'jumlah_label' => 'Jumlah Buku',
+            'tipe' => 'kenuan',
         ],
         'buku_aswaja' => [
             'label' => 'Buku Tulis Karakter Aswaja',
@@ -212,6 +227,40 @@ function satuanBatikOptions(): array
     return ['Roll', 'Meter'];
 }
 
+function bukuKenuanKelasFields(): array
+{
+    return [
+        'kelas_iv_mi' => 'Kelas IV MI',
+        'kelas_v_mi' => 'Kelas V MI',
+        'kelas_vi_mi' => 'Kelas VI MI',
+        'kelas_vii_mts' => 'Kelas VII MTS',
+        'kelas_viii_mts' => 'Kelas VIII MTS',
+        'kelas_ix_mts' => 'Kelas IX MTS',
+        'kelas_x_ma' => 'Kelas X MA',
+        'kelas_xi_ma' => 'Kelas XI MA',
+        'kelas_xii_ma' => 'Kelas XII MA',
+    ];
+}
+
+function bukuKenuanKelasGroups(): array
+{
+    return [
+        'MI' => ['kelas_iv_mi', 'kelas_v_mi', 'kelas_vi_mi'],
+        'MTS' => ['kelas_vii_mts', 'kelas_viii_mts', 'kelas_ix_mts'],
+        'MA' => ['kelas_x_ma', 'kelas_xi_ma', 'kelas_xii_ma'],
+    ];
+}
+
+function getTotalKenuanKelas(array $row): int
+{
+    $total = 0;
+    foreach (array_keys(bukuKenuanKelasFields()) as $key) {
+        $total += max(0, (int) ($row[$key] ?? 0));
+    }
+
+    return $total;
+}
+
 function pemesananFormDefaults(string $jenis, ?array $row = null): array
 {
     $defaults = [
@@ -234,6 +283,10 @@ function pemesananFormDefaults(string $jenis, ?array $row = null): array
         'catatan' => '',
     ];
 
+    foreach (array_keys(bukuKenuanKelasFields()) as $kelasKey) {
+        $defaults[$kelasKey] = '0';
+    }
+
     if ($row === null) {
         return $defaults;
     }
@@ -243,6 +296,10 @@ function pemesananFormDefaults(string $jenis, ?array $row = null): array
 
 function getJumlahPemesanan(array $row): int
 {
+    if (($row['jenis_layanan'] ?? '') === 'buku_kenuan') {
+        return getTotalKenuanKelas($row) ?: max(0, (int) ($row['jumlah'] ?? 0));
+    }
+
     if (array_key_exists('jumlah', $row) && $row['jumlah'] !== null) {
         return max(0, (int) $row['jumlah']);
     }
@@ -286,11 +343,14 @@ function validatePemesanan(array $input, string $jenis): array
         $data['nomor_wa'] = $nomorWa;
     }
 
-    $jenjang = trim($input['jenjang'] ?? '');
-    if ($jenjang === '' || !in_array($jenjang, $layanan['jenjang'], true)) {
-        $errors[] = 'Field ' . ($layanan['jenjang_label'] ?? 'Jenjang') . ' wajib dipilih.';
-    } else {
-        $data['jenjang'] = $jenjang;
+    $needsJenjang = !empty($layanan['jenjang']) && ($layanan['tipe'] ?? '') !== 'kenuan';
+    if ($needsJenjang) {
+        $jenjang = trim($input['jenjang'] ?? '');
+        if ($jenjang === '' || !in_array($jenjang, $layanan['jenjang'], true)) {
+            $errors[] = 'Field ' . ($layanan['jenjang_label'] ?? 'Jenjang') . ' wajib dipilih.';
+        } else {
+            $data['jenjang'] = $jenjang;
+        }
     }
 
     $data['catatan'] = trim($input['catatan'] ?? '');
@@ -350,6 +410,21 @@ function validatePemesanan(array $input, string $jenis): array
         }
 
         $data['jumlah'] = null;
+    } elseif ($layanan['tipe'] === 'kenuan') {
+        $totalKelas = 0;
+        foreach (bukuKenuanKelasFields() as $key => $label) {
+            $qty = max(0, (int) ($input[$key] ?? 0));
+            $data[$key] = $qty;
+            $totalKelas += $qty;
+        }
+
+        if ($totalKelas < 1) {
+            $errors[] = 'Isi jumlah buku minimal satu kelas.';
+        } else {
+            $data['jumlah'] = $totalKelas;
+        }
+
+        $data['jenjang'] = 'Semua Jenjang';
     }
 
     return ['errors' => $errors, 'data' => $data];
@@ -369,7 +444,7 @@ function addPemesanan(array $data): bool
         'nama_kepala' => $data['nama_kepala'],
         'nomor_wa' => $data['nomor_wa'],
         'nomor_wa_norm' => $norm !== '' ? $norm : null,
-        'jenjang' => $data['jenjang'],
+        'jenjang' => $data['jenjang'] ?? null,
         'jumlah' => $data['jumlah'] ?? null,
         'jenis_batik' => $data['jenis_batik'] ?? null,
         'satuan_jenis_1' => $data['satuan_jenis_1'] ?? null,
@@ -384,6 +459,10 @@ function addPemesanan(array $data): bool
         'catatan' => ($data['catatan'] ?? '') !== '' ? $data['catatan'] : null,
     ];
 
+    foreach (array_keys(bukuKenuanKelasFields()) as $kelasKey) {
+        $row[$kelasKey] = (int) ($data[$kelasKey] ?? 0);
+    }
+
     $columns = pemesananTableColumns();
     $insert = [];
     foreach ($row as $key => $value) {
@@ -391,6 +470,9 @@ function addPemesanan(array $data): bool
             continue;
         }
         if ($value === null) {
+            continue;
+        }
+        if (str_starts_with($key, 'kelas_') && (int) $value === 0) {
             continue;
         }
         $insert[$key] = $value;
@@ -495,7 +577,7 @@ function getPemesananDashboardStats(array $rows): array
         $jenis = $row['jenis_layanan'] ?? 'mopdik';
         $stats['jenis'][$jenis] = ($stats['jenis'][$jenis] ?? 0) + 1;
 
-        if (($catalog[$jenis]['tipe'] ?? '') === 'jumlah') {
+        if (in_array($catalog[$jenis]['tipe'] ?? '', ['jumlah', 'kenuan'], true)) {
             $stats['total_jumlah'] += getJumlahPemesanan($row);
         }
 
@@ -542,6 +624,18 @@ function formatRingkasanPemesanan(array $row): string
         return $parts !== [] ? implode(' · ', $parts) : '-';
     }
 
+    if (($layanan['tipe'] ?? '') === 'kenuan') {
+        $parts = [];
+        foreach (bukuKenuanKelasFields() as $key => $label) {
+            $qty = (int) ($row[$key] ?? 0);
+            if ($qty > 0) {
+                $parts[] = $label . ': ' . $qty;
+            }
+        }
+
+        return $parts !== [] ? implode(', ', $parts) : '-';
+    }
+
     $jumlah = getJumlahPemesanan($row);
 
     return $jumlah > 0 ? $jumlah . ' ' . strtolower(str_replace('Jumlah ', '', $layanan['jumlah_label'] ?? 'item')) : '-';
@@ -561,14 +655,15 @@ function exportPemesananCsv(array $rows): void
     $output = fopen('php://output', 'w');
     fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-    fputcsv($output, [
+    $kenuanLabels = bukuKenuanKelasFields();
+    fputcsv($output, array_merge([
         'ID', 'Tanggal', 'Jenis Layanan', 'Nama Madrasah/Sekolah', 'Nama Kepala', 'Nomor WA', 'Jenjang',
-        'Jumlah', 'Jenis Batik', 'Satuan 1', 'Jml Satuan 1', 'Satuan 2', 'Jml Satuan 2',
-        'S', 'M', 'L', 'XL', 'XXL', 'Catatan',
-    ]);
+        'Jumlah Total', 'Jenis Batik', 'Satuan 1', 'Jml Satuan 1', 'Satuan 2', 'Jml Satuan 2',
+        'S', 'M', 'L', 'XL', 'XXL',
+    ], array_values($kenuanLabels), ['Catatan']));
 
     foreach ($rows as $row) {
-        fputcsv($output, [
+        fputcsv($output, array_merge([
             $row['id'] ?? '',
             $row['created_at'] ?? '',
             labelJenisLayanan($row['jenis_layanan'] ?? 'mopdik'),
@@ -576,7 +671,7 @@ function exportPemesananCsv(array $rows): void
             $row['nama_kepala'] ?? '',
             $row['nomor_wa'] ?? '',
             $row['jenjang'] ?? '',
-            $row['jumlah'] ?? '',
+            getJumlahPemesanan($row),
             $row['jenis_batik'] ?? '',
             $row['satuan_jenis_1'] ?? '',
             $row['satuan_jumlah_1'] ?? '',
@@ -587,8 +682,9 @@ function exportPemesananCsv(array $rows): void
             $row['ukuran_l'] ?? 0,
             $row['ukuran_xl'] ?? 0,
             $row['ukuran_xxl'] ?? 0,
+        ], array_map(static fn (string $key): int => (int) ($row[$key] ?? 0), array_keys($kenuanLabels)), [
             $row['catatan'] ?? '',
-        ]);
+        ]));
     }
 
     fclose($output);

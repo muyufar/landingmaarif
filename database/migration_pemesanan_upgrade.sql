@@ -17,6 +17,18 @@ SET @sql = IF(@table IS NOT NULL AND (SELECT COUNT(*) FROM INFORMATION_SCHEMA.CO
   'SELECT ''[OK] jenis_layanan'' AS status');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+-- jumlah (jika belum ada)
+SET @sql = IF(@table IS NOT NULL AND (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @db AND TABLE_NAME = @table AND COLUMN_NAME = 'jumlah') = 0,
+  CONCAT('ALTER TABLE `', @table, '` ADD COLUMN `jumlah` int(10) unsigned DEFAULT NULL'),
+  'SELECT ''[OK] jumlah'' AS status');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- jumlah boleh NULL (penting untuk pemesanan batik)
+SET @sql = IF(@table IS NOT NULL AND (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @db AND TABLE_NAME = @table AND COLUMN_NAME = 'jumlah') > 0,
+  CONCAT('ALTER TABLE `', @table, '` MODIFY COLUMN `jumlah` int(10) unsigned DEFAULT NULL'),
+  'SELECT ''[OK] skip modify jumlah'' AS status');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 -- jenis_batik
 SET @sql = IF(@table IS NOT NULL AND (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @db AND TABLE_NAME = @table AND COLUMN_NAME = 'jenis_batik') = 0,
   CONCAT('ALTER TABLE `', @table, '` ADD COLUMN `jenis_batik` varchar(150) DEFAULT NULL AFTER `jumlah`'),
@@ -42,6 +54,21 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SET @sql = IF(@table IS NOT NULL AND (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @db AND TABLE_NAME = @table AND COLUMN_NAME = 'jenis_batik') > 0,
   CONCAT('ALTER TABLE `', @table, '` MODIFY COLUMN `jenis_batik` varchar(150) DEFAULT NULL'),
   'SELECT ''[OK] skip modify jenis_batik'' AS status');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- kolom kelas Buku Ke-NU-an
+SET @sql = IF(@table IS NOT NULL AND (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @db AND TABLE_NAME = @table AND COLUMN_NAME = 'kelas_iv_mi') = 0,
+  CONCAT('ALTER TABLE `', @table, '`
+    ADD COLUMN `kelas_iv_mi` int(10) unsigned NOT NULL DEFAULT 0,
+    ADD COLUMN `kelas_v_mi` int(10) unsigned NOT NULL DEFAULT 0,
+    ADD COLUMN `kelas_vi_mi` int(10) unsigned NOT NULL DEFAULT 0,
+    ADD COLUMN `kelas_vii_mts` int(10) unsigned NOT NULL DEFAULT 0,
+    ADD COLUMN `kelas_viii_mts` int(10) unsigned NOT NULL DEFAULT 0,
+    ADD COLUMN `kelas_ix_mts` int(10) unsigned NOT NULL DEFAULT 0,
+    ADD COLUMN `kelas_x_ma` int(10) unsigned NOT NULL DEFAULT 0,
+    ADD COLUMN `kelas_xi_ma` int(10) unsigned NOT NULL DEFAULT 0,
+    ADD COLUMN `kelas_xii_ma` int(10) unsigned NOT NULL DEFAULT 0'),
+  'SELECT ''[OK] kolom kelas kenuan'' AS status');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- rename jika masih pemesanan_buku

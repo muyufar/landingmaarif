@@ -30,7 +30,22 @@ $layanan = getPemesananLayanan($jenis);
       <div><dt class="font-semibold text-gray-500">Nomor WA</dt><dd class="mt-0.5 text-green-700"><?= sanitize($row['nomor_wa'] ?? '') ?></dd></div>
       <div><dt class="font-semibold text-gray-500">Jenjang</dt><dd class="mt-0.5"><?= sanitize($row['jenjang'] ?? '') ?></dd></div>
 
-      <?php if (($layanan['tipe'] ?? '') === 'jumlah'): ?>
+      <?php if (($layanan['tipe'] ?? '') === 'kenuan'): ?>
+      <div class="sm:col-span-2">
+        <dt class="font-semibold text-gray-500 mb-2">Jumlah Buku per Kelas</dt>
+        <dd class="mt-0.5">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+            <?php foreach (bukuKenuanKelasFields() as $key => $label): ?>
+              <?php $qty = (int) ($row[$key] ?? 0); ?>
+              <?php if ($qty > 0): ?>
+                <div class="bg-green-50 rounded px-3 py-2"><span class="text-gray-600"><?= sanitize($label) ?>:</span> <strong><?= $qty ?></strong></div>
+              <?php endif; ?>
+            <?php endforeach; ?>
+          </div>
+          <p class="mt-2 font-semibold">Total: <?= getTotalKenuanKelas($row) ?> buku</p>
+        </dd>
+      </div>
+      <?php elseif (($layanan['tipe'] ?? '') === 'jumlah'): ?>
       <div><dt class="font-semibold text-gray-500"><?= sanitize($layanan['jumlah_label'] ?? 'Jumlah') ?></dt><dd class="mt-0.5 font-semibold"><?= (int) getJumlahPemesanan($row) ?></dd></div>
       <?php endif; ?>
 

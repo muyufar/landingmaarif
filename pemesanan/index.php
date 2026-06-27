@@ -144,6 +144,7 @@ function fieldValue(string $key, array $formData): string
                      class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600">
             </div>
 
+            <?php if (!empty($layanan['jenjang'])): ?>
             <fieldset>
               <legend class="block text-sm font-semibold text-gray-700 mb-3">
                 <?= sanitize(strtoupper($layanan['jenjang_label'])) ?> <span class="text-red-500">*</span>
@@ -159,6 +160,7 @@ function fieldValue(string $key, array $formData): string
                 <?php endforeach; ?>
               </div>
             </fieldset>
+            <?php endif; ?>
           </div>
 
           <?php if ($layanan['tipe'] === 'jumlah'): ?>
@@ -233,6 +235,29 @@ function fieldValue(string $key, array $formData): string
               <p class="text-xs text-gray-500 mt-2">Isi satuan Roll/Meter dan/atau jumlah ukuran baju.</p>
             </div>
           </div>
+          <?php elseif ($layanan['tipe'] === 'kenuan'): ?>
+          <?php $kelasFields = bukuKenuanKelasFields(); ?>
+          <div class="border-t border-gray-200 pt-8 space-y-6">
+            <div>
+              <p class="text-sm font-semibold text-gray-700 mb-1">JUMLAH BUKU PER KELAS <span class="text-red-500">*</span></p>
+              <p class="text-xs text-gray-500 mb-4">Isi jumlah buku minimal satu kelas.</p>
+            </div>
+            <?php foreach (bukuKenuanKelasGroups() as $groupLabel => $groupKeys): ?>
+              <div>
+                <p class="text-xs font-bold text-green-800 uppercase tracking-wide mb-3"><?= sanitize($groupLabel) ?></p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <?php foreach ($groupKeys as $key): ?>
+                    <div>
+                      <label for="<?= sanitize($key) ?>" class="block text-xs font-medium text-gray-600 mb-1"><?= sanitize($kelasFields[$key]) ?></label>
+                      <input type="number" id="<?= sanitize($key) ?>" name="<?= sanitize($key) ?>" min="0" max="9999"
+                             value="<?= fieldValue($key, $formData) ?>"
+                             class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-green-600">
+                    </div>
+                  <?php endforeach; ?>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
           <?php endif; ?>
 
           <div>
@@ -264,6 +289,18 @@ function fieldValue(string $key, array $formData): string
           if (!anyChecked) {
             e.preventDefault();
             alert('Pilih minimal satu Jenis Pemesanan Batik.');
+            return;
+          }
+        }
+        var kenuanInputs = form.querySelectorAll('input[name^="kelas_"]');
+        if (kenuanInputs.length > 0) {
+          var anyKelas = false;
+          kenuanInputs.forEach(function (input) {
+            if (parseInt(input.value || '0', 10) > 0) anyKelas = true;
+          });
+          if (!anyKelas) {
+            e.preventDefault();
+            alert('Isi jumlah buku minimal satu kelas.');
             return;
           }
         }
