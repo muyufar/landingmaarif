@@ -128,11 +128,11 @@ require_once __DIR__ . '/includes/functions.php';
         <p class="text-green-100 mt-2">Lembaga Pendidikan</p>
       </div>
       <div>
-        <h4 class="text-4xl font-bold">25.000+</h4>
+        <h4 class="text-4xl font-bold">29.000+</h4>
         <p class="text-green-100 mt-2">Peserta Didik</p>
       </div>
       <div>
-        <h4 class="text-4xl font-bold">2.500+</h4>
+        <h4 class="text-4xl font-bold">3.000+</h4>
         <p class="text-green-100 mt-2">Guru & Tenaga Kependidikan</p>
       </div>
       <div>
@@ -150,8 +150,8 @@ require_once __DIR__ . '/includes/functions.php';
       Jl. Magelang - Yogyakarta No.KM 12, Palbapang, Bojong, Kec. Mungkid, Kabupaten Magelang, Jawa Tengah 56551
       </p>
       <div class="space-y-2 text-gray-700">
-        <p>✉️ info@lpmaarifnumagelang.or.id</p>
-        <p>🌐 www.maarifnumagelang.or.id/.or.id</p>
+        <p>✉️ info@maarifnumagelang.or.id</p>
+        <p>🌐 www.maarifnumagelang.or.id</p>
       </div>
     </div>
   </section>
