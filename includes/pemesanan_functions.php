@@ -211,7 +211,6 @@ function pemesananLayananCatalog(): array
             'title' => 'FORM PEMESANAN BUKU KE NU AN',
             'subtitle' => 'Pilih jenjang lalu isi jumlah buku per kelas',
             'icon' => '📖',
-            'jenjang' => $jenjangSemua,
             'tipe' => 'kenuan',
         ],
         'buku_aswaja' => [

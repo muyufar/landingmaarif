@@ -32,8 +32,11 @@ $catalog = pemesananLayananCatalog();
         <option value="">Semua Jenjang</option>
         <?php
         $allJenjang = [];
+        foreach (jenjangPemesananOptions() as $j) {
+            $allJenjang[$j] = true;
+        }
         foreach ($catalog as $item) {
-            foreach ($item['jenjang'] as $j) {
+            foreach ($item['jenjang'] ?? [] as $j) {
                 $allJenjang[$j] = true;
             }
         }

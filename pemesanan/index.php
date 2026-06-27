@@ -144,10 +144,10 @@ function fieldValue(string $key, array $formData): string
                      class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600">
             </div>
 
-            <?php if (!empty($layanan['jenjang'])): ?>
+            <?php if (!empty($layanan['jenjang']) && ($layanan['tipe'] ?? '') !== 'kenuan'): ?>
             <fieldset>
               <legend class="block text-sm font-semibold text-gray-700 mb-3">
-                <?= sanitize(strtoupper($layanan['jenjang_label'])) ?> <span class="text-red-500">*</span>
+                <?= sanitize(strtoupper($layanan['jenjang_label'] ?? 'Jenjang')) ?> <span class="text-red-500">*</span>
               </legend>
               <div class="space-y-3">
                 <?php foreach ($layanan['jenjang'] as $opt): ?>
