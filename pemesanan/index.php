@@ -236,27 +236,46 @@ function fieldValue(string $key, array $formData): string
             </div>
           </div>
           <?php elseif ($layanan['tipe'] === 'kenuan'): ?>
-          <?php $kelasFields = bukuKenuanKelasFields(); ?>
-          <div class="border-t border-gray-200 pt-8 space-y-6">
-            <div>
-              <p class="text-sm font-semibold text-gray-700 mb-1">JUMLAH BUKU PER KELAS <span class="text-red-500">*</span></p>
-              <p class="text-xs text-gray-500 mb-4">Isi jumlah buku minimal satu kelas.</p>
-            </div>
-            <?php foreach (bukuKenuanKelasGroups() as $groupLabel => $groupKeys): ?>
-              <div>
-                <p class="text-xs font-bold text-green-800 uppercase tracking-wide mb-3"><?= sanitize($groupLabel) ?></p>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <?php foreach ($groupKeys as $key): ?>
-                    <div>
-                      <label for="<?= sanitize($key) ?>" class="block text-xs font-medium text-gray-600 mb-1"><?= sanitize($kelasFields[$key]) ?></label>
-                      <input type="number" id="<?= sanitize($key) ?>" name="<?= sanitize($key) ?>" min="0" max="9999"
-                             value="<?= fieldValue($key, $formData) ?>"
-                             class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-green-600">
-                    </div>
-                  <?php endforeach; ?>
-                </div>
+          <?php
+            $kelasFields = bukuKenuanKelasFields();
+            $selectedKenuanJenjang = in_array($formData['jenjang'] ?? '', bukuKenuanJenjangOptions(), true)
+                ? ($formData['jenjang'] ?? '')
+                : '';
+          ?>
+          <div class="border-t border-gray-200 pt-8 space-y-6" id="kenuan-form">
+            <fieldset>
+              <legend class="block text-sm font-semibold text-gray-700 mb-3">PILIH JENJANG <span class="text-red-500">*</span></legend>
+              <div class="space-y-3">
+                <?php foreach (bukuKenuanJenjangOptions() as $opt): ?>
+                  <label class="flex items-center gap-3 cursor-pointer rounded-lg border border-gray-200 px-4 py-3 hover:bg-green-50 has-[:checked]:border-green-600 has-[:checked]:bg-green-50">
+                    <input type="radio" name="jenjang" value="<?= sanitize($opt) ?>"
+                           <?= $selectedKenuanJenjang === $opt ? 'checked' : '' ?>
+                           class="kenuan-jenjang-radio text-green-700 focus:ring-green-600">
+                    <span class="font-medium"><?= sanitize($opt) ?></span>
+                  </label>
+                <?php endforeach; ?>
               </div>
-            <?php endforeach; ?>
+            </fieldset>
+
+            <div id="kenuan-kelas-panel" class="<?= $selectedKenuanJenjang !== '' ? '' : 'hidden' ?>">
+              <p class="text-sm font-semibold text-gray-700 mb-1">JUMLAH BUKU PER KELAS <span class="text-red-500">*</span></p>
+              <p class="text-xs text-gray-500 mb-4">Isi jumlah buku minimal satu kelas pada jenjang yang dipilih.</p>
+              <?php foreach (bukuKenuanKelasGroups() as $groupLabel => $groupKeys): ?>
+                <div class="kenuan-kelas-group <?= $selectedKenuanJenjang === $groupLabel ? '' : 'hidden' ?>"
+                     data-jenjang="<?= sanitize($groupLabel) ?>">
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <?php foreach ($groupKeys as $key): ?>
+                      <div>
+                        <label for="<?= sanitize($key) ?>" class="block text-xs font-medium text-gray-600 mb-1"><?= sanitize($kelasFields[$key]) ?></label>
+                        <input type="number" id="<?= sanitize($key) ?>" name="<?= sanitize($key) ?>" min="0" max="9999"
+                               value="<?= fieldValue($key, $formData) ?>"
+                               class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-green-600">
+                      </div>
+                    <?php endforeach; ?>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            </div>
           </div>
           <?php endif; ?>
 
@@ -292,12 +311,21 @@ function fieldValue(string $key, array $formData): string
             return;
           }
         }
-        var kenuanInputs = form.querySelectorAll('input[name^="kelas_"]');
-        if (kenuanInputs.length > 0) {
+        var kenuanPanel = document.getElementById('kenuan-kelas-panel');
+        if (kenuanPanel) {
+          var jenjangSelected = form.querySelector('input.kenuan-jenjang-radio:checked');
+          if (!jenjangSelected) {
+            e.preventDefault();
+            alert('Pilih jenjang terlebih dahulu (MI, MTS, atau MA).');
+            return;
+          }
+          var visibleGroup = kenuanPanel.querySelector('.kenuan-kelas-group:not(.hidden)');
           var anyKelas = false;
-          kenuanInputs.forEach(function (input) {
-            if (parseInt(input.value || '0', 10) > 0) anyKelas = true;
-          });
+          if (visibleGroup) {
+            visibleGroup.querySelectorAll('input[type="number"]').forEach(function (input) {
+              if (parseInt(input.value || '0', 10) > 0) anyKelas = true;
+            });
+          }
           if (!anyKelas) {
             e.preventDefault();
             alert('Isi jumlah buku minimal satu kelas.');
@@ -307,6 +335,31 @@ function fieldValue(string $key, array $formData): string
         var btn = form.querySelector('button[type="submit"]');
         if (btn) { btn.disabled = true; btn.textContent = 'Menyimpan...'; }
       });
+
+      var kenuanPanel = document.getElementById('kenuan-kelas-panel');
+      if (kenuanPanel) {
+        var groups = kenuanPanel.querySelectorAll('.kenuan-kelas-group');
+        var radios = form.querySelectorAll('input.kenuan-jenjang-radio');
+        function syncKenuanJenjang() {
+          var selected = '';
+          radios.forEach(function (r) { if (r.checked) selected = r.value; });
+          if (!selected) {
+            kenuanPanel.classList.add('hidden');
+            groups.forEach(function (g) { g.classList.add('hidden'); });
+            return;
+          }
+          kenuanPanel.classList.remove('hidden');
+          groups.forEach(function (g) {
+            var active = g.dataset.jenjang === selected;
+            g.classList.toggle('hidden', !active);
+            if (!active) {
+              g.querySelectorAll('input[type="number"]').forEach(function (i) { i.value = '0'; });
+            }
+          });
+        }
+        radios.forEach(function (r) { r.addEventListener('change', syncKenuanJenjang); });
+        syncKenuanJenjang();
+      }
     })();
   </script>
 </body>

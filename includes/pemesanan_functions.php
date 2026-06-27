@@ -174,7 +174,7 @@ function pemesananLayananCatalog(): array
         'buku_kenuan' => [
             'label' => 'Buku Ke-NU-an',
             'title' => 'FORM PEMESANAN BUKU KE NU AN',
-            'subtitle' => 'Semua Jenjang — isi jumlah buku per kelas',
+            'subtitle' => 'Pilih jenjang lalu isi jumlah buku per kelas',
             'icon' => '📖',
             'tipe' => 'kenuan',
         ],
@@ -225,6 +225,11 @@ function parseJenisBatikSelected(mixed $value): array
 function satuanBatikOptions(): array
 {
     return ['Roll', 'Meter'];
+}
+
+function bukuKenuanJenjangOptions(): array
+{
+    return ['MI', 'MTS', 'MA'];
 }
 
 function bukuKenuanKelasFields(): array
@@ -411,20 +416,30 @@ function validatePemesanan(array $input, string $jenis): array
 
         $data['jumlah'] = null;
     } elseif ($layanan['tipe'] === 'kenuan') {
+        $jenjangKenuan = trim($input['jenjang'] ?? '');
+        if ($jenjangKenuan === '' || !in_array($jenjangKenuan, bukuKenuanJenjangOptions(), true)) {
+            $errors[] = 'Pilih jenjang terlebih dahulu (MI, MTS, atau MA).';
+        } else {
+            $data['jenjang'] = $jenjangKenuan;
+        }
+
+        foreach (array_keys(bukuKenuanKelasFields()) as $key) {
+            $data[$key] = 0;
+        }
+
         $totalKelas = 0;
-        foreach (bukuKenuanKelasFields() as $key => $label) {
+        $groupKeys = bukuKenuanKelasGroups()[$jenjangKenuan] ?? [];
+        foreach ($groupKeys as $key) {
             $qty = max(0, (int) ($input[$key] ?? 0));
             $data[$key] = $qty;
             $totalKelas += $qty;
         }
 
-        if ($totalKelas < 1) {
-            $errors[] = 'Isi jumlah buku minimal satu kelas.';
-        } else {
+        if ($jenjangKenuan !== '' && $totalKelas < 1) {
+            $errors[] = 'Isi jumlah buku minimal satu kelas untuk jenjang ' . $jenjangKenuan . '.';
+        } elseif ($totalKelas > 0) {
             $data['jumlah'] = $totalKelas;
         }
-
-        $data['jenjang'] = 'Semua Jenjang';
     }
 
     return ['errors' => $errors, 'data' => $data];
