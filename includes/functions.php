@@ -48,11 +48,17 @@ function validatePendaftaran(array $input, ?int $excludeId = null, bool $simpleW
         $data['alat_transportasi'] = $transportResult['value'];
     }
 
-    $jenis = strtoupper(trim($input['jenis_lembaga'] ?? ''));
-    if ($jenis === '' || !in_array($jenis, jenisLembagaOptions(), true)) {
+    $jenis = trim($input['jenis_lembaga'] ?? '');
+    $jenisValid = false;
+    foreach (jenisLembagaOptions() as $opt) {
+        if (strcasecmp($jenis, $opt) === 0) {
+            $data['jenis_lembaga'] = $opt === 'Lainnya' ? 'Lainnya' : strtoupper($opt);
+            $jenisValid = true;
+            break;
+        }
+    }
+    if (!$jenisValid) {
         $errors[] = 'Field Jenis Lembaga wajib dipilih.';
-    } else {
-        $data['jenis_lembaga'] = $jenis;
     }
 
     $wilayahFields = $simpleWilayah
@@ -332,7 +338,7 @@ function defaultWilayahMagelang(): array
 
 function jenisLembagaOptions(): array
 {
-    return ['MI', 'MTS', 'MA', 'SD', 'SMP', 'SMK', 'SMA', 'SLB', 'Lainnya'];
+    return ['MI', 'MTS', 'MA', 'SD', 'SMP', 'SMK', 'SMA', 'SLB', 'Pengurus LP Maarif MWC', 'Lainnya'];
 }
 
 function jabatanOptions(): array
@@ -447,6 +453,10 @@ function parseJenisLembaga(string $asal): string
         return 'MI';
     }
 
+    if (preg_match('/\bLP\b.*\bMAARIF\b|\bMAARIF\b.*\bLP\b/i', $asal)) {
+        return 'PENGURUS LP MAARIF MWC';
+    }
+
     foreach (['SMP', 'SMK', 'SMA', 'MTS', 'SLB', 'MI', 'MA', 'SD'] as $type) {
         if ($token === $type) {
             return $type;
@@ -458,9 +468,13 @@ function parseJenisLembaga(string $asal): string
 
 function resolveJenisLembaga(string $asal, string $explicit = ''): string
 {
-    $explicit = strtoupper(trim($explicit));
-    if ($explicit !== '' && in_array($explicit, jenisLembagaOptions(), true)) {
-        return $explicit;
+    $explicit = trim($explicit);
+    if ($explicit !== '') {
+        foreach (jenisLembagaOptions() as $opt) {
+            if (strcasecmp($explicit, $opt) === 0) {
+                return $opt === 'Lainnya' ? 'Lainnya' : strtoupper($opt);
+            }
+        }
     }
 
     return parseJenisLembaga($asal);

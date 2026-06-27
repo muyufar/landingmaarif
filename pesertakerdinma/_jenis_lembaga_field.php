@@ -12,8 +12,8 @@ $selected = $formData['jenis_lembaga'] ?? '';
           class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 bg-white text-sm">
     <option value="">-- Pilih Jenis Lembaga --</option>
     <?php foreach ($jenisOptions as $opt): ?>
-      <option value="<?= sanitize($opt) ?>" <?= $selected === $opt ? 'selected' : '' ?>><?= sanitize($opt) ?></option>
+      <option value="<?= sanitize($opt) ?>" <?= strcasecmp((string) $selected, $opt) === 0 ? 'selected' : '' ?>><?= sanitize($opt) ?></option>
     <?php endforeach; ?>
   </select>
-  <p class="text-xs text-gray-500 mt-1">Contoh: MI, MTS, MA, SD, SMP, SMK, SMA, SLB</p>
+  <p class="text-xs text-gray-500 mt-1">Contoh: MI, MTS, MA, SD, SMP, SMK, SMA, SLB, Pengurus LP Maarif MWC</p>
 </div>

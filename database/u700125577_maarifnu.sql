@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS `peserta_rakerdinma` (
   `tanggal_lahir` date NOT NULL,
   `jabatan` varchar(150) NOT NULL,
   `asal_lembaga` varchar(255) NOT NULL,
-  `jenis_lembaga` varchar(20) DEFAULT NULL,
+  `jenis_lembaga` varchar(50) DEFAULT NULL,
   `alamat_lembaga` text NOT NULL,
   `kode_provinsi` varchar(2) DEFAULT NULL,
   `nama_provinsi` varchar(100) DEFAULT NULL,
