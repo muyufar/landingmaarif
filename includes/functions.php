@@ -59,6 +59,8 @@ function validatePendaftaran(array $input, ?int $excludeId = null, bool $simpleW
         ? [
             'kode_kecamatan' => 'Kecamatan',
             'nama_kecamatan' => 'Kecamatan',
+            'kode_kelurahan' => 'Desa/Kelurahan',
+            'nama_kelurahan' => 'Desa/Kelurahan',
         ]
         : [
             'kode_provinsi' => 'Provinsi',
@@ -84,11 +86,6 @@ function validatePendaftaran(array $input, ?int $excludeId = null, bool $simpleW
             continue;
         }
         $data[$field] = $value;
-    }
-
-    if ($simpleWilayah) {
-        $data['kode_kelurahan'] = trim($input['kode_kelurahan'] ?? '');
-        $data['nama_kelurahan'] = trim($input['nama_kelurahan'] ?? '');
     }
 
     $data['alamat_detail'] = trim($input['alamat_detail'] ?? '');
