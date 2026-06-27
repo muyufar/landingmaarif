@@ -1,0 +1,28 @@
+-- Tabel pemesanan unified (fresh install)
+CREATE TABLE IF NOT EXISTS `pemesanan` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `jenis_layanan` varchar(30) NOT NULL DEFAULT 'mopdik',
+  `nama_madrasah` varchar(200) NOT NULL,
+  `nama_kepala` varchar(150) NOT NULL,
+  `nomor_wa` varchar(30) NOT NULL,
+  `nomor_wa_norm` varchar(20) DEFAULT NULL,
+  `jenjang` varchar(30) DEFAULT NULL,
+  `jumlah` int(10) unsigned DEFAULT NULL,
+  `jenis_batik` varchar(150) DEFAULT NULL,
+  `satuan_jenis_1` varchar(20) DEFAULT NULL,
+  `satuan_jumlah_1` int(10) unsigned DEFAULT NULL,
+  `satuan_jenis_2` varchar(20) DEFAULT NULL,
+  `satuan_jumlah_2` int(10) unsigned DEFAULT NULL,
+  `ukuran_s` int(10) unsigned NOT NULL DEFAULT 0,
+  `ukuran_m` int(10) unsigned NOT NULL DEFAULT 0,
+  `ukuran_l` int(10) unsigned NOT NULL DEFAULT 0,
+  `ukuran_xl` int(10) unsigned NOT NULL DEFAULT 0,
+  `ukuran_xxl` int(10) unsigned NOT NULL DEFAULT 0,
+  `catatan` text DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_jenis_layanan` (`jenis_layanan`),
+  KEY `idx_jenjang` (`jenjang`),
+  KEY `idx_created_at` (`created_at`),
+  KEY `idx_nomor_wa_norm` (`nomor_wa_norm`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

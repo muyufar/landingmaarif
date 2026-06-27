@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/functions.php';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -28,6 +28,7 @@ require_once __DIR__ . '/includes/config.php';
         <a href="#beranda" class="hover:text-yellow-300">Beranda</a>
         <a href="#tentang" class="hover:text-yellow-300">Tentang</a>
         <a href="#program" class="hover:text-yellow-300">Program</a>
+        <a href="<?= url('dashboard') ?>" class="hover:text-yellow-300">Layanan Online</a>
         <a href="#kontak" class="hover:text-yellow-300">Kontak</a>
       </nav>
     </div>
@@ -45,9 +46,9 @@ require_once __DIR__ . '/includes/config.php';
           melalui madrasah dan sekolah yang unggul, religius, dan berdaya saing.
         </p>
         <div class="flex flex-col sm:flex-row gap-4">
-          <a href="#tentang"
+          <a href="<?= url('dashboard') ?>"
              class="inline-block text-center bg-yellow-400 hover:bg-yellow-500 text-green-900 font-semibold px-6 py-3 rounded-full shadow-lg transition">
-            Pelajari Lebih Lanjut
+            Layanan Online
           </a>
           <a href="<?= url('rakerdinma') ?>"
              class="inline-block text-center bg-white hover:bg-green-50 text-green-800 font-semibold px-6 py-3 rounded-full shadow-lg transition border-2 border-white">
@@ -84,6 +85,14 @@ require_once __DIR__ . '/includes/config.php';
       </div>
 
       <div class="grid md:grid-cols-3 gap-8">
+        <a href="<?= url('pemesanan') ?>" class="bg-white p-8 rounded-2xl shadow hover:shadow-lg transition block">
+          <div class="text-4xl mb-4">📖</div>
+          <h4 class="text-xl font-semibold mb-3">Pemesanan Layanan</h4>
+          <p class="text-gray-600">
+            MOPDIK, Batik Ma'arif, Buku Ke-NU-an, dan Buku Tulis Karakter Aswaja.
+          </p>
+        </a>
+
         <div class="bg-white p-8 rounded-2xl shadow hover:shadow-lg transition">
           <div class="text-4xl mb-4">📚</div>
           <h4 class="text-xl font-semibold mb-3">Peningkatan Mutu Pendidikan</h4>
