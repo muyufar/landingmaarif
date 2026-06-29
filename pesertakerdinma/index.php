@@ -89,8 +89,15 @@ if (isAdminLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['
     }
 }
 
-if (isAdminLoggedIn() && isset($_GET['export']) && $_GET['export'] === 'csv') {
-    exportCsv(loadPeserta());
+if (isAdminLoggedIn() && isset($_GET['export']) && $_GET['export'] === 'xls') {
+    $search = trim($_GET['q'] ?? '');
+    $filters = [
+        'kecamatan' => trim($_GET['kecamatan'] ?? ''),
+        'jabatan' => trim($_GET['jabatan'] ?? ''),
+        'transportasi' => trim($_GET['transportasi'] ?? ''),
+        'jenis_lembaga' => trim($_GET['jenis_lembaga'] ?? ''),
+    ];
+    exportXls(loadPeserta($search, $filters));
 }
 
 if (isset($_GET['deleted'])) {

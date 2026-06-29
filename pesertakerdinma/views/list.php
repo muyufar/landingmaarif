@@ -3,6 +3,15 @@
 declare(strict_types=1);
 
 /** @var array $peserta @var array $filterOptions @var array $filters @var string $search */
+
+$exportQuery = http_build_query(array_filter([
+    'export' => 'xls',
+    'q' => $search,
+    'kecamatan' => $filters['kecamatan'] ?? '',
+    'jabatan' => $filters['jabatan'] ?? '',
+    'transportasi' => $filters['transportasi'] ?? '',
+    'jenis_lembaga' => $filters['jenis_lembaga'] ?? '',
+], static fn (string $value): bool => $value !== ''));
 ?>
 <style>
   @media (min-width: 1280px) {
@@ -25,8 +34,8 @@ declare(strict_types=1);
       <div class="flex flex-wrap gap-2">
         <a href="<?= url('pesertakerdinma/?page=form') ?>"
            class="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg text-sm font-medium">+ Tambah Peserta</a>
-        <a href="<?= url('pesertakerdinma/?export=csv') ?>"
-           class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Export CSV</a>
+        <a href="<?= url('pesertakerdinma/?' . $exportQuery) ?>"
+           class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Export XLS</a>
       </div>
     </div>
 

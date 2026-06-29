@@ -707,56 +707,69 @@ function requireAdmin(): void
     }
 }
 
-function exportCsv(array $peserta): void
+function exportXls(array $peserta): void
 {
-    header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="peserta_rakerdinma_' . date('Y-m-d') . '.csv"');
+    $filename = 'peserta_rakerdinma_' . date('Y-m-d_His') . '.xls';
 
-    $output = fopen('php://output', 'w');
-    fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+    header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: max-age=0');
 
-    fputcsv($output, [
+    echo "\xEF\xBB\xBF";
+    echo '<html><head><meta charset="UTF-8"></head><body>';
+    echo '<table border="1">';
+    echo '<tr>';
+    foreach ([
         'No',
         'Tanggal Daftar',
         'Nama',
-        'NIP',
         'Nomor WA',
+        'NIP',
         'Tempat Lahir',
         'Tanggal Lahir',
-        'Jabatan',
         'Jenis Lembaga',
-        'Asal Lembaga',
-        'Alamat Detail',
-        'Kelurahan/Desa',
+        'Jabatan',
+        'Lembaga',
+        'Alamat',
         'Kecamatan',
-        'Kabupaten/Kota',
-        'Provinsi',
-        'Alamat Lembaga (Lengkap)',
-        'Alat Transportasi',
-    ]);
+        'Kabupaten',
+        'Transportasi',
+    ] as $header) {
+        echo '<th>' . htmlspecialchars($header, ENT_QUOTES, 'UTF-8') . '</th>';
+    }
+    echo '</tr>';
 
     foreach ($peserta as $index => $row) {
-        fputcsv($output, [
-            $index + 1,
+        $jenis = $row['jenis_lembaga'] ?? parseJenisLembaga($row['asal_lembaga'] ?? '');
+        $cells = [
+            (string) ($index + 1),
             $row['created_at'] ?? '',
             $row['nama'] ?? '',
-            $row['nip'] ?? '',
             $row['nomor_wa'] ?? '',
+            $row['nip'] ?? '',
             $row['tempat_lahir'] ?? '',
             $row['tanggal_lahir'] ?? '',
+            $jenis,
             $row['jabatan'] ?? '',
-            $row['jenis_lembaga'] ?? parseJenisLembaga($row['asal_lembaga'] ?? ''),
             $row['asal_lembaga'] ?? '',
-            $row['alamat_detail'] ?? '',
-            $row['nama_kelurahan'] ?? '',
+            $row['alamat_detail'] ?? $row['alamat_lembaga'] ?? '',
             $row['nama_kecamatan'] ?? '',
             $row['nama_kabupaten'] ?? '',
-            $row['nama_provinsi'] ?? '',
-            $row['alamat_lembaga'] ?? '',
             $row['alat_transportasi'] ?? '',
-        ]);
+        ];
+
+        echo '<tr>';
+        foreach ($cells as $i => $cell) {
+            $escaped = htmlspecialchars((string) $cell, ENT_QUOTES, 'UTF-8');
+            if (in_array($i, [3, 4], true)) {
+                echo '<td style="mso-number-format:\'\\@\';">' . $escaped . '</td>';
+            } else {
+                echo '<td>' . $escaped . '</td>';
+            }
+        }
+        echo '</tr>';
     }
 
-    fclose($output);
+    echo '</table></body></html>';
     exit;
 }
