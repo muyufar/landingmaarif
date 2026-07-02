@@ -187,11 +187,11 @@ function sertifikatDrawNomorFixLayout(
         $nomorSize,
         sertifikatNomorTeks($peserta),
         $centerX,
-        (int) round(985 * $scaleY),
+        (int) round(SERTIFIKAT_Y_NOMOR * $scaleY),
         $black
     );
 
-    $maxNameWidth = (int) round(3300 * $scaleX);
+    $maxNameWidth = (int) round(SERTIFIKAT_MAX_TEXT_WIDTH * $scaleX);
     $nameSize = sertifikatFitFontSizePt(
         $fontPlayfair,
         $nama,
@@ -200,9 +200,17 @@ function sertifikatDrawNomorFixLayout(
         $scaleY,
         $maxNameWidth
     );
-    sertifikatDrawCenteredText($image, $fontPlayfair, $nameSize, $nama, $centerX, (int) round(1435 * $scaleY), $green);
+    sertifikatDrawCenteredText(
+        $image,
+        $fontPlayfair,
+        $nameSize,
+        $nama,
+        $centerX,
+        (int) round(SERTIFIKAT_Y_NAMA * $scaleY),
+        $green
+    );
 
-    $maxLembagaWidth = (int) round(3300 * $scaleX);
+    $maxLembagaWidth = (int) round(SERTIFIKAT_MAX_TEXT_WIDTH * $scaleX);
     $lembagaSize = sertifikatFitFontSizePt(
         $fontTermes,
         $lembaga,
@@ -211,7 +219,15 @@ function sertifikatDrawNomorFixLayout(
         $scaleY,
         $maxLembagaWidth
     );
-    sertifikatDrawCenteredText($image, $fontTermes, $lembagaSize, $lembaga, $centerX, (int) round(1568 * $scaleY), $black);
+    sertifikatDrawCenteredText(
+        $image,
+        $fontTermes,
+        $lembagaSize,
+        $lembaga,
+        $centerX,
+        (int) round(SERTIFIKAT_Y_LEMBAGA * $scaleY),
+        $black
+    );
 }
 
 function generateSertifikatImage(array $peserta): \GdImage
@@ -248,47 +264,7 @@ function generateSertifikatImage(array $peserta): \GdImage
     $green = imagecolorallocate($image, 0, 77, 0);
     $black = imagecolorallocate($image, 0, 0, 0);
 
-    if (sertifikatUsesNomorFixTemplate()) {
-        sertifikatDrawNomorFixLayout($image, $peserta, $centerX, $scaleX, $scaleY, $green, $black);
-    } else {
-        $fontBold = sertifikatFontBold();
-        $fontRegular = sertifikatFontRegular();
-        $fontPlayfair = is_file(sertifikatFontPlayfair()) ? sertifikatFontPlayfair() : $fontBold;
-        $fontTermes = is_file(sertifikatFontTermes()) ? sertifikatFontTermes() : $fontBold;
-        $fontNomor = is_file(sertifikatFontPoppins()) ? sertifikatFontPoppins() : $fontRegular;
-
-        sertifikatDrawCenteredText(
-            $image,
-            $fontNomor,
-            sertifikatScaleFontPt(SERTIFIKAT_NOMOR_FONT_PT, $scaleY),
-            sertifikatNomorTeks($peserta),
-            $centerX,
-            (int) round(1125 * $scaleY),
-            $black
-        );
-
-        $maxNameWidth = (int) round(3300 * $scaleX);
-        $nameSize = sertifikatFitFontSizePt(
-            $fontPlayfair,
-            $nama,
-            SERTIFIKAT_NAMA_FONT_PT,
-            SERTIFIKAT_NAMA_FONT_MIN_PT,
-            $scaleY,
-            $maxNameWidth
-        );
-        sertifikatDrawCenteredText($image, $fontPlayfair, $nameSize, $nama, $centerX, (int) round(1735 * $scaleY), $green);
-
-        $maxLembagaWidth = (int) round(3300 * $scaleX);
-        $lembagaSize = sertifikatFitFontSizePt(
-            $fontTermes,
-            $lembaga,
-            SERTIFIKAT_LEMBAGA_FONT_PT,
-            SERTIFIKAT_LEMBAGA_FONT_MIN_PT,
-            $scaleY,
-            $maxLembagaWidth
-        );
-        sertifikatDrawCenteredText($image, $fontTermes, $lembagaSize, $lembaga, $centerX, (int) round(1868 * $scaleY), $black);
-    }
+    sertifikatDrawNomorFixLayout($image, $peserta, $centerX, $scaleX, $scaleY, $green, $black);
 
     return $image;
 }

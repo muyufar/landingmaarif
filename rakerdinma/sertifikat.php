@@ -121,7 +121,13 @@ function fieldValue(string $value): string
             <div>
               <p class="text-sm font-semibold text-gray-700 mb-3">Pratinjau Sertifikat</p>
               <div class="rounded-xl border border-gray-200 bg-gray-50 p-3 sm:p-4 overflow-hidden">
-                <img src="<?= url('rakerdinma/sertifikat?preview=1') ?>"
+                <?php
+                  $certVersion = max(
+                      (int) @filemtime(dirname(__DIR__) . '/includes/certificate.php'),
+                      (int) @filemtime(dirname(__DIR__) . '/includes/config.php')
+                  );
+                ?>
+                <img src="<?= url('rakerdinma/sertifikat?preview=1&v=' . $certVersion) ?>"
                      alt="Pratinjau sertifikat <?= fieldValue($peserta['nama']) ?>"
                      class="w-full h-auto rounded-lg shadow-md border border-gray-200 bg-white">
               </div>
