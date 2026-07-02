@@ -21,7 +21,7 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
-if (isset($_GET['download'])) {
+if (isset($_GET['download']) || isset($_GET['preview'])) {
     $pesertaId = (int) ($_SESSION[SERTIFIKAT_SESSION_KEY] ?? 0);
     if ($pesertaId < 1) {
         header('Location: ' . url('rakerdinma/sertifikat'));
@@ -41,7 +41,7 @@ if (isset($_GET['download'])) {
         exit;
     }
 
-    outputSertifikatPng($peserta, true);
+    outputSertifikatPng($peserta, isset($_GET['download']));
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -93,7 +93,7 @@ function fieldValue(string $value): string
     </div>
   </header>
 
-  <main class="max-w-3xl mx-auto px-6 py-10">
+  <main class="max-w-5xl mx-auto px-6 py-10">
     <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-green-100">
       <div class="bg-green-700 text-white px-8 py-6">
         <h2 class="text-xl md:text-2xl font-bold leading-snug">Download Sertifikat RAKERDINMA 2026</h2>
@@ -107,13 +107,24 @@ function fieldValue(string $value): string
             <p class="text-sm">Pastikan ekstensi PHP GD aktif dan file template/font tersedia di server.</p>
           </div>
         <?php elseif ($peserta !== null): ?>
-          <div class="rounded-xl bg-green-50 border border-green-200 px-6 py-6 text-green-900 space-y-4">
-            <div>
+          <div class="space-y-6">
+            <div class="rounded-xl bg-green-50 border border-green-200 px-6 py-5 text-green-900">
               <p class="text-sm text-green-700 mb-1">Data peserta ditemukan:</p>
               <p class="text-xl font-bold"><?= fieldValue($peserta['nama']) ?></p>
               <p class="text-sm mt-1"><?= fieldValue($peserta['asal_lembaga']) ?></p>
               <p class="text-xs text-green-700 mt-2">WA: <?= fieldValue($peserta['nomor_wa']) ?></p>
             </div>
+
+            <div>
+              <p class="text-sm font-semibold text-gray-700 mb-3">Pratinjau Sertifikat</p>
+              <div class="rounded-xl border border-gray-200 bg-gray-50 p-3 sm:p-4 overflow-hidden">
+                <img src="<?= url('rakerdinma/sertifikat?preview=1') ?>"
+                     alt="Pratinjau sertifikat <?= fieldValue($peserta['nama']) ?>"
+                     class="w-full h-auto rounded-lg shadow-md border border-gray-200 bg-white">
+              </div>
+              <p class="text-xs text-gray-500 mt-2">Periksa nama dan asal lembaga. Jika sudah benar, unduh sertifikat di bawah.</p>
+            </div>
+
             <div class="flex flex-col sm:flex-row gap-3">
               <a href="<?= url('rakerdinma/sertifikat?download=1') ?>"
                  class="inline-flex items-center justify-center bg-green-700 hover:bg-green-800 text-white font-semibold px-6 py-3 rounded-xl shadow transition">
@@ -148,7 +159,7 @@ function fieldValue(string $value): string
             </div>
             <button type="submit"
                     class="w-full bg-green-700 hover:bg-green-800 text-white font-semibold px-6 py-4 rounded-xl shadow transition">
-              Cari &amp; Download Sertifikat
+              Cari Sertifikat
             </button>
           </form>
         <?php endif; ?>
