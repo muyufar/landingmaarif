@@ -161,7 +161,7 @@ function sertifikatNomorUrut(array $peserta): int
 
 function sertifikatNomorTeks(array $peserta): string
 {
-    return formatNomorSertifikat(sertifikatNomorUrut($peserta));
+    return 'Nomor : ' . formatNomorSertifikat(sertifikatNomorUrut($peserta));
 }
 
 function sertifikatDrawNomorFixLayout(
@@ -200,7 +200,7 @@ function sertifikatDrawNomorFixLayout(
         $scaleY,
         $maxNameWidth
     );
-    sertifikatDrawCenteredText($image, $fontPlayfair, $nameSize, $nama, $centerX, (int) round(1355 * $scaleY), $green);
+    sertifikatDrawCenteredText($image, $fontPlayfair, $nameSize, $nama, $centerX, (int) round(1385 * $scaleY), $green);
 
     $maxLembagaWidth = (int) round(3300 * $scaleX);
     $lembagaSize = sertifikatFitFontSizePt(
@@ -211,7 +211,7 @@ function sertifikatDrawNomorFixLayout(
         $scaleY,
         $maxLembagaWidth
     );
-    sertifikatDrawCenteredText($image, $fontTermes, $lembagaSize, $lembaga, $centerX, (int) round(1455 * $scaleY), $black);
+    sertifikatDrawCenteredText($image, $fontTermes, $lembagaSize, $lembaga, $centerX, (int) round(1520 * $scaleY), $black);
 }
 
 function generateSertifikatImage(array $peserta): \GdImage
@@ -276,7 +276,7 @@ function generateSertifikatImage(array $peserta): \GdImage
             $scaleY,
             $maxNameWidth
         );
-        sertifikatDrawCenteredText($image, $fontPlayfair, $nameSize, $nama, $centerX, (int) round(1460 * $scaleY), $green);
+        sertifikatDrawCenteredText($image, $fontPlayfair, $nameSize, $nama, $centerX, (int) round(1385 * $scaleY), $green);
 
         $maxLembagaWidth = (int) round(3300 * $scaleX);
         $lembagaSize = sertifikatFitFontSizePt(
@@ -287,7 +287,7 @@ function generateSertifikatImage(array $peserta): \GdImage
             $scaleY,
             $maxLembagaWidth
         );
-        sertifikatDrawCenteredText($image, $fontTermes, $lembagaSize, $lembaga, $centerX, (int) round(1590 * $scaleY), $black);
+        sertifikatDrawCenteredText($image, $fontTermes, $lembagaSize, $lembaga, $centerX, (int) round(1520 * $scaleY), $black);
     }
 
     return $image;

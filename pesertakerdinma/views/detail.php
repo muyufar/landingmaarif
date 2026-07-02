@@ -21,7 +21,7 @@ $umur = hitungUmur($row['tanggal_lahir'] ?? '');
     </div>
   </div>
   <dl class="px-6 py-6 grid sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
-    <div><dt class="font-semibold text-gray-500">Nomor Sertifikat</dt><dd class="mt-0.5 font-medium text-green-800"><?= sanitize(formatNomorSertifikat(getNomorSertifikatPeserta((int) $row['id']))) ?></dd></div>
+      <div><dt class="font-semibold text-gray-500">Nomor Sertifikat</dt><dd class="mt-0.5 font-medium text-green-800"><?= sanitize('Nomor : ' . formatNomorSertifikat(getNomorSertifikatPeserta((int) $row['id']))) ?></dd></div>
     <div><dt class="font-semibold text-gray-500">Nama</dt><dd class="mt-0.5 font-medium"><?= sanitize($row['nama'] ?? '') ?></dd></div>
     <div><dt class="font-semibold text-gray-500">NIP</dt><dd class="mt-0.5"><?= sanitize($row['nip'] ?? '-') ?></dd></div>
     <div><dt class="font-semibold text-gray-500">Nomor WA</dt><dd class="mt-0.5 text-green-700 font-medium"><?= sanitize($row['nomor_wa'] ?? '') ?></dd></div>

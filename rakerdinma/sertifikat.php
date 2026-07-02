@@ -113,7 +113,7 @@ function fieldValue(string $value): string
               <p class="text-xl font-bold"><?= fieldValue($peserta['nama']) ?></p>
               <p class="text-sm mt-1"><?= fieldValue($peserta['asal_lembaga']) ?></p>
               <p class="text-xs text-green-700 mt-2">
-                Nomor Sertifikat: <span class="font-semibold"><?= fieldValue(formatNomorSertifikat(getNomorSertifikatPeserta((int) $peserta['id']))) ?></span>
+                Nomor Sertifikat: <span class="font-semibold"><?= fieldValue(sertifikatNomorTeks($peserta)) ?></span>
               </p>
               <p class="text-xs text-green-700">WA: <?= fieldValue($peserta['nomor_wa']) ?></p>
             </div>
