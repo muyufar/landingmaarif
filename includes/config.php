@@ -44,7 +44,7 @@ define('SERTIFIKAT_DESIGN_HEIGHT', 794);
 /** Posisi teks sertifikat (template 4750×3359 px). Angka lebih besar = lebih ke bawah. */
 define('SERTIFIKAT_Y_NOMOR', 985);
 define('SERTIFIKAT_Y_NAMA', 1535);
-define('SERTIFIKAT_Y_LEMBAGA', 1668);
+define('SERTIFIKAT_Y_LEMBAGA', 1730);
 define('SERTIFIKAT_MAX_TEXT_WIDTH', 3300);
 
 function basePath(): string
