@@ -3,11 +3,16 @@
 declare(strict_types=1);
 
 /**
- * Generate RAKERDINMA certificate PNG from template + participant data.
+ * Generate RAKERDINMA certificate PNG from blank template + participant data.
  */
 
 function sertifikatTemplatePath(): string
 {
+    $blank = APP_ROOT . '/image/sertifkosongan.png';
+    if (is_file($blank)) {
+        return $blank;
+    }
+
     return APP_ROOT . '/image/sertifmaarif.png';
 }
 
@@ -81,37 +86,6 @@ function sertifikatDrawCenteredText(
     imagettftext($image, $size, 0, $x, $baselineY, $color, $font, $text);
 }
 
-function sertifikatDrawCenteredTextWithUnderline(
-    \GdImage $image,
-    string $font,
-    int $size,
-    string $text,
-    int $centerX,
-    int $baselineY,
-    int $color,
-    int $paddingX = 40,
-    int $lineGap = 18
-): void {
-    sertifikatDrawCenteredText($image, $font, $size, $text, $centerX, $baselineY, $color);
-
-    $metrics = sertifikatMeasureText($font, $size, $text);
-    $textX = (int) round($centerX - ($metrics['width'] / 2));
-    $lineY = $baselineY + $lineGap;
-    imageline(
-        $image,
-        $textX - $paddingX,
-        $lineY,
-        $textX + $metrics['width'] + $paddingX,
-        $lineY,
-        $color
-    );
-}
-
-function sertifikatPatchBackground(\GdImage $image, int $destX, int $destY, int $width, int $height, int $sourceY): void
-{
-    imagecopy($image, $image, $destX, $destY, $destX, $sourceY, $width, $height);
-}
-
 function generateSertifikatImage(array $peserta): \GdImage
 {
     if (!sertifikatCanGenerate()) {
@@ -139,40 +113,23 @@ function generateSertifikatImage(array $peserta): \GdImage
         throw new RuntimeException('Data peserta tidak lengkap untuk sertifikat.');
     }
 
-    // Koordinat relatif terhadap template 4750×3359 px
+    // Koordinat relatif terhadap template 4750×3359 px (sertifkosongan.png)
     $scaleX = $width / 4750;
     $scaleY = $height / 3359;
-
-    $patchX = (int) round(520 * $scaleX);
-    $patchY = (int) round(1450 * $scaleY);
-    $patchW = (int) round(3710 * $scaleX);
-    $patchH = (int) round(520 * $scaleY);
-    $patchSourceY = (int) round(1320 * $scaleY);
-    sertifikatPatchBackground($image, $patchX, $patchY, $patchW, $patchH, $patchSourceY);
 
     $green = imagecolorallocate($image, 0, 77, 0);
     $black = imagecolorallocate($image, 0, 0, 0);
 
     $fontBold = sertifikatFontBold();
     $maxNameWidth = (int) round(3400 * $scaleX);
-    $nameSize = sertifikatFitFontSize($fontBold, $nama, (int) round(130 * $scaleY), (int) round(72 * $scaleY), $maxNameWidth);
-    $nameBaseline = (int) round(1610 * $scaleY);
+    $nameSize = sertifikatFitFontSize($fontBold, $nama, (int) round(120 * $scaleY), (int) round(64 * $scaleY), $maxNameWidth);
+    $nameBaseline = (int) round(1580 * $scaleY);
     sertifikatDrawCenteredText($image, $fontBold, $nameSize, $nama, $centerX, $nameBaseline, $green);
 
-    $maxLembagaWidth = (int) round(3000 * $scaleX);
-    $lembagaSize = sertifikatFitFontSize($fontBold, $lembaga, (int) round(82 * $scaleY), (int) round(48 * $scaleY), $maxLembagaWidth);
-    $lembagaBaseline = (int) round(1835 * $scaleY);
-    sertifikatDrawCenteredTextWithUnderline(
-        $image,
-        $fontBold,
-        $lembagaSize,
-        $lembaga,
-        $centerX,
-        $lembagaBaseline,
-        $black,
-        (int) round(24 * $scaleX),
-        (int) round(14 * $scaleY)
-    );
+    $maxLembagaWidth = (int) round(3200 * $scaleX);
+    $lembagaSize = sertifikatFitFontSize($fontBold, $lembaga, (int) round(78 * $scaleY), (int) round(44 * $scaleY), $maxLembagaWidth);
+    $lembagaBaseline = (int) round(1760 * $scaleY);
+    sertifikatDrawCenteredText($image, $fontBold, $lembagaSize, $lembaga, $centerX, $lembagaBaseline, $black);
 
     return $image;
 }
