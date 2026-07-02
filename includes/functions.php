@@ -320,6 +320,33 @@ function getPesertaByNomorWa(string $nomorWa): ?array
     return null;
 }
 
+function getNomorSertifikatPeserta(int $pesertaId): int
+{
+    if ($pesertaId < 1) {
+        return SERTIFIKAT_NOMOR_AWAL;
+    }
+
+    $pdo = getDb();
+    $stmt = $pdo->prepare(
+        'SELECT ' . (int) SERTIFIKAT_NOMOR_AWAL . ' + (
+            SELECT COUNT(*)
+            FROM peserta_rakerdinma p2
+            INNER JOIN peserta_rakerdinma p1 ON p1.id = :id
+            WHERE p2.created_at < p1.created_at
+               OR (p2.created_at = p1.created_at AND p2.id < p1.id)
+         ) AS nomor_sertifikat'
+    );
+    $stmt->execute([':id' => $pesertaId]);
+    $nomor = (int) $stmt->fetchColumn();
+
+    return $nomor > 0 ? $nomor : SERTIFIKAT_NOMOR_AWAL;
+}
+
+function formatNomorSertifikat(int $nomor): string
+{
+    return $nomor . SERTIFIKAT_NOMOR_SUFFIX;
+}
+
 function updatePeserta(int $id, array $data): bool
 {
     $pdo = getDb();

@@ -32,6 +32,9 @@ define('DOKUMENTASI_DRIVE_FOLDER_ID', '1TqAjnj15HB-ZLUBCRduRB8ekLyBNCdAW');
 define('DOKUMENTASI_DRIVE_FOLDER_URL', 'https://drive.google.com/drive/folders/1TqAjnj15HB-ZLUBCRduRB8ekLyBNCdAW?usp=sharing');
 define('DOKUMENTASI_JUDUL', 'Dokumentasi Acara RAKERDINMA 2026');
 
+define('SERTIFIKAT_NOMOR_AWAL', 3210);
+define('SERTIFIKAT_NOMOR_SUFFIX', '/PC.LPM/E.12/VI/2026');
+
 function basePath(): string
 {
     static $path = null;

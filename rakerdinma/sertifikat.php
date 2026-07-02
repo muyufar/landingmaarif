@@ -112,7 +112,10 @@ function fieldValue(string $value): string
               <p class="text-sm text-green-700 mb-1">Data peserta ditemukan:</p>
               <p class="text-xl font-bold"><?= fieldValue($peserta['nama']) ?></p>
               <p class="text-sm mt-1"><?= fieldValue($peserta['asal_lembaga']) ?></p>
-              <p class="text-xs text-green-700 mt-2">WA: <?= fieldValue($peserta['nomor_wa']) ?></p>
+              <p class="text-xs text-green-700 mt-2">
+                Nomor Sertifikat: <span class="font-semibold"><?= fieldValue(formatNomorSertifikat(getNomorSertifikatPeserta((int) $peserta['id']))) ?></span>
+              </p>
+              <p class="text-xs text-green-700">WA: <?= fieldValue($peserta['nomor_wa']) ?></p>
             </div>
 
             <div>
@@ -122,7 +125,7 @@ function fieldValue(string $value): string
                      alt="Pratinjau sertifikat <?= fieldValue($peserta['nama']) ?>"
                      class="w-full h-auto rounded-lg shadow-md border border-gray-200 bg-white">
               </div>
-              <p class="text-xs text-gray-500 mt-2">Periksa nama dan asal lembaga. Jika sudah benar, unduh sertifikat di bawah.</p>
+              <p class="text-xs text-gray-500 mt-2">Periksa nomor sertifikat, nama, dan asal lembaga. Jika sudah benar, unduh sertifikat di bawah.</p>
             </div>
 
             <div class="flex flex-col sm:flex-row gap-3">
