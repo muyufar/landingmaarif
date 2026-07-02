@@ -28,6 +28,10 @@ define('PEMESANAN_TITLE', 'FORM PEMESANAN MAJALAH MOPDIK & BUKU SAKU IPNU-IPPNU'
 define('PEMESANAN_SUBTITLE', 'LP MA\'ARIF NU KABUPATEN MAGELANG');
 define('PEMESANAN_PAKET_NAMA', 'Paket Majalah MOPDIK dan Buku Saku IPNU-IPPNU');
 
+define('DOKUMENTASI_DRIVE_FOLDER_ID', '1TqAjnj15HB-ZLUBCRduRB8ekLyBNCdAW');
+define('DOKUMENTASI_DRIVE_FOLDER_URL', 'https://drive.google.com/drive/folders/1TqAjnj15HB-ZLUBCRduRB8ekLyBNCdAW?usp=sharing');
+define('DOKUMENTASI_JUDUL', 'Dokumentasi Acara RAKERDINMA 2026');
+
 function basePath(): string
 {
     static $path = null;

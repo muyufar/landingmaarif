@@ -9,5 +9,5 @@ DirectoryIndex default.php index.php
   RewriteRule ^dashboard/?$ dashboard/index.php [L]
   RewriteRule ^pemesanan/?$ pemesanan/index.php [L,QSA]
   RewriteRule ^pemesananbuku/?$ pemesananbuku/index.php [L]
-  RewriteRule ^adminpemesananbuku/?$ adminpemesananbuku/index.php [L]
+  RewriteRule ^dokumentasi/?$ dokumentasi/index.php [L]
 </IfModule>

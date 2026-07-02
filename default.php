@@ -29,6 +29,7 @@ require_once __DIR__ . '/includes/functions.php';
         <a href="#tentang" class="hover:text-yellow-300">Tentang</a>
         <a href="#program" class="hover:text-yellow-300">Program</a>
         <a href="<?= url('dashboard') ?>" class="hover:text-yellow-300">Layanan Online</a>
+        <a href="<?= url('dokumentasi') ?>" class="hover:text-yellow-300">Dokumentasi</a>
         <a href="#kontak" class="hover:text-yellow-300">Kontak</a>
       </nav>
     </div>
@@ -50,13 +51,13 @@ require_once __DIR__ . '/includes/functions.php';
              class="inline-block text-center bg-yellow-400 hover:bg-yellow-500 text-green-900 font-semibold px-6 py-3 rounded-full shadow-lg transition">
             Layanan Online
           </a>
-          <a href="<?= url('rakerdinma') ?>"
-             class="inline-block text-center bg-white hover:bg-green-50 text-green-800 font-semibold px-6 py-3 rounded-full shadow-lg transition border-2 border-white">
-            Pendaftaran RAKERDINMA 2026
-          </a>
           <a href="<?= url('rakerdinma/sertifikat') ?>"
              class="inline-block text-center bg-green-600 hover:bg-green-500 text-white font-semibold px-6 py-3 rounded-full shadow-lg transition border-2 border-green-500">
             Download Sertifikat
+          </a>
+          <a href="<?= url('dokumentasi') ?>"
+             class="inline-block text-center bg-white hover:bg-green-50 text-green-800 font-semibold px-6 py-3 rounded-full shadow-lg transition border-2 border-white">
+            Dokumentasi Acara
           </a>
         </div>
       </div>
