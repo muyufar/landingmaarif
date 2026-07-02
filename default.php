@@ -54,6 +54,10 @@ require_once __DIR__ . '/includes/functions.php';
              class="inline-block text-center bg-white hover:bg-green-50 text-green-800 font-semibold px-6 py-3 rounded-full shadow-lg transition border-2 border-white">
             Pendaftaran RAKERDINMA 2026
           </a>
+          <a href="<?= url('rakerdinma/sertifikat') ?>"
+             class="inline-block text-center bg-green-600 hover:bg-green-500 text-white font-semibold px-6 py-3 rounded-full shadow-lg transition border-2 border-green-500">
+            Download Sertifikat
+          </a>
         </div>
       </div>
       <div>

@@ -4,6 +4,7 @@ DirectoryIndex default.php index.php
   RewriteEngine On
 
   RewriteRule ^rakerdinma/?$ rakerdinma/index.php [L]
+  RewriteRule ^rakerdinma/sertifikat/?$ rakerdinma/sertifikat.php [L,QSA]
   RewriteRule ^pesertakerdinma/?$ pesertakerdinma/index.php [L]
   RewriteRule ^dashboard/?$ dashboard/index.php [L]
   RewriteRule ^pemesanan/?$ pemesanan/index.php [L,QSA]

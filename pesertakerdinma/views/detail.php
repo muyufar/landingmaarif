@@ -12,6 +12,8 @@ $umur = hitungUmur($row['tanggal_lahir'] ?? '');
       <p class="text-sm text-gray-500 mt-1">ID #<?= (int) $row['id'] ?> · Daftar <?= sanitize($row['created_at'] ?? '-') ?></p>
     </div>
     <div class="flex gap-2">
+      <a href="<?= url('pesertakerdinma/?export=sertifikat&id=' . (int) $row['id']) ?>"
+         class="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Sertifikat</a>
       <a href="<?= url('pesertakerdinma/?page=form&id=' . (int) $row['id']) ?>"
          class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium">Edit</a>
       <a href="<?= url('pesertakerdinma/?page=list') ?>"

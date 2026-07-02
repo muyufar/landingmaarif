@@ -100,6 +100,17 @@ if (isAdminLoggedIn() && isset($_GET['export']) && $_GET['export'] === 'xls') {
     exportXls(loadPeserta($search, $filters));
 }
 
+if (isAdminLoggedIn() && isset($_GET['export']) && $_GET['export'] === 'sertifikat') {
+    require_once dirname(__DIR__) . '/includes/certificate.php';
+    $pesertaId = (int) ($_GET['id'] ?? 0);
+    $peserta = $pesertaId > 0 ? getPesertaById($pesertaId) : null;
+    if ($peserta === null || !sertifikatCanGenerate()) {
+        header('Location: ' . url('pesertakerdinma/?page=list'));
+        exit;
+    }
+    outputSertifikatPng($peserta, true);
+}
+
 if (isset($_GET['deleted'])) {
     $flashMessage = 'Data peserta berhasil dihapus.';
 }

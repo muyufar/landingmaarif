@@ -82,10 +82,20 @@ function fieldValue(string $key, array $formData): string
       </div>
 
       <div class="px-8 py-8">
+        <div class="mb-6 text-center">
+          <a href="<?= url('rakerdinma/sertifikat') ?>" class="text-sm text-green-700 hover:text-green-900 font-medium underline">
+            Sudah terdaftar? Download sertifikat RAKERDINMA di sini
+          </a>
+        </div>
+
         <?php if ($success): ?>
           <div class="mb-8 rounded-xl bg-green-50 border border-green-200 px-6 py-5 text-green-800">
             <h3 class="font-semibold text-lg mb-1">Pendaftaran Berhasil!</h3>
             <p>Terima kasih, data Anda telah tersimpan. Silakan tunggu informasi selanjutnya dari panitia.</p>
+            <a href="<?= url('rakerdinma/sertifikat') ?>"
+               class="inline-block mt-4 bg-green-700 hover:bg-green-800 text-white font-semibold px-5 py-2.5 rounded-lg transition">
+              Download Sertifikat RAKERDINMA
+            </a>
           </div>
         <?php endif; ?>
 

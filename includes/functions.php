@@ -273,6 +273,53 @@ function getPesertaById(int $id): ?array
     return $row ?: null;
 }
 
+function getPesertaByNomorWa(string $nomorWa): ?array
+{
+    $norm = normalizeNomorWa($nomorWa);
+    if ($norm === '') {
+        return null;
+    }
+
+    $pdo = getDb();
+    $stmt = $pdo->prepare(
+        'SELECT id, nama, nip, nomor_wa, tempat_lahir,
+                DATE_FORMAT(tanggal_lahir, "%Y-%m-%d") AS tanggal_lahir,
+                jabatan, jenis_lembaga, asal_lembaga, alamat_lembaga,
+                kode_provinsi, nama_provinsi, kode_kabupaten, nama_kabupaten,
+                kode_kecamatan, nama_kecamatan, kode_kelurahan, nama_kelurahan,
+                alamat_detail, alat_transportasi,
+                DATE_FORMAT(created_at, "%Y-%m-%d %H:%i:%s") AS created_at
+         FROM peserta_rakerdinma
+         WHERE nomor_wa_norm = :norm
+         LIMIT 1'
+    );
+    $stmt->execute([':norm' => $norm]);
+    $row = $stmt->fetch();
+
+    if ($row) {
+        return $row;
+    }
+
+    // Fallback untuk data lama sebelum kolom nomor_wa_norm diisi
+    $stmt = $pdo->query(
+        'SELECT id, nama, nip, nomor_wa, tempat_lahir,
+                DATE_FORMAT(tanggal_lahir, "%Y-%m-%d") AS tanggal_lahir,
+                jabatan, jenis_lembaga, asal_lembaga, alamat_lembaga,
+                kode_provinsi, nama_provinsi, kode_kabupaten, nama_kabupaten,
+                kode_kecamatan, nama_kecamatan, kode_kelurahan, nama_kelurahan,
+                alamat_detail, alat_transportasi,
+                DATE_FORMAT(created_at, "%Y-%m-%d %H:%i:%s") AS created_at
+         FROM peserta_rakerdinma'
+    );
+    foreach ($stmt->fetchAll() as $candidate) {
+        if (normalizeNomorWa((string) ($candidate['nomor_wa'] ?? '')) === $norm) {
+            return $candidate;
+        }
+    }
+
+    return null;
+}
+
 function updatePeserta(int $id, array $data): bool
 {
     $pdo = getDb();
