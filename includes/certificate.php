@@ -176,17 +176,17 @@ function generateSertifikatImage(array $peserta): \GdImage
             $nomorSize,
             $nomorText,
             $centerX,
-            (int) round(1020 * $scaleY),
+            (int) round(985 * $scaleY),
             $black
         );
 
         $maxNameWidth = (int) round(3600 * $scaleX);
-        $nameSize = sertifikatFitFontSize($fontBold, $nama, (int) round(100 * $scaleY), (int) round(54 * $scaleY), $maxNameWidth);
-        sertifikatDrawCenteredText($image, $fontBold, $nameSize, $nama, $centerX, (int) round(1345 * $scaleY), $green);
+        $nameSize = sertifikatFitFontSize($fontBold, $nama, (int) round(125 * $scaleY), (int) round(68 * $scaleY), $maxNameWidth);
+        sertifikatDrawCenteredText($image, $fontBold, $nameSize, $nama, $centerX, (int) round(1355 * $scaleY), $green);
 
         $maxLembagaWidth = (int) round(3400 * $scaleX);
-        $lembagaSize = sertifikatFitFontSize($fontBold, $lembaga, (int) round(64 * $scaleY), (int) round(38 * $scaleY), $maxLembagaWidth);
-        sertifikatDrawCenteredText($image, $fontBold, $lembagaSize, $lembaga, $centerX, (int) round(1435 * $scaleY), $black);
+        $lembagaSize = sertifikatFitFontSize($fontBold, $lembaga, (int) round(88 * $scaleY), (int) round(50 * $scaleY), $maxLembagaWidth);
+        sertifikatDrawCenteredText($image, $fontBold, $lembagaSize, $lembaga, $centerX, (int) round(1455 * $scaleY), $black);
     } else {
         $fontRegular = sertifikatFontRegular();
         $nomorText = sertifikatNomorTeks($peserta);
