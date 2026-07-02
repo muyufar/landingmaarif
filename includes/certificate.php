@@ -9,6 +9,7 @@ declare(strict_types=1);
 function sertifikatTemplatePath(): string
 {
     $candidates = [
+        APP_ROOT . '/image/sertifikatnomorfix.png',
         APP_ROOT . '/image/sertifkosonganfix.png',
         APP_ROOT . '/image/sertifkosongan.png',
         APP_ROOT . '/image/sertifmaarif.png',
@@ -23,9 +24,15 @@ function sertifikatTemplatePath(): string
     return $candidates[0];
 }
 
-function sertifikatUsesFixTemplate(): bool
+function sertifikatUsesNomorFixTemplate(): bool
 {
-    return is_file(APP_ROOT . '/image/sertifkosonganfix.png');
+    return is_file(APP_ROOT . '/image/sertifikatnomorfix.png')
+        && sertifikatTemplatePath() === APP_ROOT . '/image/sertifikatnomorfix.png';
+}
+
+function sertifikatFontPoppins(): string
+{
+    return APP_ROOT . '/image/fonts/Poppins-Regular.ttf';
 }
 
 function sertifikatFontBold(): string
@@ -40,9 +47,15 @@ function sertifikatFontRegular(): string
 
 function sertifikatFontsAvailable(): bool
 {
-    return is_file(sertifikatTemplatePath())
-        && is_file(sertifikatFontBold())
-        && is_file(sertifikatFontRegular());
+    if (!is_file(sertifikatTemplatePath())) {
+        return false;
+    }
+
+    if (sertifikatUsesNomorFixTemplate()) {
+        return is_file(sertifikatFontPoppins()) && is_file(sertifikatFontBold());
+    }
+
+    return is_file(sertifikatFontBold()) && is_file(sertifikatFontRegular());
 }
 
 function sertifikatGdAvailable(): bool
@@ -61,6 +74,13 @@ function sertifikatSanitizeFilename(string $name): string
     $name = preg_replace('/\s+/', '_', trim($name)) ?? 'peserta';
 
     return $name !== '' ? $name : 'peserta';
+}
+
+function sertifikatScaleFontPt(int $pt, float $scaleY): int
+{
+    $refHeight = SERTIFIKAT_DESIGN_HEIGHT > 0 ? SERTIFIKAT_DESIGN_HEIGHT : 794;
+
+    return max(1, (int) round($pt * $scaleY * (3359 / $refHeight)));
 }
 
 function sertifikatMeasureText(string $font, int $size, string $text): array
@@ -98,11 +118,6 @@ function sertifikatDrawCenteredText(
     imagettftext($image, $size, 0, $x, $baselineY, $color, $font, $text);
 }
 
-function sertifikatPatchBackground(\GdImage $image, int $destX, int $destY, int $width, int $height, int $sourceY): void
-{
-    imagecopy($image, $image, $destX, $destY, $destX, $sourceY, $width, $height);
-}
-
 function sertifikatNomorUrut(array $peserta): int
 {
     $pesertaId = (int) ($peserta['id'] ?? 0);
@@ -112,7 +127,7 @@ function sertifikatNomorUrut(array $peserta): int
 
 function sertifikatNomorTeks(array $peserta): string
 {
-    return 'NOMOR : ' . formatNomorSertifikat(sertifikatNomorUrut($peserta));
+    return formatNomorSertifikat(sertifikatNomorUrut($peserta));
 }
 
 function generateSertifikatImage(array $peserta): \GdImage
@@ -135,8 +150,9 @@ function generateSertifikatImage(array $peserta): \GdImage
     $centerX = (int) round($width / 2);
 
     $nama = strtoupper(trim($peserta['nama'] ?? ''));
+    $lembaga = strtoupper(trim($peserta['asal_lembaga'] ?? ''));
 
-    if ($nama === '') {
+    if ($nama === '' || $lembaga === '') {
         imagedestroy($image);
         throw new RuntimeException('Data peserta tidak lengkap untuk sertifikat.');
     }
@@ -148,40 +164,51 @@ function generateSertifikatImage(array $peserta): \GdImage
     $green = imagecolorallocate($image, 0, 77, 0);
     $black = imagecolorallocate($image, 0, 0, 0);
     $fontBold = sertifikatFontBold();
-    $fontRegular = sertifikatFontRegular();
 
-    if (sertifikatUsesFixTemplate()) {
+    if (sertifikatUsesNomorFixTemplate()) {
+        $fontPoppins = sertifikatFontPoppins();
         $nomorText = sertifikatNomorTeks($peserta);
+        $nomorSize = sertifikatScaleFontPt(SERTIFIKAT_NOMOR_FONT_PT, $scaleY);
 
-        sertifikatPatchBackground(
+        sertifikatDrawCenteredText(
             $image,
-            (int) round(900 * $scaleX),
-            (int) round(1065 * $scaleY),
-            (int) round(2950 * $scaleX),
-            (int) round(90 * $scaleY),
-            (int) round(900 * $scaleY)
+            $fontPoppins,
+            $nomorSize,
+            $nomorText,
+            $centerX,
+            (int) round(1020 * $scaleY),
+            $black
         );
 
-        $nomorSize = (int) round(40 * $scaleY);
-        sertifikatDrawCenteredText($image, $fontRegular, $nomorSize, $nomorText, $centerX, (int) round(1125 * $scaleY), $black);
+        $maxNameWidth = (int) round(3600 * $scaleX);
+        $nameSize = sertifikatFitFontSize($fontBold, $nama, (int) round(100 * $scaleY), (int) round(54 * $scaleY), $maxNameWidth);
+        sertifikatDrawCenteredText($image, $fontBold, $nameSize, $nama, $centerX, (int) round(1345 * $scaleY), $green);
+
+        $maxLembagaWidth = (int) round(3400 * $scaleX);
+        $lembagaSize = sertifikatFitFontSize($fontBold, $lembaga, (int) round(64 * $scaleY), (int) round(38 * $scaleY), $maxLembagaWidth);
+        sertifikatDrawCenteredText($image, $fontBold, $lembagaSize, $lembaga, $centerX, (int) round(1435 * $scaleY), $black);
+    } else {
+        $fontRegular = sertifikatFontRegular();
+        $nomorText = sertifikatNomorTeks($peserta);
+        $nomorSize = sertifikatScaleFontPt(SERTIFIKAT_NOMOR_FONT_PT, $scaleY);
+
+        sertifikatDrawCenteredText(
+            $image,
+            is_file(sertifikatFontPoppins()) ? sertifikatFontPoppins() : $fontRegular,
+            $nomorSize,
+            $nomorText,
+            $centerX,
+            (int) round(1125 * $scaleY),
+            $black
+        );
 
         $maxNameWidth = (int) round(3600 * $scaleX);
         $nameSize = sertifikatFitFontSize($fontBold, $nama, (int) round(110 * $scaleY), (int) round(58 * $scaleY), $maxNameWidth);
         sertifikatDrawCenteredText($image, $fontBold, $nameSize, $nama, $centerX, (int) round(1460 * $scaleY), $green);
-    } else {
-        $lembaga = strtoupper(trim($peserta['asal_lembaga'] ?? ''));
-        if ($lembaga === '') {
-            imagedestroy($image);
-            throw new RuntimeException('Data peserta tidak lengkap untuk sertifikat.');
-        }
 
-        $maxNameWidth = (int) round(3400 * $scaleX);
-        $nameSize = sertifikatFitFontSize($fontBold, $nama, (int) round(120 * $scaleY), (int) round(64 * $scaleY), $maxNameWidth);
-        sertifikatDrawCenteredText($image, $fontBold, $nameSize, $nama, $centerX, (int) round(1580 * $scaleY), $green);
-
-        $maxLembagaWidth = (int) round(3200 * $scaleX);
-        $lembagaSize = sertifikatFitFontSize($fontBold, $lembaga, (int) round(78 * $scaleY), (int) round(44 * $scaleY), $maxLembagaWidth);
-        sertifikatDrawCenteredText($image, $fontBold, $lembagaSize, $lembaga, $centerX, (int) round(1760 * $scaleY), $black);
+        $maxLembagaWidth = (int) round(3400 * $scaleX);
+        $lembagaSize = sertifikatFitFontSize($fontBold, $lembaga, (int) round(72 * $scaleY), (int) round(42 * $scaleY), $maxLembagaWidth);
+        sertifikatDrawCenteredText($image, $fontBold, $lembagaSize, $lembaga, $centerX, (int) round(1590 * $scaleY), $black);
     }
 
     return $image;

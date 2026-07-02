@@ -34,6 +34,8 @@ define('DOKUMENTASI_JUDUL', 'Dokumentasi Acara RAKERDINMA 2026');
 
 define('SERTIFIKAT_NOMOR_AWAL', 3210);
 define('SERTIFIKAT_NOMOR_SUFFIX', '/PC.LPM/E.12/VI/2026');
+define('SERTIFIKAT_NOMOR_FONT_PT', 13);
+define('SERTIFIKAT_DESIGN_HEIGHT', 794);
 
 function basePath(): string
 {
