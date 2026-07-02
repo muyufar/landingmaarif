@@ -177,8 +177,8 @@ function sertifikatDrawNomorFixLayout(
     $fontPlayfair = sertifikatFontPlayfair();
     $fontTermes = sertifikatFontTermes();
 
-    $nama = strtoupper(trim($peserta['nama'] ?? ''));
-    $lembaga = strtoupper(trim($peserta['asal_lembaga'] ?? ''));
+    $nama = trim($peserta['nama'] ?? '');
+    $lembaga = trim($peserta['asal_lembaga'] ?? '');
 
     $nomorSize = sertifikatScaleFontPt(SERTIFIKAT_NOMOR_FONT_PT, $scaleY);
     sertifikatDrawCenteredText(
@@ -249,8 +249,8 @@ function generateSertifikatImage(array $peserta): \GdImage
     $height = imagesy($image);
     $centerX = (int) round($width / 2);
 
-    $nama = strtoupper(trim($peserta['nama'] ?? ''));
-    $lembaga = strtoupper(trim($peserta['asal_lembaga'] ?? ''));
+    $nama = trim($peserta['nama'] ?? '');
+    $lembaga = trim($peserta['asal_lembaga'] ?? '');
 
     if ($nama === '' || $lembaga === '') {
         imagedestroy($image);
