@@ -200,7 +200,7 @@ function sertifikatDrawNomorFixLayout(
         $scaleY,
         $maxNameWidth
     );
-    sertifikatDrawCenteredText($image, $fontPlayfair, $nameSize, $nama, $centerX, (int) round(1385 * $scaleY), $green);
+    sertifikatDrawCenteredText($image, $fontPlayfair, $nameSize, $nama, $centerX, (int) round(1435 * $scaleY), $green);
 
     $maxLembagaWidth = (int) round(3300 * $scaleX);
     $lembagaSize = sertifikatFitFontSizePt(
@@ -211,7 +211,7 @@ function sertifikatDrawNomorFixLayout(
         $scaleY,
         $maxLembagaWidth
     );
-    sertifikatDrawCenteredText($image, $fontTermes, $lembagaSize, $lembaga, $centerX, (int) round(1520 * $scaleY), $black);
+    sertifikatDrawCenteredText($image, $fontTermes, $lembagaSize, $lembaga, $centerX, (int) round(1568 * $scaleY), $black);
 }
 
 function generateSertifikatImage(array $peserta): \GdImage
@@ -276,7 +276,7 @@ function generateSertifikatImage(array $peserta): \GdImage
             $scaleY,
             $maxNameWidth
         );
-        sertifikatDrawCenteredText($image, $fontPlayfair, $nameSize, $nama, $centerX, (int) round(1385 * $scaleY), $green);
+        sertifikatDrawCenteredText($image, $fontPlayfair, $nameSize, $nama, $centerX, (int) round(1435 * $scaleY), $green);
 
         $maxLembagaWidth = (int) round(3300 * $scaleX);
         $lembagaSize = sertifikatFitFontSizePt(
@@ -287,7 +287,7 @@ function generateSertifikatImage(array $peserta): \GdImage
             $scaleY,
             $maxLembagaWidth
         );
-        sertifikatDrawCenteredText($image, $fontTermes, $lembagaSize, $lembaga, $centerX, (int) round(1520 * $scaleY), $black);
+        sertifikatDrawCenteredText($image, $fontTermes, $lembagaSize, $lembaga, $centerX, (int) round(1568 * $scaleY), $black);
     }
 
     return $image;
