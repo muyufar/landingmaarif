@@ -61,8 +61,8 @@ $catalog = pemesananLayananCatalog();
   <div class="flex flex-wrap gap-3">
     <a href="<?= url('adminpemesananbuku/?page=list') ?>"
        class="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Lihat Semua Pemesanan</a>
-    <a href="<?= url('adminpemesananbuku/?export=csv') ?>"
-       class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Export CSV</a>
+    <a href="<?= url('adminpemesananbuku/?export=xls') ?>"
+       class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Export XLS</a>
     <a href="<?= url('pemesanan') ?>"
        class="bg-white border border-green-700 text-green-800 hover:bg-green-50 px-4 py-2 rounded-lg text-sm font-medium">Buka Form Publik</a>
   </div>

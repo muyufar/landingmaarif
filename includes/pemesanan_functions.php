@@ -703,47 +703,57 @@ function formatPaketPemesanan(array $row): string
     return formatRingkasanPemesanan($row);
 }
 
-function exportPemesananCsv(array $rows): void
+function exportPemesananXls(array $rows): void
 {
-    header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="pemesanan_' . date('Y-m-d') . '.csv"');
+    $filename = 'pemesanan_' . date('Y-m-d_His') . '.xls';
 
-    $output = fopen('php://output', 'w');
-    fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+    header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: max-age=0');
 
-    $kenuanLabels = bukuKenuanKelasFields();
-    fputcsv($output, array_merge([
-        'ID', 'Tanggal', 'Jenis Layanan', 'Nama Madrasah/Sekolah', 'Nama Kepala', 'Nomor WA', 'Jenjang',
-        'Jumlah Total', 'Jenis Batik', 'Satuan 1', 'Jml Satuan 1', 'Satuan 2', 'Jml Satuan 2',
-        'S', 'M', 'L', 'XL', 'XXL',
-    ], array_values($kenuanLabels), ['Catatan']));
+    echo "\xEF\xBB\xBF";
+    echo '<html><head><meta charset="UTF-8"></head><body>';
+    echo '<table border="1">';
+    echo '<tr>';
+    foreach ([
+        'No',
+        'Tanggal',
+        'Jenis Layanan',
+        'Nama Madrasah/Sekolah',
+        'Nama Kepala',
+        'Nomor WA',
+        'Jenjang',
+        'Ringkasan',
+    ] as $header) {
+        echo '<th>' . htmlspecialchars($header, ENT_QUOTES, 'UTF-8') . '</th>';
+    }
+    echo '</tr>';
 
-    foreach ($rows as $row) {
-        fputcsv($output, array_merge([
-            $row['id'] ?? '',
+    foreach ($rows as $index => $row) {
+        $cells = [
+            (string) ($index + 1),
             $row['created_at'] ?? '',
             labelJenisLayanan($row['jenis_layanan'] ?? 'mopdik'),
             $row['nama_madrasah'] ?? '',
             $row['nama_kepala'] ?? '',
             $row['nomor_wa'] ?? '',
             normalizeJenjangPemesanan($row['jenjang'] ?? ''),
-            getJumlahPemesanan($row),
-            $row['jenis_batik'] ?? '',
-            $row['satuan_jenis_1'] ?? '',
-            $row['satuan_jumlah_1'] ?? '',
-            $row['satuan_jenis_2'] ?? '',
-            $row['satuan_jumlah_2'] ?? '',
-            $row['ukuran_s'] ?? 0,
-            $row['ukuran_m'] ?? 0,
-            $row['ukuran_l'] ?? 0,
-            $row['ukuran_xl'] ?? 0,
-            $row['ukuran_xxl'] ?? 0,
-        ], array_map(static fn (string $key): int => (int) ($row[$key] ?? 0), array_keys($kenuanLabels)), [
-            $row['catatan'] ?? '',
-        ]));
+            formatRingkasanPemesanan($row),
+        ];
+
+        echo '<tr>';
+        foreach ($cells as $i => $cell) {
+            $escaped = htmlspecialchars((string) $cell, ENT_QUOTES, 'UTF-8');
+            if ($i === 5) {
+                echo '<td style="mso-number-format:\'\\@\';">' . $escaped . '</td>';
+            } else {
+                echo '<td>' . $escaped . '</td>';
+            }
+        }
+        echo '</tr>';
     }
 
-    fclose($output);
+    echo '</table></body></html>';
     exit;
 }
 

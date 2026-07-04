@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 /** @var array $rows @var array $filters @var string $search */
 $catalog = pemesananLayananCatalog();
+
+$exportQuery = http_build_query(array_filter([
+    'export' => 'xls',
+    'q' => $search,
+    'jenis_layanan' => $filters['jenis_layanan'] ?? '',
+    'jenjang' => $filters['jenjang'] ?? '',
+], static fn (string $value): bool => $value !== ''));
 ?>
 <div class="bg-white rounded-2xl shadow-lg border border-green-100 overflow-hidden">
   <div class="px-6 py-5 border-b border-gray-100">
@@ -13,8 +20,8 @@ $catalog = pemesananLayananCatalog();
         <p class="text-sm text-gray-500 mt-1">Total: <strong><?= count($rows) ?></strong> pemesanan</p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <a href="<?= url('adminpemesananbuku/?export=csv') ?>"
-           class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Export CSV</a>
+        <a href="<?= url('adminpemesananbuku/?' . $exportQuery) ?>"
+           class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Export XLS</a>
       </div>
     </div>
 

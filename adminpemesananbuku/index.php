@@ -47,8 +47,13 @@ if (isPemesananAdminLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST' && isset
     }
 }
 
-if (isPemesananAdminLoggedIn() && isset($_GET['export']) && $_GET['export'] === 'csv') {
-    exportPemesananCsv(loadPemesanan());
+if (isPemesananAdminLoggedIn() && isset($_GET['export']) && $_GET['export'] === 'xls') {
+    $search = trim($_GET['q'] ?? '');
+    $filters = [
+        'jenjang' => trim($_GET['jenjang'] ?? ''),
+        'jenis_layanan' => trim($_GET['jenis_layanan'] ?? ''),
+    ];
+    exportPemesananXls(loadPemesanan($search, $filters));
 }
 
 if (isset($_GET['deleted'])) {
