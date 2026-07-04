@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 /** @var array $rows @var array $filters @var string $search */
 $catalog = pemesananLayananCatalog();
+$ringkasan = getPemesananOrderRingkasan($rows);
 
 $exportQuery = http_build_query(array_filter([
     'export' => 'xls',
@@ -17,7 +18,9 @@ $exportQuery = http_build_query(array_filter([
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
       <div>
         <h2 class="text-xl font-bold text-green-800">List Pemesanan</h2>
-        <p class="text-sm text-gray-500 mt-1">Total: <strong><?= count($rows) ?></strong> pemesanan</p>
+        <p class="text-sm text-gray-500 mt-1">
+          Total: <strong><?= (int) $ringkasan['total_pemesanan'] ?></strong> lembaga memesan
+        </p>
       </div>
       <div class="flex flex-wrap gap-2">
         <a href="<?= url('adminpemesananbuku/?' . $exportQuery) ?>"
@@ -57,6 +60,36 @@ $exportQuery = http_build_query(array_filter([
         <a href="<?= url('adminpemesananbuku/?page=list') ?>" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg text-sm font-medium">Reset</a>
       </div>
     </form>
+
+    <?php if (!empty($ringkasan['per_jenis'])): ?>
+      <div class="mt-4 rounded-xl bg-green-50 border border-green-100 p-4">
+        <p class="text-sm font-semibold text-green-900 mb-3">Ringkasan Total Order</p>
+        <div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <?php foreach ($ringkasan['per_jenis'] as $block): ?>
+            <div class="bg-white rounded-lg border border-green-100 p-3">
+              <p class="text-xs font-bold text-green-800 leading-snug mb-2">
+                <?= sanitize($block['label']) ?>
+              </p>
+              <p class="text-[11px] text-gray-500 mb-2">
+                <?= (int) $block['pemesanan'] ?> lembaga
+              </p>
+              <?php if (!empty($block['detail'])): ?>
+                <ul class="space-y-1 text-xs text-gray-700">
+                  <?php foreach ($block['detail'] as $label => $qty): ?>
+                    <li class="flex justify-between gap-2">
+                      <span class="text-gray-600"><?= sanitize((string) $label) ?></span>
+                      <strong class="text-green-800 shrink-0"><?= (int) $qty ?></strong>
+                    </li>
+                  <?php endforeach; ?>
+                </ul>
+              <?php else: ?>
+                <p class="text-xs text-gray-400">—</p>
+              <?php endif; ?>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      </div>
+    <?php endif; ?>
   </div>
 
   <?php if (empty($rows)): ?>

@@ -646,6 +646,81 @@ function getPemesananDashboardStats(array $rows): array
     return $stats;
 }
 
+function getPemesananOrderRingkasan(array $rows): array
+{
+    $catalog = pemesananLayananCatalog();
+    $perJenis = [];
+
+    foreach (array_keys($catalog) as $key) {
+        $perJenis[$key] = [
+            'label' => $catalog[$key]['label'],
+            'tipe' => $catalog[$key]['tipe'] ?? '',
+            'pemesanan' => 0,
+            'detail' => [],
+        ];
+    }
+
+    foreach ($rows as $row) {
+        $jenis = $row['jenis_layanan'] ?? 'mopdik';
+        if (!isset($perJenis[$jenis])) {
+            $layanan = getPemesananLayanan($jenis);
+            $perJenis[$jenis] = [
+                'label' => labelJenisLayanan($jenis),
+                'tipe' => $layanan['tipe'] ?? '',
+                'pemesanan' => 0,
+                'detail' => [],
+            ];
+        }
+
+        $perJenis[$jenis]['pemesanan']++;
+        $layanan = getPemesananLayanan($jenis);
+        $tipe = $layanan['tipe'] ?? '';
+        $detail = &$perJenis[$jenis]['detail'];
+
+        if ($tipe === 'jumlah') {
+            $unitLabel = $layanan['jumlah_label'] ?? 'Jumlah';
+            $detail[$unitLabel] = ($detail[$unitLabel] ?? 0) + getJumlahPemesanan($row);
+        } elseif ($tipe === 'kenuan') {
+            foreach (bukuKenuanKelasFields() as $field => $label) {
+                $qty = (int) ($row[$field] ?? 0);
+                if ($qty > 0) {
+                    $detail[$label] = ($detail[$label] ?? 0) + $qty;
+                }
+            }
+            $detail['Total Buku'] = ($detail['Total Buku'] ?? 0) + getTotalKenuanKelas($row);
+        } elseif ($tipe === 'batik') {
+            foreach (parseJenisBatikSelected($row['jenis_batik'] ?? '') as $batikLabel) {
+                $lembagaKey = $batikLabel . ' (lembaga)';
+                $detail[$lembagaKey] = ($detail[$lembagaKey] ?? 0) + 1;
+            }
+            if (!empty($row['satuan_jenis_1']) && (int) ($row['satuan_jumlah_1'] ?? 0) > 0) {
+                $satuanKey = 'Total ' . $row['satuan_jenis_1'];
+                $detail[$satuanKey] = ($detail[$satuanKey] ?? 0) + (int) $row['satuan_jumlah_1'];
+            }
+            if (!empty($row['satuan_jenis_2']) && (int) ($row['satuan_jumlah_2'] ?? 0) > 0) {
+                $satuanKey = 'Total ' . $row['satuan_jenis_2'];
+                $detail[$satuanKey] = ($detail[$satuanKey] ?? 0) + (int) $row['satuan_jumlah_2'];
+            }
+            foreach (['S' => 'ukuran_s', 'M' => 'ukuran_m', 'L' => 'ukuran_l', 'XL' => 'ukuran_xl', 'XXL' => 'ukuran_xxl'] as $size => $col) {
+                $qty = (int) ($row[$col] ?? 0);
+                if ($qty > 0) {
+                    $sizeKey = 'Ukuran ' . $size;
+                    $detail[$sizeKey] = ($detail[$sizeKey] ?? 0) + $qty;
+                }
+            }
+        }
+
+        unset($detail);
+    }
+
+    $perJenis = array_filter($perJenis, static fn (array $block): bool => $block['pemesanan'] > 0);
+
+    return [
+        'total_pemesanan' => count($rows),
+        'per_jenis' => $perJenis,
+    ];
+}
+
 function labelJenisLayanan(string $jenis): string
 {
     return getPemesananLayanan($jenis)['label'] ?? $jenis;
@@ -703,13 +778,60 @@ function formatPaketPemesanan(array $row): string
     return formatRingkasanPemesanan($row);
 }
 
+function formatTotalPemesananBaris(array $row): string
+{
+    $jenis = $row['jenis_layanan'] ?? 'mopdik';
+    $layanan = getPemesananLayanan($jenis);
+    $tipe = $layanan['tipe'] ?? '';
+
+    if ($tipe === 'jumlah') {
+        $jumlah = getJumlahPemesanan($row);
+        if ($jumlah < 1) {
+            return '-';
+        }
+        $unit = strtolower(str_replace('Jumlah ', '', $layanan['jumlah_label'] ?? 'item'));
+
+        return $jumlah . ' ' . $unit;
+    }
+
+    if ($tipe === 'kenuan') {
+        $total = getTotalKenuanKelas($row);
+
+        return $total > 0 ? $total . ' buku' : '-';
+    }
+
+    if ($tipe === 'batik') {
+        $parts = [];
+        if (!empty($row['satuan_jenis_1']) && (int) ($row['satuan_jumlah_1'] ?? 0) > 0) {
+            $parts[] = (int) $row['satuan_jumlah_1'] . ' ' . $row['satuan_jenis_1'];
+        }
+        if (!empty($row['satuan_jenis_2']) && (int) ($row['satuan_jumlah_2'] ?? 0) > 0) {
+            $parts[] = (int) $row['satuan_jumlah_2'] . ' ' . $row['satuan_jenis_2'];
+        }
+        $sizeTotal = 0;
+        foreach (['ukuran_s', 'ukuran_m', 'ukuran_l', 'ukuran_xl', 'ukuran_xxl'] as $col) {
+            $sizeTotal += (int) ($row[$col] ?? 0);
+        }
+        if ($sizeTotal > 0) {
+            $parts[] = $sizeTotal . ' pcs ukuran';
+        }
+
+        return $parts !== [] ? implode(', ', $parts) : '-';
+    }
+
+    return '-';
+}
+
 function exportPemesananXls(array $rows): void
 {
     $filename = 'pemesanan_' . date('Y-m-d_His') . '.xls';
+    $ringkasan = getPemesananOrderRingkasan($rows);
 
     header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
     header('Cache-Control: max-age=0');
+
+    $escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 
     echo "\xEF\xBB\xBF";
     echo '<html><head><meta charset="UTF-8"></head><body>';
@@ -723,9 +845,11 @@ function exportPemesananXls(array $rows): void
         'Nama Kepala',
         'Nomor WA',
         'Jenjang',
+        'Total Pemesanan',
         'Ringkasan',
+        'Catatan',
     ] as $header) {
-        echo '<th>' . htmlspecialchars($header, ENT_QUOTES, 'UTF-8') . '</th>';
+        echo '<th>' . $escape($header) . '</th>';
     }
     echo '</tr>';
 
@@ -738,12 +862,14 @@ function exportPemesananXls(array $rows): void
             $row['nama_kepala'] ?? '',
             $row['nomor_wa'] ?? '',
             normalizeJenjangPemesanan($row['jenjang'] ?? ''),
+            formatTotalPemesananBaris($row),
             formatRingkasanPemesanan($row),
+            $row['catatan'] ?? '',
         ];
 
         echo '<tr>';
         foreach ($cells as $i => $cell) {
-            $escaped = htmlspecialchars((string) $cell, ENT_QUOTES, 'UTF-8');
+            $escaped = $escape((string) $cell);
             if ($i === 5) {
                 echo '<td style="mso-number-format:\'\\@\';">' . $escaped . '</td>';
             } else {
@@ -751,6 +877,19 @@ function exportPemesananXls(array $rows): void
             }
         }
         echo '</tr>';
+    }
+
+    echo '</table>';
+
+    echo '<br><table border="1">';
+    echo '<tr><th colspan="2">' . $escape('RINGKASAN TOTAL PEMESANAN') . '</th></tr>';
+    echo '<tr><td>' . $escape('Total Lembaga Memesan') . '</td><td><strong>' . (int) $ringkasan['total_pemesanan'] . '</strong></td></tr>';
+
+    foreach ($ringkasan['per_jenis'] as $block) {
+        echo '<tr><td colspan="2"><strong>' . $escape($block['label']) . '</strong> (' . (int) $block['pemesanan'] . ' lembaga)</td></tr>';
+        foreach ($block['detail'] as $label => $qty) {
+            echo '<tr><td style="padding-left:20px;">' . $escape((string) $label) . '</td><td>' . (int) $qty . '</td></tr>';
+        }
     }
 
     echo '</table></body></html>';
