@@ -778,48 +778,30 @@ function formatPaketPemesanan(array $row): string
     return formatRingkasanPemesanan($row);
 }
 
-function formatTotalPemesananBaris(array $row): string
+function getTotalPemesananAngka(array $row): int
 {
     $jenis = $row['jenis_layanan'] ?? 'mopdik';
     $layanan = getPemesananLayanan($jenis);
     $tipe = $layanan['tipe'] ?? '';
 
-    if ($tipe === 'jumlah') {
-        $jumlah = getJumlahPemesanan($row);
-        if ($jumlah < 1) {
-            return '-';
-        }
-        $unit = strtolower(str_replace('Jumlah ', '', $layanan['jumlah_label'] ?? 'item'));
-
-        return $jumlah . ' ' . $unit;
+    if ($tipe === 'kenuan') {
+        return getTotalKenuanKelas($row);
     }
 
-    if ($tipe === 'kenuan') {
-        $total = getTotalKenuanKelas($row);
-
-        return $total > 0 ? $total . ' buku' : '-';
+    if ($tipe === 'jumlah') {
+        return getJumlahPemesanan($row);
     }
 
     if ($tipe === 'batik') {
-        $parts = [];
-        if (!empty($row['satuan_jenis_1']) && (int) ($row['satuan_jumlah_1'] ?? 0) > 0) {
-            $parts[] = (int) $row['satuan_jumlah_1'] . ' ' . $row['satuan_jenis_1'];
-        }
-        if (!empty($row['satuan_jenis_2']) && (int) ($row['satuan_jumlah_2'] ?? 0) > 0) {
-            $parts[] = (int) $row['satuan_jumlah_2'] . ' ' . $row['satuan_jenis_2'];
-        }
-        $sizeTotal = 0;
+        $total = (int) ($row['satuan_jumlah_1'] ?? 0) + (int) ($row['satuan_jumlah_2'] ?? 0);
         foreach (['ukuran_s', 'ukuran_m', 'ukuran_l', 'ukuran_xl', 'ukuran_xxl'] as $col) {
-            $sizeTotal += (int) ($row[$col] ?? 0);
-        }
-        if ($sizeTotal > 0) {
-            $parts[] = $sizeTotal . ' pcs ukuran';
+            $total += (int) ($row[$col] ?? 0);
         }
 
-        return $parts !== [] ? implode(', ', $parts) : '-';
+        return $total;
     }
 
-    return '-';
+    return 0;
 }
 
 function exportPemesananXls(array $rows): void
@@ -846,7 +828,6 @@ function exportPemesananXls(array $rows): void
         'Nomor WA',
         'Jenjang',
         'Total Pemesanan',
-        'Ringkasan',
         'Catatan',
     ] as $header) {
         echo '<th>' . $escape($header) . '</th>';
@@ -862,13 +843,16 @@ function exportPemesananXls(array $rows): void
             $row['nama_kepala'] ?? '',
             $row['nomor_wa'] ?? '',
             normalizeJenjangPemesanan($row['jenjang'] ?? ''),
-            formatTotalPemesananBaris($row),
-            formatRingkasanPemesanan($row),
+            getTotalPemesananAngka($row),
             $row['catatan'] ?? '',
         ];
 
         echo '<tr>';
         foreach ($cells as $i => $cell) {
+            if ($i === 7) {
+                echo '<td>' . (int) $cell . '</td>';
+                continue;
+            }
             $escaped = $escape((string) $cell);
             if ($i === 5) {
                 echo '<td style="mso-number-format:\'\\@\';">' . $escaped . '</td>';
