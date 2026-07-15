@@ -19,7 +19,7 @@ declare(strict_types=1);
 
     <form method="get" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       <input type="hidden" name="page" value="list">
-      <input type="text" name="q" value="<?= sanitize($search) ?>" placeholder="Cari satuan, kepsek, operator, HP..."
+      <input type="text" name="q" value="<?= sanitize($search) ?>" placeholder="Cari NPSN, satuan, kepsek, operator, HP..."
              class="rounded-lg border border-gray-300 px-3 py-2 text-sm lg:col-span-2 focus:ring-2 focus:ring-green-600">
       <select name="kecamatan" class="rounded-lg border border-gray-300 px-3 py-2 text-sm">
         <option value="">Semua Kecamatan</option>
@@ -42,6 +42,7 @@ declare(strict_types=1);
         <thead class="bg-green-50 text-green-900 text-xs uppercase">
           <tr>
             <th class="px-4 py-3 text-left">No</th>
+            <th class="px-4 py-3 text-left">NPSN</th>
             <th class="px-4 py-3 text-left">Satuan Pendidikan</th>
             <th class="px-4 py-3 text-left">Kepala Sekolah</th>
             <th class="px-4 py-3 text-left">Operator</th>
@@ -56,6 +57,7 @@ declare(strict_types=1);
           <?php foreach ($rows as $index => $row): ?>
             <tr class="hover:bg-gray-50">
               <td class="px-4 py-3 text-gray-500"><?= $index + 1 ?></td>
+              <td class="px-4 py-3 font-mono text-xs whitespace-nowrap"><?= sanitize($row['npsn'] ?? '') ?></td>
               <td class="px-4 py-3 font-semibold max-w-[12rem]"><?= sanitize($row['nama_satuan_pendidikan'] ?? '') ?></td>
               <td class="px-4 py-3"><?= sanitize($row['nama_kepala_sekolah'] ?? '') ?></td>
               <td class="px-4 py-3"><?= sanitize($row['nama_operator'] ?? '') ?></td>

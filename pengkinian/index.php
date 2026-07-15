@@ -67,7 +67,7 @@ function fieldValue(string $key, array $formData): string
         <p class="text-sm text-gray-600 mb-6 leading-relaxed">
           Form ini digunakan untuk memperbarui data nomor HP Kepala Sekolah dan Operator pada satuan pendidikan
           binaan LP Ma'arif NU Kabupaten Magelang. Jika satuan pendidikan yang sama sudah pernah mengisi,
-          data akan diperbarui otomatis.
+          data akan diperbarui otomatis berdasarkan <strong>NPSN</strong>.
         </p>
 
         <?php if ($success): ?>
@@ -98,6 +98,17 @@ function fieldValue(string $key, array $formData): string
 
         <?php if (!$success): ?>
         <form method="post" action="" id="form-pengkinian" class="space-y-6">
+          <div>
+            <label for="npsn" class="block text-sm font-semibold text-gray-700 mb-2">
+              NPSN <span class="text-red-500">*</span>
+            </label>
+            <input type="text" id="npsn" name="npsn" required inputmode="numeric" pattern="[0-9]{8,10}"
+                   placeholder="Contoh: 20312345" maxlength="10"
+                   value="<?= fieldValue('npsn', $formData) ?>"
+                   class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
+            <p class="text-xs text-gray-500 mt-1">Nomor Pokok Sekolah Nasional, 8–10 digit angka.</p>
+          </div>
+
           <div>
             <label for="nama_satuan_pendidikan" class="block text-sm font-semibold text-gray-700 mb-2">
               Nama Satuan Pendidikan <span class="text-red-500">*</span>

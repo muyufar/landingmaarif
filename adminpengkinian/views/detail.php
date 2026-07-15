@@ -26,6 +26,10 @@ declare(strict_types=1);
 
     <dl class="px-6 py-6 grid sm:grid-cols-2 gap-5 text-sm">
       <div class="sm:col-span-2">
+        <dt class="font-semibold text-gray-500">NPSN</dt>
+        <dd class="mt-0.5 font-mono text-green-800"><?= sanitize($row['npsn'] ?? '') ?></dd>
+      </div>
+      <div class="sm:col-span-2">
         <dt class="font-semibold text-gray-500">Nama Satuan Pendidikan</dt>
         <dd class="mt-0.5 text-lg font-semibold text-green-800"><?= sanitize($row['nama_satuan_pendidikan'] ?? '') ?></dd>
       </div>

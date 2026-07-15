@@ -30,6 +30,7 @@ function ensurePengkinianDataSchema(): void
             $pdo->exec(
                 "CREATE TABLE IF NOT EXISTS `pengkinian_data_satuan` (
                   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                  `npsn` varchar(20) NOT NULL,
                   `nama_satuan_pendidikan` varchar(200) NOT NULL,
                   `nama_kepala_sekolah` varchar(150) NOT NULL,
                   `nama_operator` varchar(150) NOT NULL,
@@ -50,6 +51,7 @@ function ensurePengkinianDataSchema(): void
                   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
                   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                   PRIMARY KEY (`id`),
+                  UNIQUE KEY `uniq_npsn` (`npsn`),
                   KEY `idx_nama_satuan` (`nama_satuan_pendidikan`),
                   KEY `idx_kecamatan` (`nama_kecamatan`),
                   KEY `idx_hp_kepsek_norm` (`nomor_hp_kepsek_norm`),
@@ -57,6 +59,19 @@ function ensurePengkinianDataSchema(): void
                   KEY `idx_updated_at` (`updated_at`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
             );
+        }
+    } else {
+        $columns = array_column(
+            $pdo->query('SHOW COLUMNS FROM `pengkinian_data_satuan`')->fetchAll(PDO::FETCH_ASSOC),
+            'Field'
+        );
+        if (!in_array('npsn', $columns, true)) {
+            $pdo->exec("ALTER TABLE `pengkinian_data_satuan` ADD COLUMN `npsn` varchar(20) NOT NULL DEFAULT '' AFTER `id`");
+            $pdo->exec("UPDATE `pengkinian_data_satuan` SET `npsn` = CONCAT('TMP-', `id`) WHERE `npsn` = '' OR `npsn` IS NULL");
+            $indexes = $pdo->query("SHOW INDEX FROM `pengkinian_data_satuan` WHERE Key_name = 'uniq_npsn'")->fetchAll();
+            if ($indexes === []) {
+                $pdo->exec('ALTER TABLE `pengkinian_data_satuan` ADD UNIQUE KEY `uniq_npsn` (`npsn`)');
+            }
         }
     }
 
@@ -66,6 +81,7 @@ function ensurePengkinianDataSchema(): void
 function pengkinianDataDefaultForm(): array
 {
     return array_merge([
+        'npsn' => '',
         'nama_satuan_pendidikan' => '',
         'nama_kepala_sekolah' => '',
         'nama_operator' => '',
@@ -94,10 +110,24 @@ function validateNomorHp(string $label, string $value): array
     return ['error' => null, 'value' => $value, 'norm' => $norm];
 }
 
+function normalizeNpsn(string $value): string
+{
+    return preg_replace('/\D/', '', trim($value)) ?? '';
+}
+
 function validatePengkinianData(array $input): array
 {
     $errors = [];
     $data = pengkinianDataDefaultForm();
+
+    $npsn = normalizeNpsn($input['npsn'] ?? '');
+    if ($npsn === '') {
+        $errors[] = 'Field NPSN wajib diisi.';
+    } elseif (strlen($npsn) < 8 || strlen($npsn) > 10) {
+        $errors[] = 'Field NPSN tidak valid. NPSN berisi 8–10 digit angka.';
+    } else {
+        $data['npsn'] = $npsn;
+    }
 
     $textFields = [
         'nama_satuan_pendidikan' => 'Nama Satuan Pendidikan',
@@ -179,6 +209,17 @@ function findPengkinianDataId(array $data): ?int
 {
     $pdo = getDb();
     $table = pengkinianDataTableName();
+    $npsn = trim($data['npsn'] ?? '');
+
+    if ($npsn !== '') {
+        $stmt = $pdo->prepare("SELECT id FROM `{$table}` WHERE npsn = :npsn LIMIT 1");
+        $stmt->execute([':npsn' => $npsn]);
+        $id = $stmt->fetchColumn();
+        if ($id !== false) {
+            return (int) $id;
+        }
+    }
+
     $key = pengkinianDataMatchKey(
         $data['nama_satuan_pendidikan'],
         $data['kode_kelurahan']
@@ -205,6 +246,7 @@ function savePengkinianData(array $data): array
     $existingId = findPengkinianDataId($data);
 
     $row = [
+        'npsn' => $data['npsn'],
         'nama_satuan_pendidikan' => $data['nama_satuan_pendidikan'],
         'nama_kepala_sekolah' => $data['nama_kepala_sekolah'],
         'nama_operator' => $data['nama_operator'],
@@ -256,7 +298,7 @@ function loadPengkinianData(string $search = '', array $filters = []): array
     $pdo = getDb();
     $table = pengkinianDataTableName();
 
-    $sql = "SELECT id, nama_satuan_pendidikan, nama_kepala_sekolah, nama_operator,
+    $sql = "SELECT id, npsn, nama_satuan_pendidikan, nama_kepala_sekolah, nama_operator,
                    nomor_hp_kepsek, nomor_hp_operator,
                    kode_kecamatan, nama_kecamatan, kode_kelurahan, nama_kelurahan,
                    alamat_detail, alamat_lengkap,
@@ -267,7 +309,7 @@ function loadPengkinianData(string $search = '', array $filters = []): array
     $params = [];
 
     if ($search !== '') {
-        $sql .= ' AND (nama_satuan_pendidikan LIKE :q OR nama_kepala_sekolah LIKE :q
+        $sql .= ' AND (npsn LIKE :q OR nama_satuan_pendidikan LIKE :q OR nama_kepala_sekolah LIKE :q
                   OR nama_operator LIKE :q OR nomor_hp_kepsek LIKE :q OR nomor_hp_operator LIKE :q
                   OR alamat_lengkap LIKE :q OR nama_kecamatan LIKE :q)';
         $params[':q'] = '%' . $search . '%';
@@ -292,7 +334,7 @@ function getPengkinianDataById(int $id): ?array
     $table = pengkinianDataTableName();
 
     $stmt = $pdo->prepare(
-        "SELECT id, nama_satuan_pendidikan, nama_kepala_sekolah, nama_operator,
+        "SELECT id, npsn, nama_satuan_pendidikan, nama_kepala_sekolah, nama_operator,
                 nomor_hp_kepsek, nomor_hp_operator,
                 kode_provinsi, nama_provinsi, kode_kabupaten, nama_kabupaten,
                 kode_kecamatan, nama_kecamatan, kode_kelurahan, nama_kelurahan,
@@ -368,6 +410,7 @@ function exportPengkinianCsv(array $rows): void
     fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
     fputcsv($out, [
         'No',
+        'NPSN',
         'Nama Satuan Pendidikan',
         'Nama Kepala Sekolah',
         'Nama Operator',
@@ -384,6 +427,7 @@ function exportPengkinianCsv(array $rows): void
     foreach ($rows as $i => $row) {
         fputcsv($out, [
             $i + 1,
+            $row['npsn'] ?? '',
             $row['nama_satuan_pendidikan'] ?? '',
             $row['nama_kepala_sekolah'] ?? '',
             $row['nama_operator'] ?? '',

@@ -1,6 +1,7 @@
 -- Pembaruan data HP Kepsek & Operator satuan pendidikan
 CREATE TABLE IF NOT EXISTS `pengkinian_data_satuan` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `npsn` varchar(20) NOT NULL,
   `nama_satuan_pendidikan` varchar(200) NOT NULL,
   `nama_kepala_sekolah` varchar(150) NOT NULL,
   `nama_operator` varchar(150) NOT NULL,
@@ -21,6 +22,7 @@ CREATE TABLE IF NOT EXISTS `pengkinian_data_satuan` (
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_npsn` (`npsn`),
   KEY `idx_nama_satuan` (`nama_satuan_pendidikan`),
   KEY `idx_kecamatan` (`nama_kecamatan`),
   KEY `idx_hp_kepsek_norm` (`nomor_hp_kepsek_norm`),

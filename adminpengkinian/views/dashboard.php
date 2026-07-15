@@ -65,7 +65,7 @@ declare(strict_types=1);
                 <a href="<?= url('adminpengkinian/?page=detail&id=' . (int) $row['id']) ?>" class="font-semibold text-green-800 hover:underline">
                   <?= sanitize($row['nama_satuan_pendidikan'] ?? '') ?>
                 </a>
-                <p class="text-xs text-gray-500"><?= sanitize($row['nama_kecamatan'] ?? '') ?></p>
+                <p class="text-xs text-gray-500">NPSN: <?= sanitize($row['npsn'] ?? '-') ?> · <?= sanitize($row['nama_kecamatan'] ?? '') ?></p>
               </td>
               <td class="px-4 py-3">
                 <p><?= sanitize($row['nama_kepala_sekolah'] ?? '') ?></p>
