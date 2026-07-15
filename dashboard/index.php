@@ -33,7 +33,7 @@ require_once dirname(__DIR__) . '/includes/functions.php';
       <p class="text-gray-600">Akses formulir pendaftaran dan pemesanan melalui menu di bawah ini.</p>
     </div>
 
-    <div class="grid md:grid-cols-2 gap-6">
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
       <a href="<?= url('rakerdinma') ?>"
          class="group bg-white rounded-2xl shadow-lg border border-green-100 p-8 hover:shadow-xl hover:border-green-300 transition">
         <div class="text-4xl mb-4">📋</div>
@@ -52,6 +52,16 @@ require_once dirname(__DIR__) . '/includes/functions.php';
           MOPDIK, Batik Ma'arif, Buku Ke-NU-an, dan Buku Tulis Karakter Aswaja untuk lembaga binaan LP Ma'arif NU.
         </p>
         <span class="inline-block mt-5 text-green-700 font-semibold text-sm">Buka Menu Pemesanan →</span>
+      </a>
+
+      <a href="<?= url('pengkinian') ?>"
+         class="group bg-white rounded-2xl shadow-lg border border-green-100 p-8 hover:shadow-xl hover:border-green-300 transition">
+        <div class="text-4xl mb-4">📱</div>
+        <h3 class="text-xl font-bold text-green-800 group-hover:text-green-700 mb-2">Pembaruan Data Satuan Pendidikan</h3>
+        <p class="text-gray-600 text-sm leading-relaxed">
+          Perbarui nomor HP Kepala Sekolah dan Operator beserta alamat satuan pendidikan binaan LP Ma'arif NU.
+        </p>
+        <span class="inline-block mt-5 text-green-700 font-semibold text-sm">Buka Formulir →</span>
       </a>
     </div>
   </main>

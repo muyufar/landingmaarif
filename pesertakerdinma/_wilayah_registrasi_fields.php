@@ -6,7 +6,7 @@ declare(strict_types=1);
 $defaults = defaultWilayahMagelang();
 ?>
 <div class="space-y-4">
-  <p class="block text-sm font-semibold text-gray-700">ALAMAT LEMBAGA <span class="text-red-500">*</span></p>
+  <p class="block text-sm font-semibold text-gray-700"><?= sanitize($wilayahSectionTitle ?? 'ALAMAT LEMBAGA') ?> <span class="text-red-500">*</span></p>
   <p class="text-xs text-gray-500 -mt-2">Provinsi Jawa Tengah, Kabupaten Magelang</p>
 
   <input type="hidden" name="kode_provinsi" value="<?= sanitize($defaults['kode_provinsi']) ?>">
