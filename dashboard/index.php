@@ -63,6 +63,16 @@ require_once dirname(__DIR__) . '/includes/functions.php';
         </p>
         <span class="inline-block mt-5 text-green-700 font-semibold text-sm">Buka Formulir →</span>
       </a>
+
+      <a href="<?= url('distribusi') ?>"
+         class="group bg-white rounded-2xl shadow-lg border border-green-100 p-8 hover:shadow-xl hover:border-green-300 transition">
+        <div class="text-4xl mb-4">📦</div>
+        <h3 class="text-xl font-bold text-green-800 group-hover:text-green-700 mb-2">Tracking Distribusi LKPD</h3>
+        <p class="text-gray-600 text-sm leading-relaxed">
+          Monitoring pendistribusian buku ajar LKPD dari distributor ke satuan pendidikan MI Ma'arif NU Magelang.
+        </p>
+        <span class="inline-block mt-5 text-green-700 font-semibold text-sm">Portal Petugas →</span>
+      </a>
     </div>
   </main>
 

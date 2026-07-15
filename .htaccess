@@ -12,4 +12,6 @@ DirectoryIndex default.php index.php
   RewriteRule ^dokumentasi/?$ dokumentasi/index.php [L]
   RewriteRule ^pengkinian/?$ pengkinian/index.php [L]
   RewriteRule ^adminpengkinian/?$ adminpengkinian/index.php [L,QSA]
+  RewriteRule ^distribusi/?$ distribusi/index.php [L,QSA]
+  RewriteRule ^admindistribusi/?$ admindistribusi/index.php [L,QSA]
 </IfModule>

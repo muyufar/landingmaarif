@@ -35,6 +35,19 @@ define('DOKUMENTASI_JUDUL', 'Dokumentasi Acara RAKERDINMA 2026');
 define('PENGKINIAN_DATA_TITLE', 'FORM PEMBARUAN DATA SATUAN PENDIDIKAN');
 define('PENGKINIAN_DATA_SUBTITLE', 'LP MA\'ARIF NU KABUPATEN MAGELANG');
 
+define('DISTRIBUSI_LKPD_TITLE', 'TRACKING DISTRIBUSI BUKU LKPD MI MA\'ARIF NU MAGELANG');
+
+/** WA API (opsional). Kosongkan/false = gunakan link wa.me */
+if (!defined('WA_API_ENABLED')) {
+    define('WA_API_ENABLED', false);
+}
+if (!defined('WA_API_URL')) {
+    define('WA_API_URL', '');
+}
+if (!defined('WA_API_TOKEN')) {
+    define('WA_API_TOKEN', '');
+}
+
 define('SERTIFIKAT_NOMOR_AWAL', 3210);
 define('SERTIFIKAT_NOMOR_SUFFIX', '/PC.LPM/E.12/VI/2026');
 define('SERTIFIKAT_NOMOR_FONT_PT', 13);

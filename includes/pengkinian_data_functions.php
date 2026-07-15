@@ -588,6 +588,22 @@ function getPengkinianDataById(int $id): ?array
     return $row ?: null;
 }
 
+function getPengkinianByNpsn(string $npsn): ?array
+{
+    $npsn = normalizeNpsn($npsn);
+    if ($npsn === '') {
+        return null;
+    }
+
+    $pdo = getDb();
+    $table = pengkinianDataTableName();
+    $stmt = $pdo->prepare("SELECT * FROM `{$table}` WHERE npsn = :npsn LIMIT 1");
+    $stmt->execute([':npsn' => $npsn]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return $row ?: null;
+}
+
 function deletePengkinianData(int $id): bool
 {
     $row = getPengkinianDataById($id);
