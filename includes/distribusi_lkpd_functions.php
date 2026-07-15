@@ -715,9 +715,33 @@ function upsertDistribusiSatuanRow(array $row): void
     }
 }
 
-function parseDistribusiImportRows(string $filePath): array
+function detectDistribusiImportExtension(string $filePath, string $originalName = ''): ?string
 {
-    $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+    foreach ([$originalName, $filePath] as $name) {
+        if ($name === '') {
+            continue;
+        }
+        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+        if (in_array($ext, ['csv', 'xlsx', 'xls'], true)) {
+            return $ext;
+        }
+    }
+
+    $handle = @fopen($filePath, 'rb');
+    if ($handle !== false) {
+        $header = fread($handle, 4);
+        fclose($handle);
+        if ($header === "PK\x03\x04") {
+            return 'xlsx';
+        }
+    }
+
+    return null;
+}
+
+function parseDistribusiImportRows(string $filePath, string $originalName = ''): array
+{
+    $ext = detectDistribusiImportExtension($filePath, $originalName);
     if ($ext === 'csv') {
         return parseDistribusiCsv($filePath);
     }
@@ -995,7 +1019,7 @@ function mapDistribusiImportRow(array $header, array $data): ?array
 
 function importDistribusiFile(string $tmpPath, string $originalName): array
 {
-    $parsed = parseDistribusiImportRows($tmpPath);
+    $parsed = parseDistribusiImportRows($tmpPath, $originalName);
     if (!empty($parsed['errors']) && empty($parsed['rows'])) {
         return ['ok' => false, 'imported' => 0, 'errors' => $parsed['errors']];
     }
