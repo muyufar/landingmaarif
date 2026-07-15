@@ -1,16 +1,25 @@
-<?php declare(strict_types=1); /** @var array $rows @var string $search @var string $statusFilter */ ?>
+<?php declare(strict_types=1); /** @var array $rows @var string $search @var string $statusFilter @var string $kecamatanFilter @var array $kecamatanOptions */ ?>
 <div class="bg-white rounded-2xl border shadow-lg overflow-hidden">
   <div class="p-5 border-b flex flex-wrap gap-2 justify-between">
     <form method="get" class="flex flex-wrap gap-2 flex-1">
       <input type="hidden" name="page" value="list">
       <input type="text" name="q" value="<?= sanitize($search) ?>" placeholder="Cari..." class="rounded-lg border px-3 py-2 text-sm flex-1 min-w-[180px]">
+      <select name="kecamatan" class="rounded-lg border px-3 py-2 text-sm min-w-[160px]">
+        <option value="">Semua Kecamatan</option>
+        <?php foreach ($kecamatanOptions as $opt): ?>
+          <option value="<?= sanitize($opt) ?>" <?= $kecamatanFilter === $opt ? 'selected' : '' ?>><?= sanitize($opt) ?></option>
+        <?php endforeach; ?>
+      </select>
       <select name="status" class="rounded-lg border px-3 py-2 text-sm">
-        <option value="">Semua</option>
+        <option value="">Semua Status</option>
         <?php foreach ([DIST_STATUS_PACKING, DIST_STATUS_DELIVERY, DIST_STATUS_RECEIVE, DIST_STATUS_DONE] as $st): ?>
           <option value="<?= sanitize($st) ?>" <?= $statusFilter === $st ? 'selected' : '' ?>><?= sanitize(distribusiStatusLabel($st)) ?></option>
         <?php endforeach; ?>
       </select>
       <button type="submit" class="bg-green-700 text-white px-4 py-2 rounded-lg text-sm">Filter</button>
+      <?php if ($search !== '' || $statusFilter !== '' || $kecamatanFilter !== ''): ?>
+        <a href="<?= url('admindistribusi/?page=list') ?>" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg text-sm">Reset</a>
+      <?php endif; ?>
     </form>
     <a href="<?= url('admindistribusi/?export=csv') ?>" class="bg-gray-700 text-white px-4 py-2 rounded-lg text-sm">Export CSV</a>
   </div>

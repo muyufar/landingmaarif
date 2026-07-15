@@ -384,7 +384,36 @@ function loadPengirimanSatuan(int $satuanId): array
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-function loadDistribusiSatuan(string $search = '', ?string $status = null): array
+function distribusiKecamatanFromAlamat(string $alamat): string
+{
+    if (preg_match('/^Kec\.\s*(.+?),/u', trim($alamat), $m)) {
+        return trim($m[1]);
+    }
+
+    return '';
+}
+
+function loadDistribusiKecamatanOptions(): array
+{
+    ensureDistribusiLkpdSchema();
+    $pdo = getDb();
+    $rows = $pdo->query(
+        "SELECT DISTINCT alamat FROM distribusi_lkpd_satuan WHERE alamat LIKE 'Kec.%' ORDER BY alamat"
+    )->fetchAll(PDO::FETCH_COLUMN);
+
+    $options = [];
+    foreach ($rows as $alamat) {
+        $kec = distribusiKecamatanFromAlamat((string) $alamat);
+        if ($kec !== '') {
+            $options[$kec] = true;
+        }
+    }
+    ksort($options);
+
+    return array_keys($options);
+}
+
+function loadDistribusiSatuan(string $search = '', ?string $status = null, ?string $kecamatan = null): array
 {
     ensureDistribusiLkpdSchema();
     $pdo = getDb();
@@ -398,6 +427,10 @@ function loadDistribusiSatuan(string $search = '', ?string $status = null): arra
     if ($status !== null && $status !== '') {
         $sql .= ' AND status = :st';
         $params[':st'] = $status;
+    }
+    if ($kecamatan !== null && $kecamatan !== '') {
+        $sql .= ' AND alamat LIKE :kec';
+        $params[':kec'] = 'Kec. ' . $kecamatan . ',%';
     }
     $sql .= ' ORDER BY FIELD(status, \'delivery\', \'receive\', \'packing\', \'done\'), nama_lembaga ASC';
 

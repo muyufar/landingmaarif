@@ -124,7 +124,13 @@ try {
     } elseif ($currentPage === 'list') {
         $search = trim($_GET['q'] ?? '');
         $statusFilter = trim($_GET['status'] ?? '');
-        $rows = loadDistribusiSatuan($search, $statusFilter !== '' ? $statusFilter : null);
+        $kecamatanFilter = trim($_GET['kecamatan'] ?? '');
+        $kecamatanOptions = loadDistribusiKecamatanOptions();
+        $rows = loadDistribusiSatuan(
+            $search,
+            $statusFilter !== '' ? $statusFilter : null,
+            $kecamatanFilter !== '' ? $kecamatanFilter : null
+        );
         $pageTitle = 'Monitoring Distribusi';
         ob_start();
         require __DIR__ . '/views/list.php';
