@@ -48,7 +48,8 @@ declare(strict_types=1);
             <th class="px-4 py-3 text-left">Operator</th>
             <th class="px-4 py-3 text-left">HP Kepsek</th>
             <th class="px-4 py-3 text-left">HP Operator</th>
-            <th class="px-4 py-3 text-left">Kecamatan</th>
+            <th class="px-4 py-3 text-left">Jenjang</th>
+            <th class="px-4 py-3 text-left">Status SK</th>
             <th class="px-4 py-3 text-left">Diperbarui</th>
             <th class="px-4 py-3 text-center">Aksi</th>
           </tr>
@@ -63,7 +64,13 @@ declare(strict_types=1);
               <td class="px-4 py-3"><?= sanitize($row['nama_operator'] ?? '') ?></td>
               <td class="px-4 py-3 text-green-700 whitespace-nowrap"><?= sanitize($row['nomor_hp_kepsek'] ?? '') ?></td>
               <td class="px-4 py-3 text-green-700 whitespace-nowrap"><?= sanitize($row['nomor_hp_operator'] ?? '') ?></td>
-              <td class="px-4 py-3"><?= sanitize($row['nama_kecamatan'] ?? '') ?></td>
+              <td class="px-4 py-3"><?= sanitize($row['jenjang'] ?? '') ?></td>
+              <td class="px-4 py-3">
+                <?php $status = strtoupper((string) ($row['status_sk_kepala'] ?? '')); ?>
+                <span class="text-xs font-bold <?= $status === 'AKTIF' ? 'text-green-700' : 'text-red-700' ?>">
+                  <?= sanitize($status !== '' ? $status : '-') ?>
+                </span>
+              </td>
               <td class="px-4 py-3 whitespace-nowrap text-gray-500"><?= sanitize($row['updated_at'] ?? '') ?></td>
               <td class="px-4 py-3 text-center">
                 <a href="<?= url('adminpengkinian/?page=detail&id=' . (int) $row['id']) ?>"

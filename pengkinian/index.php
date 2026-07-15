@@ -10,7 +10,20 @@ $wasUpdate = isset($_GET['updated']);
 $formData = pengkinianDataDefaultForm();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $result = validatePengkinianData($_POST);
+    $existingRow = null;
+    $npsnProbe = normalizeNpsn($_POST['npsn'] ?? '');
+    if ($npsnProbe !== '') {
+        $existingId = findPengkinianDataId([
+            'npsn' => $npsnProbe,
+            'nama_satuan_pendidikan' => '',
+            'kode_kelurahan' => '',
+        ]);
+        if ($existingId !== null) {
+            $existingRow = getPengkinianDataById($existingId);
+        }
+    }
+
+    $result = validatePengkinianData($_POST, $_FILES, $existingRow);
 
     if (!empty($result['errors'])) {
         $errors = $result['errors'];
@@ -97,7 +110,7 @@ function fieldValue(string $key, array $formData): string
         <?php endif; ?>
 
         <?php if (!$success): ?>
-        <form method="post" action="" id="form-pengkinian" class="space-y-6">
+        <form method="post" action="" id="form-pengkinian" enctype="multipart/form-data" class="space-y-6">
           <div>
             <label for="npsn" class="block text-sm font-semibold text-gray-700 mb-2">
               NPSN <span class="text-red-500">*</span>
@@ -119,6 +132,19 @@ function fieldValue(string $key, array $formData): string
                    class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
           </div>
 
+          <div>
+            <label for="jenjang" class="block text-sm font-semibold text-gray-700 mb-2">
+              Jenjang <span class="text-red-500">*</span>
+            </label>
+            <select id="jenjang" name="jenjang" required
+                    class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent bg-white">
+              <option value="">-- Pilih Jenjang --</option>
+              <?php foreach (pengkinianJenjangOptions() as $opt): ?>
+                <option value="<?= sanitize($opt) ?>" <?= fieldValue('jenjang', $formData) === $opt ? 'selected' : '' ?>><?= sanitize($opt) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+
           <div class="grid md:grid-cols-2 gap-6">
             <div>
               <label for="nama_kepala_sekolah" class="block text-sm font-semibold text-gray-700 mb-2">
@@ -135,6 +161,48 @@ function fieldValue(string $key, array $formData): string
               <input type="text" id="nama_operator" name="nama_operator" required
                      value="<?= fieldValue('nama_operator', $formData) ?>"
                      class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <label for="tempat_lahir" class="block text-sm font-semibold text-gray-700 mb-2">
+                Tempat Lahir <span class="text-red-500">*</span>
+              </label>
+              <input type="text" id="tempat_lahir" name="tempat_lahir" required
+                     value="<?= fieldValue('tempat_lahir', $formData) ?>"
+                     class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
+            </div>
+            <div>
+              <label for="tanggal_lahir" class="block text-sm font-semibold text-gray-700 mb-2">
+                Tanggal Lahir <span class="text-red-500">*</span>
+              </label>
+              <input type="date" id="tanggal_lahir" name="tanggal_lahir" required
+                     value="<?= fieldValue('tanggal_lahir', $formData) ?>"
+                     class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
+            </div>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <label for="niy_nip" class="block text-sm font-semibold text-gray-700 mb-2">
+                NIY/NIP <span class="text-red-500">*</span>
+              </label>
+              <input type="text" id="niy_nip" name="niy_nip" required
+                     value="<?= fieldValue('niy_nip', $formData) ?>"
+                     class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
+            </div>
+            <div>
+              <label for="jabatan" class="block text-sm font-semibold text-gray-700 mb-2">
+                Jabatan <span class="text-red-500">*</span>
+              </label>
+              <select id="jabatan" name="jabatan" required
+                      class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent bg-white">
+                <option value="">-- Pilih Jabatan --</option>
+                <?php foreach (pengkinianJabatanOptions() as $opt): ?>
+                  <option value="<?= sanitize($opt) ?>" <?= fieldValue('jabatan', $formData) === $opt ? 'selected' : '' ?>><?= sanitize($opt) ?></option>
+                <?php endforeach; ?>
+              </select>
             </div>
           </div>
 
@@ -161,6 +229,51 @@ function fieldValue(string $key, array $formData): string
             $wilayahSectionTitle = 'ALAMAT SATUAN PENDIDIKAN';
             require dirname(__DIR__) . '/pesertakerdinma/_wilayah_registrasi_fields.php';
           ?>
+
+          <div class="rounded-xl border border-green-200 bg-green-50/50 p-5 space-y-5">
+            <h3 class="text-sm font-bold text-green-900 uppercase tracking-wide">Data SK Kepala Terakhir</h3>
+
+            <div class="grid md:grid-cols-2 gap-6">
+              <div>
+                <label for="tgl_tmt_sk" class="block text-sm font-semibold text-gray-700 mb-2">
+                  Tgl TMT SK <span class="text-red-500">*</span>
+                </label>
+                <input type="date" id="tgl_tmt_sk" name="tgl_tmt_sk" required
+                       value="<?= fieldValue('tgl_tmt_sk', $formData) ?>"
+                       class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent bg-white">
+              </div>
+              <div>
+                <label for="tgl_akhir_tmt_sk" class="block text-sm font-semibold text-gray-700 mb-2">
+                  Tgl Akhir TMT SK <span class="text-red-500">*</span>
+                </label>
+                <input type="date" id="tgl_akhir_tmt_sk" name="tgl_akhir_tmt_sk" required
+                       value="<?= fieldValue('tgl_akhir_tmt_sk', $formData) ?>"
+                       class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent bg-white">
+              </div>
+            </div>
+
+            <div>
+              <label for="file_sk_kepala" class="block text-sm font-semibold text-gray-700 mb-2">
+                Upload Scan SK Terakhir <span class="text-red-500">*</span>
+              </label>
+              <input type="file" id="file_sk_kepala" name="file_sk_kepala" accept=".pdf,.jpg,.jpeg,.png"
+                     class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 bg-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-green-700 file:text-white file:font-semibold">
+              <p class="text-xs text-gray-500 mt-1">PDF, JPG, atau PNG. Maks. 5 MB. Kosongkan jika memperbarui data dan file SK tidak berubah.</p>
+            </div>
+
+            <div>
+              <label for="status_sk_kepala" class="block text-sm font-semibold text-gray-700 mb-2">
+                Status SK Kepala <span class="text-red-500">*</span>
+              </label>
+              <select id="status_sk_kepala" name="status_sk_kepala" required
+                      class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent bg-white">
+                <option value="">-- Pilih Status --</option>
+                <?php foreach (pengkinianStatusSkOptions() as $opt): ?>
+                  <option value="<?= sanitize($opt) ?>" <?= fieldValue('status_sk_kepala', $formData) === $opt ? 'selected' : '' ?>><?= sanitize($opt) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+          </div>
 
           <button type="submit" id="btn-submit"
                   class="w-full bg-green-700 hover:bg-green-800 text-white font-bold px-6 py-4 rounded-xl shadow transition disabled:opacity-60">

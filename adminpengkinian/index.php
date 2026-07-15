@@ -34,6 +34,10 @@ if (!in_array($currentPage, ['dashboard', 'list', 'detail'], true)) {
     $currentPage = 'dashboard';
 }
 
+if (isPengkinianAdminLoggedIn() && isset($_GET['download_sk'])) {
+    streamPengkinianSkFile((int) $_GET['download_sk']);
+}
+
 if (isPengkinianAdminLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     $deleteId = (int) $_POST['delete_id'];
     try {

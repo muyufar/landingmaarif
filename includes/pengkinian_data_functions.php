@@ -73,9 +73,157 @@ function ensurePengkinianDataSchema(): void
                 $pdo->exec('ALTER TABLE `pengkinian_data_satuan` ADD UNIQUE KEY `uniq_npsn` (`npsn`)');
             }
         }
+
+        $additions = [
+            'tempat_lahir' => '`tempat_lahir` varchar(100) DEFAULT NULL',
+            'tanggal_lahir' => '`tanggal_lahir` date DEFAULT NULL',
+            'niy_nip' => '`niy_nip` varchar(30) DEFAULT NULL',
+            'jabatan' => '`jabatan` varchar(50) DEFAULT NULL',
+            'jenjang' => '`jenjang` varchar(30) DEFAULT NULL',
+            'tgl_tmt_sk' => '`tgl_tmt_sk` date DEFAULT NULL',
+            'tgl_akhir_tmt_sk' => '`tgl_akhir_tmt_sk` date DEFAULT NULL',
+            'file_sk_kepala' => '`file_sk_kepala` varchar(255) DEFAULT NULL',
+            'status_sk_kepala' => '`status_sk_kepala` varchar(10) DEFAULT NULL',
+        ];
+        foreach ($additions as $col => $definition) {
+            if (!in_array($col, $columns, true)) {
+                $pdo->exec("ALTER TABLE `pengkinian_data_satuan` ADD COLUMN {$definition}");
+                $columns[] = $col;
+            }
+        }
     }
 
     $done = true;
+}
+
+function pengkinianSkStorageDir(): string
+{
+    $dir = APP_ROOT . '/data/sk_kepala';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0755, true);
+    }
+
+    return $dir;
+}
+
+function pengkinianJabatanOptions(): array
+{
+    return ['Kepala Madrasah', 'Kepala Sekolah'];
+}
+
+function pengkinianJenjangOptions(): array
+{
+    return ['MI/SD', 'MTS/SMP', 'MA/SMA/SMK'];
+}
+
+function pengkinianNormalizeJenjang(string $jenjang): string
+{
+    $jenjang = trim($jenjang);
+    $legacy = [
+        'MI' => 'MI/SD',
+        'SD' => 'MI/SD',
+        'MTS' => 'MTS/SMP',
+        'SMP' => 'MTS/SMP',
+        'MA' => 'MA/SMA/SMK',
+        'SMA' => 'MA/SMA/SMK',
+        'SMK' => 'MA/SMA/SMK',
+    ];
+
+    return $legacy[$jenjang] ?? $jenjang;
+}
+
+function pengkinianStatusSkOptions(): array
+{
+    return ['AKTIF', 'HABIS'];
+}
+
+function resolveStatusSkKepala(string $tglAkhir, string $selected): string
+{
+    if (in_array($selected, pengkinianStatusSkOptions(), true)) {
+        return $selected;
+    }
+
+    if ($tglAkhir !== '' && strtotime($tglAkhir) !== false) {
+        return strtotime($tglAkhir) >= strtotime('today') ? 'AKTIF' : 'HABIS';
+    }
+
+    return 'HABIS';
+}
+
+function getPengkinianSkRelativePath(int $id): ?string
+{
+    $row = getPengkinianDataById($id);
+
+    return !empty($row['file_sk_kepala']) ? (string) $row['file_sk_kepala'] : null;
+}
+
+function streamPengkinianSkFile(int $id): void
+{
+    $relative = getPengkinianSkRelativePath($id);
+    if ($relative === null) {
+        http_response_code(404);
+        exit('File tidak ditemukan.');
+    }
+
+    $path = APP_ROOT . '/' . ltrim(str_replace('\\', '/', $relative), '/');
+    if (!is_file($path)) {
+        http_response_code(404);
+        exit('File tidak ditemukan.');
+    }
+
+    $mime = mime_content_type($path) ?: 'application/octet-stream';
+    header('Content-Type: ' . $mime);
+    header('Content-Disposition: inline; filename="' . basename($path) . '"');
+    header('Content-Length: ' . (string) filesize($path));
+    readfile($path);
+    exit;
+}
+
+function handlePengkinianSkUpload(array $file, string $npsn, ?string $existingPath): array
+{
+    $errorCode = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+
+    if ($errorCode === UPLOAD_ERR_NO_FILE) {
+        if ($existingPath !== null && $existingPath !== '') {
+            return ['error' => null, 'path' => $existingPath];
+        }
+
+        return ['error' => 'Upload scan SK terakhir wajib diisi.', 'path' => null];
+    }
+
+    if ($errorCode !== UPLOAD_ERR_OK) {
+        return ['error' => 'Gagal mengunggah file SK. Silakan coba lagi.', 'path' => null];
+    }
+
+    $maxBytes = 5 * 1024 * 1024;
+    if (($file['size'] ?? 0) > $maxBytes) {
+        return ['error' => 'Ukuran file SK maksimal 5 MB.', 'path' => null];
+    }
+
+    $original = (string) ($file['name'] ?? '');
+    $ext = strtolower(pathinfo($original, PATHINFO_EXTENSION));
+    $allowed = ['pdf', 'jpg', 'jpeg', 'png'];
+    if (!in_array($ext, $allowed, true)) {
+        return ['error' => 'Format file SK harus PDF, JPG, atau PNG.', 'path' => null];
+    }
+
+    $dir = pengkinianSkStorageDir();
+    $filename = 'sk_' . preg_replace('/\D/', '', $npsn) . '_' . date('YmdHis') . '.' . $ext;
+    $dest = $dir . '/' . $filename;
+    $relative = 'data/sk_kepala/' . $filename;
+
+    if (!move_uploaded_file((string) ($file['tmp_name'] ?? ''), $dest)) {
+        return ['error' => 'Gagal menyimpan file SK.', 'path' => null];
+    }
+
+    if ($existingPath !== null && $existingPath !== '') {
+        $oldPath = APP_ROOT . '/' . ltrim(str_replace('\\', '/', $existingPath), '/');
+        if (is_file($oldPath)) {
+            @unlink($oldPath);
+        }
+    }
+
+    return ['error' => null, 'path' => $relative];
 }
 
 function pengkinianDataDefaultForm(): array
@@ -84,6 +232,11 @@ function pengkinianDataDefaultForm(): array
         'npsn' => '',
         'nama_satuan_pendidikan' => '',
         'nama_kepala_sekolah' => '',
+        'tempat_lahir' => '',
+        'tanggal_lahir' => '',
+        'niy_nip' => '',
+        'jabatan' => '',
+        'jenjang' => '',
         'nama_operator' => '',
         'nomor_hp_kepsek' => '',
         'nomor_hp_operator' => '',
@@ -92,6 +245,9 @@ function pengkinianDataDefaultForm(): array
         'kode_kelurahan' => '',
         'nama_kelurahan' => '',
         'alamat_detail' => '',
+        'tgl_tmt_sk' => '',
+        'tgl_akhir_tmt_sk' => '',
+        'status_sk_kepala' => '',
     ], defaultWilayahMagelang());
 }
 
@@ -115,7 +271,7 @@ function normalizeNpsn(string $value): string
     return preg_replace('/\D/', '', trim($value)) ?? '';
 }
 
-function validatePengkinianData(array $input): array
+function validatePengkinianData(array $input, array $files = [], ?array $existingRow = null): array
 {
     $errors = [];
     $data = pengkinianDataDefaultForm();
@@ -132,6 +288,8 @@ function validatePengkinianData(array $input): array
     $textFields = [
         'nama_satuan_pendidikan' => 'Nama Satuan Pendidikan',
         'nama_kepala_sekolah' => 'Nama Kepala Sekolah',
+        'tempat_lahir' => 'Tempat Lahir',
+        'niy_nip' => 'NIY/NIP',
         'nama_operator' => 'Nama Operator',
     ];
 
@@ -142,6 +300,29 @@ function validatePengkinianData(array $input): array
         } else {
             $data[$field] = $value;
         }
+    }
+
+    $tanggalLahir = trim($input['tanggal_lahir'] ?? '');
+    if ($tanggalLahir === '') {
+        $errors[] = 'Field Tanggal Lahir wajib diisi.';
+    } elseif (strtotime($tanggalLahir) === false) {
+        $errors[] = 'Field Tanggal Lahir tidak valid.';
+    } else {
+        $data['tanggal_lahir'] = date('Y-m-d', strtotime($tanggalLahir));
+    }
+
+    $jabatan = trim($input['jabatan'] ?? '');
+    if ($jabatan === '' || !in_array($jabatan, pengkinianJabatanOptions(), true)) {
+        $errors[] = 'Field Jabatan wajib dipilih.';
+    } else {
+        $data['jabatan'] = $jabatan;
+    }
+
+    $jenjang = pengkinianNormalizeJenjang($input['jenjang'] ?? '');
+    if ($jenjang === '' || !in_array($jenjang, pengkinianJenjangOptions(), true)) {
+        $errors[] = 'Field Jenjang wajib dipilih.';
+    } else {
+        $data['jenjang'] = $jenjang;
     }
 
     $hpKepsek = validateNomorHp('Nomor HP Kepala Sekolah', $input['nomor_hp_kepsek'] ?? '');
@@ -194,6 +375,44 @@ function validatePengkinianData(array $input): array
         'nama_kabupaten' => $data['nama_kabupaten'],
         'nama_provinsi' => $data['nama_provinsi'],
     ]);
+
+    $tglTmt = trim($input['tgl_tmt_sk'] ?? '');
+    $tglAkhir = trim($input['tgl_akhir_tmt_sk'] ?? '');
+    if ($tglTmt === '') {
+        $errors[] = 'Field Tgl TMT SK wajib diisi.';
+    } elseif (strtotime($tglTmt) === false) {
+        $errors[] = 'Field Tgl TMT SK tidak valid.';
+    } else {
+        $data['tgl_tmt_sk'] = date('Y-m-d', strtotime($tglTmt));
+    }
+
+    if ($tglAkhir === '') {
+        $errors[] = 'Field Tgl Akhir TMT SK wajib diisi.';
+    } elseif (strtotime($tglAkhir) === false) {
+        $errors[] = 'Field Tgl Akhir TMT SK tidak valid.';
+    } else {
+        $data['tgl_akhir_tmt_sk'] = date('Y-m-d', strtotime($tglAkhir));
+    }
+
+    if (($data['tgl_tmt_sk'] ?? '') !== '' && ($data['tgl_akhir_tmt_sk'] ?? '') !== ''
+        && strtotime($data['tgl_akhir_tmt_sk']) < strtotime($data['tgl_tmt_sk'])) {
+        $errors[] = 'Tgl Akhir TMT SK tidak boleh lebih awal dari Tgl TMT SK.';
+    }
+
+    $statusInput = strtoupper(trim($input['status_sk_kepala'] ?? ''));
+    if ($statusInput === '' || !in_array($statusInput, pengkinianStatusSkOptions(), true)) {
+        $errors[] = 'Field Status SK Kepala wajib dipilih.';
+    } else {
+        $data['status_sk_kepala'] = $statusInput;
+    }
+
+    $existingFile = $existingRow['file_sk_kepala'] ?? null;
+    $upload = handlePengkinianSkUpload($files['file_sk_kepala'] ?? [], $data['npsn'] ?? '', $existingFile);
+    if ($upload['error'] !== null) {
+        $errors[] = $upload['error'];
+    } else {
+        $data['file_sk_kepala'] = $upload['path'];
+    }
 
     return ['errors' => $errors, 'data' => $data];
 }
@@ -249,6 +468,11 @@ function savePengkinianData(array $data): array
         'npsn' => $data['npsn'],
         'nama_satuan_pendidikan' => $data['nama_satuan_pendidikan'],
         'nama_kepala_sekolah' => $data['nama_kepala_sekolah'],
+        'tempat_lahir' => $data['tempat_lahir'],
+        'tanggal_lahir' => $data['tanggal_lahir'],
+        'niy_nip' => $data['niy_nip'],
+        'jabatan' => $data['jabatan'],
+        'jenjang' => $data['jenjang'],
         'nama_operator' => $data['nama_operator'],
         'nomor_hp_kepsek' => $data['nomor_hp_kepsek'],
         'nomor_hp_kepsek_norm' => $data['nomor_hp_kepsek_norm'],
@@ -264,6 +488,10 @@ function savePengkinianData(array $data): array
         'nama_kelurahan' => $data['nama_kelurahan'],
         'alamat_detail' => $data['alamat_detail'],
         'alamat_lengkap' => $data['alamat_lengkap'],
+        'tgl_tmt_sk' => $data['tgl_tmt_sk'],
+        'tgl_akhir_tmt_sk' => $data['tgl_akhir_tmt_sk'],
+        'file_sk_kepala' => $data['file_sk_kepala'],
+        'status_sk_kepala' => $data['status_sk_kepala'],
     ];
 
     if ($existingId !== null) {
@@ -298,10 +526,15 @@ function loadPengkinianData(string $search = '', array $filters = []): array
     $pdo = getDb();
     $table = pengkinianDataTableName();
 
-    $sql = "SELECT id, npsn, nama_satuan_pendidikan, nama_kepala_sekolah, nama_operator,
+    $sql = "SELECT id, npsn, nama_satuan_pendidikan, nama_kepala_sekolah, tempat_lahir,
+                   DATE_FORMAT(tanggal_lahir, '%Y-%m-%d') AS tanggal_lahir,
+                   niy_nip, jabatan, jenjang, nama_operator,
                    nomor_hp_kepsek, nomor_hp_operator,
                    kode_kecamatan, nama_kecamatan, kode_kelurahan, nama_kelurahan,
                    alamat_detail, alamat_lengkap,
+                   DATE_FORMAT(tgl_tmt_sk, '%Y-%m-%d') AS tgl_tmt_sk,
+                   DATE_FORMAT(tgl_akhir_tmt_sk, '%Y-%m-%d') AS tgl_akhir_tmt_sk,
+                   file_sk_kepala, status_sk_kepala,
                    DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at,
                    DATE_FORMAT(updated_at, '%Y-%m-%d %H:%i:%s') AS updated_at
             FROM `{$table}` WHERE 1=1";
@@ -310,8 +543,9 @@ function loadPengkinianData(string $search = '', array $filters = []): array
 
     if ($search !== '') {
         $sql .= ' AND (npsn LIKE :q OR nama_satuan_pendidikan LIKE :q OR nama_kepala_sekolah LIKE :q
-                  OR nama_operator LIKE :q OR nomor_hp_kepsek LIKE :q OR nomor_hp_operator LIKE :q
-                  OR alamat_lengkap LIKE :q OR nama_kecamatan LIKE :q)';
+                  OR niy_nip LIKE :q OR nama_operator LIKE :q OR nomor_hp_kepsek LIKE :q OR nomor_hp_operator LIKE :q
+                  OR alamat_lengkap LIKE :q OR nama_kecamatan LIKE :q OR jenjang LIKE :q
+                  OR status_sk_kepala LIKE :q)';
         $params[':q'] = '%' . $search . '%';
     }
 
@@ -334,11 +568,16 @@ function getPengkinianDataById(int $id): ?array
     $table = pengkinianDataTableName();
 
     $stmt = $pdo->prepare(
-        "SELECT id, npsn, nama_satuan_pendidikan, nama_kepala_sekolah, nama_operator,
+        "SELECT id, npsn, nama_satuan_pendidikan, nama_kepala_sekolah, tempat_lahir,
+                DATE_FORMAT(tanggal_lahir, '%Y-%m-%d') AS tanggal_lahir,
+                niy_nip, jabatan, jenjang, nama_operator,
                 nomor_hp_kepsek, nomor_hp_operator,
                 kode_provinsi, nama_provinsi, kode_kabupaten, nama_kabupaten,
                 kode_kecamatan, nama_kecamatan, kode_kelurahan, nama_kelurahan,
                 alamat_detail, alamat_lengkap,
+                DATE_FORMAT(tgl_tmt_sk, '%Y-%m-%d') AS tgl_tmt_sk,
+                DATE_FORMAT(tgl_akhir_tmt_sk, '%Y-%m-%d') AS tgl_akhir_tmt_sk,
+                file_sk_kepala, status_sk_kepala,
                 DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s') AS created_at,
                 DATE_FORMAT(updated_at, '%Y-%m-%d %H:%i:%s') AS updated_at
          FROM `{$table}` WHERE id = :id LIMIT 1"
@@ -351,12 +590,21 @@ function getPengkinianDataById(int $id): ?array
 
 function deletePengkinianData(int $id): bool
 {
+    $row = getPengkinianDataById($id);
     $pdo = getDb();
     $table = pengkinianDataTableName();
     $stmt = $pdo->prepare("DELETE FROM `{$table}` WHERE id = :id");
     $stmt->execute([':id' => $id]);
+    $deleted = $stmt->rowCount() > 0;
 
-    return $stmt->rowCount() > 0;
+    if ($deleted && !empty($row['file_sk_kepala'])) {
+        $path = APP_ROOT . '/' . ltrim(str_replace('\\', '/', (string) $row['file_sk_kepala']), '/');
+        if (is_file($path)) {
+            @unlink($path);
+        }
+    }
+
+    return $deleted;
 }
 
 function getPengkinianDashboardStats(array $rows): array
@@ -413,6 +661,11 @@ function exportPengkinianCsv(array $rows): void
         'NPSN',
         'Nama Satuan Pendidikan',
         'Nama Kepala Sekolah',
+        'Tempat Lahir',
+        'Tanggal Lahir',
+        'NIY/NIP',
+        'Jabatan',
+        'Jenjang',
         'Nama Operator',
         'HP Kepsek',
         'HP Operator',
@@ -420,6 +673,9 @@ function exportPengkinianCsv(array $rows): void
         'Desa/Kelurahan',
         'Alamat Detail',
         'Alamat Lengkap',
+        'Tgl TMT SK',
+        'Tgl Akhir TMT SK',
+        'Status SK Kepala',
         'Dibuat',
         'Diperbarui',
     ]);
@@ -430,6 +686,11 @@ function exportPengkinianCsv(array $rows): void
             $row['npsn'] ?? '',
             $row['nama_satuan_pendidikan'] ?? '',
             $row['nama_kepala_sekolah'] ?? '',
+            $row['tempat_lahir'] ?? '',
+            $row['tanggal_lahir'] ?? '',
+            $row['niy_nip'] ?? '',
+            $row['jabatan'] ?? '',
+            $row['jenjang'] ?? '',
             $row['nama_operator'] ?? '',
             $row['nomor_hp_kepsek'] ?? '',
             $row['nomor_hp_operator'] ?? '',
@@ -437,6 +698,9 @@ function exportPengkinianCsv(array $rows): void
             $row['nama_kelurahan'] ?? '',
             $row['alamat_detail'] ?? '',
             $row['alamat_lengkap'] ?? '',
+            $row['tgl_tmt_sk'] ?? '',
+            $row['tgl_akhir_tmt_sk'] ?? '',
+            $row['status_sk_kepala'] ?? '',
             $row['created_at'] ?? '',
             $row['updated_at'] ?? '',
         ]);
