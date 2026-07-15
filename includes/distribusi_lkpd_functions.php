@@ -778,7 +778,15 @@ function parseDistribusiXlsx(string $filePath): array
         $sx = @simplexml_load_string($sharedXml);
         if ($sx !== false) {
             foreach ($sx->si as $si) {
-                $sharedStrings[] = trim((string) ($si->t ?? $si->r->t ?? ''));
+                if (isset($si->t)) {
+                    $sharedStrings[] = trim((string) $si->t);
+                } else {
+                    $parts = [];
+                    foreach ($si->r ?? [] as $run) {
+                        $parts[] = (string) ($run->t ?? '');
+                    }
+                    $sharedStrings[] = trim(implode('', $parts));
+                }
             }
         }
     }
@@ -816,6 +824,10 @@ function parseDistribusiXlsx(string $filePath): array
         return ['rows' => [], 'errors' => ['Sheet kosong.']];
     }
 
+    if (isRekapMiMaarifGrid($grid)) {
+        return parseRekapMiMaarifGrid($grid);
+    }
+
     ksort($grid);
     $headerRow = array_shift($grid);
     if ($headerRow === null) {
@@ -850,6 +862,77 @@ function parseDistribusiXlsx(string $filePath): array
     return ['rows' => $rows, 'errors' => $errors];
 }
 
+function isRekapMiMaarifGrid(array $grid): bool
+{
+    $row1 = $grid[1] ?? [];
+    $labels = array_map(static fn ($v): string => strtolower(trim((string) $v)), $row1);
+
+    return in_array('npsn', $labels, true) && in_array('nama lembaga', $labels, true);
+}
+
+function rekapCell(array $row, string $col): string
+{
+    return trim((string) ($row[$col] ?? ''));
+}
+
+function parseRekapMiMaarifGrid(array $grid): array
+{
+    $rows = [];
+    $errors = [];
+
+    ksort($grid);
+    foreach ($grid as $rowNum => $rowData) {
+        if ($rowNum < 5) {
+            continue;
+        }
+
+        $nama = rekapCell($rowData, 'E');
+        $npsnRaw = rekapCell($rowData, 'D');
+        $npsn = normalizeNpsn($npsnRaw);
+
+        if ($npsn === '' || strlen($npsn) < 8) {
+            if ($nama !== '' || $npsnRaw !== '') {
+                $errors[] = "Baris {$rowNum}: NPSN tidak valid" . ($nama !== '' ? " ({$nama})" : '') . ', dilewati.';
+            }
+            continue;
+        }
+
+        if ($nama === '') {
+            $errors[] = "Baris {$rowNum}: Nama lembaga kosong, dilewati.";
+            continue;
+        }
+
+        $kecamatan = rekapCell($rowData, 'F');
+        $alamat = $kecamatan !== ''
+            ? 'Kec. ' . $kecamatan . ', Kabupaten Magelang, Jawa Tengah'
+            : 'Kabupaten Magelang, Jawa Tengah';
+
+        $kelas = [];
+        $colMap = [1 => 'H', 2 => 'I', 3 => 'J', 4 => 'K', 5 => 'L', 6 => 'M'];
+        foreach ($colMap as $i => $col) {
+            $kelas[$i] = (int) preg_replace('/\D/', '', rekapCell($rowData, $col) ?: '0');
+        }
+
+        $rows[] = [
+            'npsn' => $npsn,
+            'nama_lembaga' => $nama,
+            'alamat' => $alamat,
+            'kebutuhan_kelas_1' => $kelas[1],
+            'kebutuhan_kelas_2' => $kelas[2],
+            'kebutuhan_kelas_3' => $kelas[3],
+            'kebutuhan_kelas_4' => $kelas[4],
+            'kebutuhan_kelas_5' => $kelas[5],
+            'kebutuhan_kelas_6' => $kelas[6],
+        ];
+    }
+
+    if ($rows === []) {
+        $errors[] = 'Tidak ada baris data valid. Pastikan format REKAP MI Maarif (data mulai baris 5).';
+    }
+
+    return ['rows' => $rows, 'errors' => $errors];
+}
+
 function mapDistribusiImportRow(array $header, array $data): ?array
 {
     $map = [];
@@ -866,6 +949,12 @@ function mapDistribusiImportRow(array $header, array $data): ?array
 
     $nama = $map['nama lembaga'] ?? $map['nama_lembaga'] ?? $map['nama madrasah'] ?? $map['nama sekolah'] ?? $map['nama'] ?? '';
     $alamat = $map['alamat'] ?? $map['alamat lembaga'] ?? '';
+    if ($alamat === '') {
+        $kec = $map['kecamatan'] ?? $map['kec'] ?? '';
+        if ($kec !== '') {
+            $alamat = 'Kec. ' . $kec . ', Kabupaten Magelang, Jawa Tengah';
+        }
+    }
 
     $kelas = [];
     for ($i = 1; $i <= 6; $i++) {
@@ -884,6 +973,9 @@ function mapDistribusiImportRow(array $header, array $data): ?array
                 $val = (int) preg_replace('/\D/', '', $map[$k]);
                 break;
             }
+        }
+        if ($val === 0 && isset($map[(string) $i]) && $map[(string) $i] !== '') {
+            $val = (int) preg_replace('/\D/', '', $map[(string) $i]);
         }
         $kelas[$i] = $val;
     }
