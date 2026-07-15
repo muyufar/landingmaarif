@@ -52,7 +52,5 @@ CREATE TABLE IF NOT EXISTS `distribusi_lkpd_pengiriman` (
   PRIMARY KEY (`id`),
   KEY `idx_satuan` (`satuan_id`),
   KEY `idx_petugas` (`petugas_id`),
-  KEY `idx_status` (`status`),
-  CONSTRAINT `fk_pengiriman_satuan` FOREIGN KEY (`satuan_id`) REFERENCES `distribusi_lkpd_satuan` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_pengiriman_petugas` FOREIGN KEY (`petugas_id`) REFERENCES `distribusi_petugas` (`id`)
+  KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
