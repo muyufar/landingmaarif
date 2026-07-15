@@ -110,7 +110,10 @@ function fieldValue(string $key, array $formData): string
         <?php endif; ?>
 
         <?php if (!$success): ?>
-        <form method="post" action="" id="form-pengkinian" enctype="multipart/form-data" class="space-y-6">
+        <form method="post" action="" id="form-pengkinian" enctype="multipart/form-data" class="space-y-8">
+          <div class="rounded-xl border border-gray-200 bg-gray-50/80 p-5 space-y-5">
+            <h3 class="text-sm font-bold text-green-900 uppercase tracking-wide">Data Satuan Pendidikan</h3>
+
           <div>
             <label for="npsn" class="block text-sm font-semibold text-gray-700 mb-2">
               NPSN <span class="text-red-500">*</span>
@@ -118,7 +121,7 @@ function fieldValue(string $key, array $formData): string
             <input type="text" id="npsn" name="npsn" required inputmode="numeric" pattern="[0-9]{8,10}"
                    placeholder="Contoh: 20312345" maxlength="10"
                    value="<?= fieldValue('npsn', $formData) ?>"
-                   class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
+                   class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent bg-white">
             <p class="text-xs text-gray-500 mt-1">Nomor Pokok Sekolah Nasional, 8–10 digit angka.</p>
           </div>
 
@@ -129,7 +132,7 @@ function fieldValue(string $key, array $formData): string
             <input type="text" id="nama_satuan_pendidikan" name="nama_satuan_pendidikan" required
                    placeholder="Contoh: MI Ma'arif Donorejo"
                    value="<?= fieldValue('nama_satuan_pendidikan', $formData) ?>"
-                   class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
+                   class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent bg-white">
           </div>
 
           <div>
@@ -145,90 +148,78 @@ function fieldValue(string $key, array $formData): string
             </select>
           </div>
 
-          <div class="grid md:grid-cols-2 gap-6">
+          <?php
+            $wilayahSectionTitle = 'ALAMAT SATUAN PENDIDIKAN';
+            require dirname(__DIR__) . '/pesertakerdinma/_wilayah_registrasi_fields.php';
+          ?>
+          </div>
+
+          <div class="rounded-xl border border-green-200 bg-green-50/50 p-5 space-y-5">
+            <div>
+              <h3 class="text-sm font-bold text-green-900 uppercase tracking-wide">Data Kepala Sekolah</h3>
+              <p class="text-xs text-gray-600 mt-1">Isi identitas kepala sekolah/madrasah pada blok ini.</p>
+            </div>
+
             <div>
               <label for="nama_kepala_sekolah" class="block text-sm font-semibold text-gray-700 mb-2">
                 Nama Kepala Sekolah <span class="text-red-500">*</span>
               </label>
               <input type="text" id="nama_kepala_sekolah" name="nama_kepala_sekolah" required
                      value="<?= fieldValue('nama_kepala_sekolah', $formData) ?>"
-                     class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
+                     class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent bg-white">
             </div>
-            <div>
-              <label for="nama_operator" class="block text-sm font-semibold text-gray-700 mb-2">
-                Nama Operator <span class="text-red-500">*</span>
-              </label>
-              <input type="text" id="nama_operator" name="nama_operator" required
-                     value="<?= fieldValue('nama_operator', $formData) ?>"
-                     class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
-            </div>
-          </div>
 
-          <div class="grid md:grid-cols-2 gap-6">
-            <div>
-              <label for="tempat_lahir" class="block text-sm font-semibold text-gray-700 mb-2">
-                Tempat Lahir <span class="text-red-500">*</span>
-              </label>
-              <input type="text" id="tempat_lahir" name="tempat_lahir" required
-                     value="<?= fieldValue('tempat_lahir', $formData) ?>"
-                     class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
+            <div class="grid md:grid-cols-2 gap-6">
+              <div>
+                <label for="tempat_lahir" class="block text-sm font-semibold text-gray-700 mb-2">
+                  Tempat Lahir Kepala Sekolah <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="tempat_lahir" name="tempat_lahir" required
+                       value="<?= fieldValue('tempat_lahir', $formData) ?>"
+                       class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent bg-white">
+              </div>
+              <div>
+                <label for="tanggal_lahir" class="block text-sm font-semibold text-gray-700 mb-2">
+                  Tanggal Lahir Kepala Sekolah <span class="text-red-500">*</span>
+                </label>
+                <input type="date" id="tanggal_lahir" name="tanggal_lahir" required
+                       value="<?= fieldValue('tanggal_lahir', $formData) ?>"
+                       class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent bg-white">
+              </div>
             </div>
-            <div>
-              <label for="tanggal_lahir" class="block text-sm font-semibold text-gray-700 mb-2">
-                Tanggal Lahir <span class="text-red-500">*</span>
-              </label>
-              <input type="date" id="tanggal_lahir" name="tanggal_lahir" required
-                     value="<?= fieldValue('tanggal_lahir', $formData) ?>"
-                     class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
-            </div>
-          </div>
 
-          <div class="grid md:grid-cols-2 gap-6">
-            <div>
-              <label for="niy_nip" class="block text-sm font-semibold text-gray-700 mb-2">
-                NIY/NIP <span class="text-red-500">*</span>
-              </label>
-              <input type="text" id="niy_nip" name="niy_nip" required
-                     value="<?= fieldValue('niy_nip', $formData) ?>"
-                     class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
+            <div class="grid md:grid-cols-2 gap-6">
+              <div>
+                <label for="niy_nip" class="block text-sm font-semibold text-gray-700 mb-2">
+                  NIY/NIP Kepala Sekolah <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="niy_nip" name="niy_nip" required
+                       value="<?= fieldValue('niy_nip', $formData) ?>"
+                       class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent bg-white">
+              </div>
+              <div>
+                <label for="jabatan" class="block text-sm font-semibold text-gray-700 mb-2">
+                  Jabatan <span class="text-red-500">*</span>
+                </label>
+                <select id="jabatan" name="jabatan" required
+                        class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent bg-white">
+                  <option value="">-- Pilih Jabatan --</option>
+                  <?php foreach (pengkinianJabatanOptions() as $opt): ?>
+                    <option value="<?= sanitize($opt) ?>" <?= fieldValue('jabatan', $formData) === $opt ? 'selected' : '' ?>><?= sanitize($opt) ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
             </div>
-            <div>
-              <label for="jabatan" class="block text-sm font-semibold text-gray-700 mb-2">
-                Jabatan <span class="text-red-500">*</span>
-              </label>
-              <select id="jabatan" name="jabatan" required
-                      class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent bg-white">
-                <option value="">-- Pilih Jabatan --</option>
-                <?php foreach (pengkinianJabatanOptions() as $opt): ?>
-                  <option value="<?= sanitize($opt) ?>" <?= fieldValue('jabatan', $formData) === $opt ? 'selected' : '' ?>><?= sanitize($opt) ?></option>
-                <?php endforeach; ?>
-              </select>
-            </div>
-          </div>
 
-          <div class="grid md:grid-cols-2 gap-6">
             <div>
               <label for="nomor_hp_kepsek" class="block text-sm font-semibold text-gray-700 mb-2">
                 Nomor HP Kepala Sekolah <span class="text-red-500">*</span>
               </label>
               <input type="tel" id="nomor_hp_kepsek" name="nomor_hp_kepsek" required placeholder="08xxxxxxxxxx"
                      value="<?= fieldValue('nomor_hp_kepsek', $formData) ?>"
-                     class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
-            </div>
-            <div>
-              <label for="nomor_hp_operator" class="block text-sm font-semibold text-gray-700 mb-2">
-                Nomor HP Operator <span class="text-red-500">*</span>
-              </label>
-              <input type="tel" id="nomor_hp_operator" name="nomor_hp_operator" required placeholder="08xxxxxxxxxx"
-                     value="<?= fieldValue('nomor_hp_operator', $formData) ?>"
-                     class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent">
+                     class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent bg-white md:max-w-md">
             </div>
           </div>
-
-          <?php
-            $wilayahSectionTitle = 'ALAMAT SATUAN PENDIDIKAN';
-            require dirname(__DIR__) . '/pesertakerdinma/_wilayah_registrasi_fields.php';
-          ?>
 
           <div class="rounded-xl border border-green-200 bg-green-50/50 p-5 space-y-5">
             <h3 class="text-sm font-bold text-green-900 uppercase tracking-wide">Data SK Kepala Terakhir</h3>
@@ -272,6 +263,31 @@ function fieldValue(string $key, array $formData): string
                   <option value="<?= sanitize($opt) ?>" <?= fieldValue('status_sk_kepala', $formData) === $opt ? 'selected' : '' ?>><?= sanitize($opt) ?></option>
                 <?php endforeach; ?>
               </select>
+            </div>
+          </div>
+
+          <div class="rounded-xl border border-blue-200 bg-blue-50/40 p-5 space-y-5">
+            <div>
+              <h3 class="text-sm font-bold text-blue-900 uppercase tracking-wide">Data Operator</h3>
+              <p class="text-xs text-gray-600 mt-1">Isi data operator satuan pendidikan pada blok terpisah di bawah ini.</p>
+            </div>
+
+            <div>
+              <label for="nama_operator" class="block text-sm font-semibold text-gray-700 mb-2">
+                Nama Operator <span class="text-red-500">*</span>
+              </label>
+              <input type="text" id="nama_operator" name="nama_operator" required
+                     value="<?= fieldValue('nama_operator', $formData) ?>"
+                     class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent bg-white">
+            </div>
+
+            <div>
+              <label for="nomor_hp_operator" class="block text-sm font-semibold text-gray-700 mb-2">
+                Nomor HP Operator <span class="text-red-500">*</span>
+              </label>
+              <input type="tel" id="nomor_hp_operator" name="nomor_hp_operator" required placeholder="08xxxxxxxxxx"
+                     value="<?= fieldValue('nomor_hp_operator', $formData) ?>"
+                     class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent bg-white md:max-w-md">
             </div>
           </div>
 
