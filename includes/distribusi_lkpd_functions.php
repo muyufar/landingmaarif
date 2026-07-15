@@ -1066,6 +1066,16 @@ function importDistribusiFile(string $tmpPath, string $originalName): array
     return ['ok' => true, 'imported' => $imported, 'errors' => $parsed['errors']];
 }
 
+function satuanTotalKebutuhanBuku(array $satuan): int
+{
+    $total = 0;
+    for ($i = 1; $i <= 6; $i++) {
+        $total += (int) ($satuan['kebutuhan_kelas_' . $i] ?? 0);
+    }
+
+    return $total;
+}
+
 function getDistribusiDashboardStats(): array
 {
     ensureDistribusiLkpdSchema();
@@ -1076,16 +1086,44 @@ function getDistribusiDashboardStats(): array
         'receive' => 0,
         'done' => 0,
         'total' => 0,
+        'total_buku' => 0,
+        'buku' => [
+            'packing' => 0,
+            'delivery' => 0,
+            'receive' => 0,
+            'done' => 0,
+        ],
+        'kelas' => [1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0, 6 => 0],
     ];
 
-    $rows = $pdo->query('SELECT status, COUNT(*) AS c FROM distribusi_lkpd_satuan GROUP BY status')->fetchAll();
+    $rows = $pdo->query(
+        'SELECT status, COUNT(*) AS c,
+                SUM(kebutuhan_kelas_1 + kebutuhan_kelas_2 + kebutuhan_kelas_3 +
+                    kebutuhan_kelas_4 + kebutuhan_kelas_5 + kebutuhan_kelas_6) AS buku
+         FROM distribusi_lkpd_satuan GROUP BY status'
+    )->fetchAll();
     foreach ($rows as $row) {
         $st = $row['status'] ?? '';
         $c = (int) ($row['c'] ?? 0);
+        $buku = (int) ($row['buku'] ?? 0);
         if (isset($stats[$st])) {
             $stats[$st] = $c;
+            $stats['buku'][$st] = $buku;
         }
         $stats['total'] += $c;
+        $stats['total_buku'] += $buku;
+    }
+
+    $kelasRow = $pdo->query(
+        'SELECT SUM(kebutuhan_kelas_1) AS k1, SUM(kebutuhan_kelas_2) AS k2,
+                SUM(kebutuhan_kelas_3) AS k3, SUM(kebutuhan_kelas_4) AS k4,
+                SUM(kebutuhan_kelas_5) AS k5, SUM(kebutuhan_kelas_6) AS k6
+         FROM distribusi_lkpd_satuan'
+    )->fetch(PDO::FETCH_ASSOC);
+    if ($kelasRow !== false) {
+        for ($i = 1; $i <= 6; $i++) {
+            $stats['kelas'][$i] = (int) ($kelasRow['k' . $i] ?? 0);
+        }
     }
 
     return $stats;
