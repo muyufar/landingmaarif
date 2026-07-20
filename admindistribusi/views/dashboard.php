@@ -17,7 +17,7 @@
   <div class="bg-white rounded-xl p-5 border shadow-sm col-span-2 lg:col-span-1 border-green-200 bg-green-50">
     <p class="text-xs text-gray-600">Total Buku LKS</p>
     <p class="text-3xl font-bold text-green-800"><?= number_format((int) ($stats['total_buku'] ?? 0), 0, ',', '.') ?></p>
-    <p class="text-xs text-gray-500 mt-1">Kebutuhan seluruh satuan</p>
+    <p class="text-xs text-gray-500 mt-1">Siswa + mapel + buku guru</p>
   </div>
   <?php for ($i = 1; $i <= 6; $i++): ?>
     <div class="bg-white rounded-xl p-5 border shadow-sm">

@@ -86,7 +86,103 @@ function ensureDistribusiLkpdSchema(): void
         );
     }
 
+    distribusiEnsureBukuColumns($pdo);
+    distribusiEnsurePengirimanGuruColumns($pdo);
+
     $done = true;
+}
+
+function distribusiEnsurePengirimanGuruColumns(PDO $pdo): void
+{
+    static $checked = false;
+    if ($checked) {
+        return;
+    }
+
+    $columns = array_column(
+        $pdo->query('SHOW COLUMNS FROM `distribusi_lkpd_pengiriman`')->fetchAll(PDO::FETCH_ASSOC),
+        'Field'
+    );
+
+    $add = [
+        'terima_guru_kelas_1' => 'int(10) unsigned NOT NULL DEFAULT 0 AFTER `terima_kelas_6`',
+        'terima_guru_kelas_2' => 'int(10) unsigned NOT NULL DEFAULT 0 AFTER `terima_guru_kelas_1`',
+        'terima_guru_kelas_3' => 'int(10) unsigned NOT NULL DEFAULT 0 AFTER `terima_guru_kelas_2`',
+        'terima_guru_kelas_4' => 'int(10) unsigned NOT NULL DEFAULT 0 AFTER `terima_guru_kelas_3`',
+        'terima_guru_kelas_5' => 'int(10) unsigned NOT NULL DEFAULT 0 AFTER `terima_guru_kelas_4`',
+        'terima_guru_kelas_6' => 'int(10) unsigned NOT NULL DEFAULT 0 AFTER `terima_guru_kelas_5`',
+    ];
+
+    foreach ($add as $field => $definition) {
+        if (!in_array($field, $columns, true)) {
+            $pdo->exec("ALTER TABLE `distribusi_lkpd_pengiriman` ADD COLUMN `{$field}` {$definition}");
+        }
+    }
+
+    $checked = true;
+}
+
+function distribusiEnsureBukuColumns(PDO $pdo): void
+{
+    static $checked = false;
+    if ($checked) {
+        return;
+    }
+
+    $columns = array_column(
+        $pdo->query('SHOW COLUMNS FROM `distribusi_lkpd_satuan`')->fetchAll(PDO::FETCH_ASSOC),
+        'Field'
+    );
+
+    $add = [
+        'kebutuhan_guru_kelas_1' => 'int(10) unsigned NOT NULL DEFAULT 0 AFTER `kebutuhan_kelas_6`',
+        'kebutuhan_guru_kelas_2' => 'int(10) unsigned NOT NULL DEFAULT 0 AFTER `kebutuhan_guru_kelas_1`',
+        'kebutuhan_guru_kelas_3' => 'int(10) unsigned NOT NULL DEFAULT 0 AFTER `kebutuhan_guru_kelas_2`',
+        'kebutuhan_guru_kelas_4' => 'int(10) unsigned NOT NULL DEFAULT 0 AFTER `kebutuhan_guru_kelas_3`',
+        'kebutuhan_guru_kelas_5' => 'int(10) unsigned NOT NULL DEFAULT 0 AFTER `kebutuhan_guru_kelas_4`',
+        'kebutuhan_guru_kelas_6' => 'int(10) unsigned NOT NULL DEFAULT 0 AFTER `kebutuhan_guru_kelas_5`',
+        'total_buku' => 'int(10) unsigned NOT NULL DEFAULT 0 AFTER `kebutuhan_guru_kelas_6`',
+    ];
+
+    foreach ($add as $field => $definition) {
+        if (!in_array($field, $columns, true)) {
+            $pdo->exec("ALTER TABLE `distribusi_lkpd_satuan` ADD COLUMN `{$field}` {$definition}");
+        }
+    }
+
+    $checked = true;
+}
+
+function distribusiMapelPerKelasCount(): array
+{
+    return [1 => 6, 2 => 6, 3 => 7, 4 => 7, 5 => 7, 6 => 7];
+}
+
+function distribusiBukuGuruKolomMap(): array
+{
+    return [1 => 'G', 2 => 'O', 3 => 'V', 4 => 'AD', 5 => 'AL', 6 => 'AT'];
+}
+
+function distribusiBukuSiswaMapelKolomMap(): array
+{
+    return [1 => 'I', 2 => 'P', 3 => 'W', 4 => 'AE', 5 => 'AM', 6 => 'AU'];
+}
+
+function distribusiHitungTotalBukuSatuan(array $satuan): int
+{
+    if ((int) ($satuan['total_buku'] ?? 0) > 0) {
+        return (int) $satuan['total_buku'];
+    }
+
+    $mapelCount = distribusiMapelPerKelasCount();
+    $total = 0;
+    for ($i = 1; $i <= 6; $i++) {
+        $siswa = (int) ($satuan['kebutuhan_kelas_' . $i] ?? 0);
+        $guru = (int) ($satuan['kebutuhan_guru_kelas_' . $i] ?? 0);
+        $total += $guru + ($siswa * ($mapelCount[$i] ?? 6));
+    }
+
+    return $total;
 }
 
 function distribusiKelasFields(): array
@@ -110,6 +206,18 @@ function distribusiTerimaFields(): array
         4 => 'terima_kelas_4',
         5 => 'terima_kelas_5',
         6 => 'terima_kelas_6',
+    ];
+}
+
+function distribusiTerimaGuruFields(): array
+{
+    return [
+        1 => 'terima_guru_kelas_1',
+        2 => 'terima_guru_kelas_2',
+        3 => 'terima_guru_kelas_3',
+        4 => 'terima_guru_kelas_4',
+        5 => 'terima_guru_kelas_5',
+        6 => 'terima_guru_kelas_6',
     ];
 }
 
@@ -309,11 +417,39 @@ function getTotalTerimaSatuan(int $satuanId): array
     return $totals;
 }
 
-function satuanKebutuhanLengkap(array $satuan, array $totalTerima): bool
+function getTotalTerimaGuruSatuan(int $satuanId): array
 {
+    ensureDistribusiLkpdSchema();
+    $pdo = getDb();
+    $totals = array_fill(1, 6, 0);
+
+    $stmt = $pdo->prepare(
+        'SELECT terima_guru_kelas_1, terima_guru_kelas_2, terima_guru_kelas_3,
+                terima_guru_kelas_4, terima_guru_kelas_5, terima_guru_kelas_6
+         FROM distribusi_lkpd_pengiriman
+         WHERE satuan_id = :id AND status IN (\'received_partial\', \'received_complete\')'
+    );
+    $stmt->execute([':id' => $satuanId]);
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        for ($i = 1; $i <= 6; $i++) {
+            $totals[$i] += (int) ($row['terima_guru_kelas_' . $i] ?? 0);
+        }
+    }
+
+    return $totals;
+}
+
+function satuanKebutuhanLengkap(array $satuan, array $totalTerima, ?array $totalTerimaGuru = null): bool
+{
+    $totalTerimaGuru ??= array_fill(1, 6, 0);
     for ($i = 1; $i <= 6; $i++) {
         $need = (int) ($satuan['kebutuhan_kelas_' . $i] ?? 0);
-        if ($totalTerima[$i] < $need) {
+        if (($totalTerima[$i] ?? 0) < $need) {
+            return false;
+        }
+
+        $needGuru = (int) ($satuan['kebutuhan_guru_kelas_' . $i] ?? 0);
+        if ($needGuru > 0 && ($totalTerimaGuru[$i] ?? 0) < $needGuru) {
             return false;
         }
     }
@@ -321,14 +457,21 @@ function satuanKebutuhanLengkap(array $satuan, array $totalTerima): bool
     return true;
 }
 
-function satuanKurangDetail(array $satuan, array $totalTerima): array
+function satuanKurangDetail(array $satuan, array $totalTerima, ?array $totalTerimaGuru = null): array
 {
-    $kurang = [];
+    $totalTerimaGuru ??= array_fill(1, 6, 0);
+    $kurang = ['siswa' => [], 'guru' => []];
     for ($i = 1; $i <= 6; $i++) {
         $need = (int) ($satuan['kebutuhan_kelas_' . $i] ?? 0);
         $got = $totalTerima[$i] ?? 0;
         if ($got < $need) {
-            $kurang[$i] = $need - $got;
+            $kurang['siswa'][$i] = $need - $got;
+        }
+
+        $needGuru = (int) ($satuan['kebutuhan_guru_kelas_' . $i] ?? 0);
+        $gotGuru = $totalTerimaGuru[$i] ?? 0;
+        if ($needGuru > 0 && $gotGuru < $needGuru) {
+            $kurang['guru'][$i] = $needGuru - $gotGuru;
         }
     }
 
@@ -413,7 +556,7 @@ function loadDistribusiKecamatanOptions(): array
     return array_keys($options);
 }
 
-function loadDistribusiSatuan(string $search = '', ?string $status = null, ?string $kecamatan = null): array
+function loadDistribusiSatuan(string $search = '', string|array|null $status = null, ?string $kecamatan = null): array
 {
     ensureDistribusiLkpdSchema();
     $pdo = getDb();
@@ -425,8 +568,21 @@ function loadDistribusiSatuan(string $search = '', ?string $status = null, ?stri
         $params[':q'] = '%' . $search . '%';
     }
     if ($status !== null && $status !== '') {
-        $sql .= ' AND status = :st';
-        $params[':st'] = $status;
+        if (is_array($status)) {
+            $status = array_values(array_filter($status, static fn ($st) => $st !== ''));
+            if ($status !== []) {
+                $placeholders = [];
+                foreach ($status as $i => $st) {
+                    $key = ':st' . $i;
+                    $placeholders[] = $key;
+                    $params[$key] = $st;
+                }
+                $sql .= ' AND status IN (' . implode(', ', $placeholders) . ')';
+            }
+        } else {
+            $sql .= ' AND status = :st';
+            $params[':st'] = $status;
+        }
     }
     if ($kecamatan !== null && $kecamatan !== '') {
         $sql .= ' AND alamat LIKE :kec';
@@ -580,6 +736,16 @@ function sendWaApiMessage(string $nomor, string $message): bool
     return $response !== false && $code >= 200 && $code < 300;
 }
 
+function dispatchDistribusiLkpdById(int $petugasId, int $satuanId): array
+{
+    $satuan = getSatuanById($satuanId);
+    if ($satuan === null) {
+        return ['ok' => false, 'error' => 'Satuan pendidikan tidak ditemukan.'];
+    }
+
+    return dispatchDistribusiLkpd($petugasId, (string) ($satuan['npsn'] ?? ''));
+}
+
 function dispatchDistribusiLkpd(int $petugasId, string $npsn): array
 {
     ensureDistribusiLkpdSchema();
@@ -649,8 +815,17 @@ function receiveDistribusiLkpd(int $petugasId, int $pengirimanId, array $input, 
         $terima[$i] = $val;
     }
 
-    if (array_sum($terima) === 0) {
-        return ['ok' => false, 'error' => 'Isi jumlah buku yang diterima minimal pada satu kelas.'];
+    $terimaGuru = [];
+    for ($i = 1; $i <= 6; $i++) {
+        $val = (int) ($input['terima_guru_kelas_' . $i] ?? 0);
+        if ($val < 0) {
+            return ['ok' => false, 'error' => 'Jumlah buku guru kelas ' . $i . ' tidak valid.'];
+        }
+        $terimaGuru[$i] = $val;
+    }
+
+    if (array_sum($terima) === 0 && array_sum($terimaGuru) === 0) {
+        return ['ok' => false, 'error' => 'Isi jumlah buku yang diterima minimal pada satu kelas atau buku guru.'];
     }
 
     $upDist = uploadDistribusiSuratJalan($files['file_surat_jalan_distributor'] ?? [], 'sj_dist_' . $pengirimanId);
@@ -664,12 +839,15 @@ function receiveDistribusiLkpd(int $petugasId, int $pengirimanId, array $input, 
     }
 
     $totalBefore = getTotalTerimaSatuan((int) $satuan['id']);
+    $totalGuruBefore = getTotalTerimaGuruSatuan((int) $satuan['id']);
     $totalAfter = $totalBefore;
+    $totalGuruAfter = $totalGuruBefore;
     for ($i = 1; $i <= 6; $i++) {
         $totalAfter[$i] += $terima[$i];
+        $totalGuruAfter[$i] += $terimaGuru[$i];
     }
 
-    $lengkap = satuanKebutuhanLengkap($satuan, $totalAfter);
+    $lengkap = satuanKebutuhanLengkap($satuan, $totalAfter, $totalGuruAfter);
     $pengirimanStatus = $lengkap ? 'received_complete' : 'received_partial';
     $satuanStatus = $lengkap ? DIST_STATUS_DONE : DIST_STATUS_RECEIVE;
     $catatan = trim($input['catatan'] ?? '');
@@ -680,6 +858,8 @@ function receiveDistribusiLkpd(int $petugasId, int $pengirimanId, array $input, 
             status = :st,
             terima_kelas_1 = :k1, terima_kelas_2 = :k2, terima_kelas_3 = :k3,
             terima_kelas_4 = :k4, terima_kelas_5 = :k5, terima_kelas_6 = :k6,
+            terima_guru_kelas_1 = :g1, terima_guru_kelas_2 = :g2, terima_guru_kelas_3 = :g3,
+            terima_guru_kelas_4 = :g4, terima_guru_kelas_5 = :g5, terima_guru_kelas_6 = :g6,
             file_surat_jalan_distributor = :fd,
             file_surat_jalan_sekolah = :fs,
             catatan = :cat,
@@ -690,6 +870,8 @@ function receiveDistribusiLkpd(int $petugasId, int $pengirimanId, array $input, 
         ':st' => $pengirimanStatus,
         ':k1' => $terima[1], ':k2' => $terima[2], ':k3' => $terima[3],
         ':k4' => $terima[4], ':k5' => $terima[5], ':k6' => $terima[6],
+        ':g1' => $terimaGuru[1], ':g2' => $terimaGuru[2], ':g3' => $terimaGuru[3],
+        ':g4' => $terimaGuru[4], ':g5' => $terimaGuru[5], ':g6' => $terimaGuru[6],
         ':fd' => $upDist['path'],
         ':fs' => $upSekolah['path'],
         ':cat' => $catatan !== '' ? $catatan : null,
@@ -703,8 +885,9 @@ function receiveDistribusiLkpd(int $petugasId, int $pengirimanId, array $input, 
         'ok' => true,
         'lengkap' => $lengkap,
         'satuan_status' => $satuanStatus,
-        'kurang' => satuanKurangDetail($satuan, $totalAfter),
+        'kurang' => satuanKurangDetail($satuan, $totalAfter, $totalGuruAfter),
         'total_terima' => $totalAfter,
+        'total_terima_guru' => $totalGuruAfter,
     ];
 }
 
@@ -728,21 +911,35 @@ function upsertDistribusiSatuanRow(array $row): void
         ':k4' => (int) ($row['kebutuhan_kelas_4'] ?? 0),
         ':k5' => (int) ($row['kebutuhan_kelas_5'] ?? 0),
         ':k6' => (int) ($row['kebutuhan_kelas_6'] ?? 0),
+        ':g1' => (int) ($row['kebutuhan_guru_kelas_1'] ?? 0),
+        ':g2' => (int) ($row['kebutuhan_guru_kelas_2'] ?? 0),
+        ':g3' => (int) ($row['kebutuhan_guru_kelas_3'] ?? 0),
+        ':g4' => (int) ($row['kebutuhan_guru_kelas_4'] ?? 0),
+        ':g5' => (int) ($row['kebutuhan_guru_kelas_5'] ?? 0),
+        ':g6' => (int) ($row['kebutuhan_guru_kelas_6'] ?? 0),
+        ':tb' => distribusiHitungTotalBukuSatuan($row),
     ];
 
     if ($existing === null) {
         $pdo->prepare(
             'INSERT INTO distribusi_lkpd_satuan
             (npsn, nama_lembaga, alamat, kebutuhan_kelas_1, kebutuhan_kelas_2, kebutuhan_kelas_3,
-             kebutuhan_kelas_4, kebutuhan_kelas_5, kebutuhan_kelas_6, status)
-             VALUES (:npsn, :nama, :alamat, :k1, :k2, :k3, :k4, :k5, :k6, \'packing\')'
+             kebutuhan_kelas_4, kebutuhan_kelas_5, kebutuhan_kelas_6,
+             kebutuhan_guru_kelas_1, kebutuhan_guru_kelas_2, kebutuhan_guru_kelas_3,
+             kebutuhan_guru_kelas_4, kebutuhan_guru_kelas_5, kebutuhan_guru_kelas_6,
+             total_buku, status)
+             VALUES (:npsn, :nama, :alamat, :k1, :k2, :k3, :k4, :k5, :k6,
+                     :g1, :g2, :g3, :g4, :g5, :g6, :tb, \'packing\')'
         )->execute($data);
     } else {
         $pdo->prepare(
             'UPDATE distribusi_lkpd_satuan SET
              nama_lembaga = :nama, alamat = :alamat,
              kebutuhan_kelas_1 = :k1, kebutuhan_kelas_2 = :k2, kebutuhan_kelas_3 = :k3,
-             kebutuhan_kelas_4 = :k4, kebutuhan_kelas_5 = :k5, kebutuhan_kelas_6 = :k6
+             kebutuhan_kelas_4 = :k4, kebutuhan_kelas_5 = :k5, kebutuhan_kelas_6 = :k6,
+             kebutuhan_guru_kelas_1 = :g1, kebutuhan_guru_kelas_2 = :g2, kebutuhan_guru_kelas_3 = :g3,
+             kebutuhan_guru_kelas_4 = :g4, kebutuhan_guru_kelas_5 = :g5, kebutuhan_guru_kelas_6 = :g6,
+             total_buku = :tb
              WHERE npsn = :npsn'
         )->execute($data);
     }
@@ -818,6 +1015,184 @@ function parseDistribusiCsv(string $filePath): array
     return ['rows' => $rows, 'errors' => $errors];
 }
 
+function xlsxReadSharedStrings(ZipArchive $zip): array
+{
+    $sharedStrings = [];
+    $sharedXml = $zip->getFromName('xl/sharedStrings.xml');
+    if ($sharedXml === false) {
+        return $sharedStrings;
+    }
+
+    $sx = @simplexml_load_string($sharedXml);
+    if ($sx === false) {
+        return $sharedStrings;
+    }
+
+    foreach ($sx->si as $si) {
+        if (isset($si->t)) {
+            $sharedStrings[] = trim((string) $si->t);
+        } else {
+            $parts = [];
+            foreach ($si->r ?? [] as $run) {
+                $parts[] = (string) ($run->t ?? '');
+            }
+            $sharedStrings[] = trim(implode('', $parts));
+        }
+    }
+
+    return $sharedStrings;
+}
+
+function xlsxWorkbookSheets(ZipArchive $zip): array
+{
+    $wbXml = $zip->getFromName('xl/workbook.xml');
+    $relsXml = $zip->getFromName('xl/_rels/workbook.xml.rels');
+    if ($wbXml === false || $relsXml === false) {
+        return [];
+    }
+
+    $rels = @simplexml_load_string($relsXml);
+    $wb = @simplexml_load_string($wbXml);
+    if ($rels === false || $wb === false) {
+        return [];
+    }
+
+    $relMap = [];
+    foreach ($rels->Relationship as $rel) {
+        $relMap[(string) $rel['Id']] = (string) $rel['Target'];
+    }
+
+    $sheets = [];
+    $wb->registerXPathNamespace('m', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
+    foreach ($wb->xpath('//m:sheet') as $sheet) {
+        $name = (string) $sheet['name'];
+        $rid = (string) ($sheet->attributes('r', true)['id'] ?? '');
+        $target = $relMap[$rid] ?? '';
+        if ($target === '') {
+            continue;
+        }
+        $sheets[$name] = 'xl/' . ltrim(str_replace('\\', '/', $target), '/');
+    }
+
+    return $sheets;
+}
+
+function xlsxGridFromSheetXml(string $sheetXml, array $sharedStrings): array
+{
+    $sheet = @simplexml_load_string($sheetXml);
+    if ($sheet === false) {
+        return [];
+    }
+
+    $grid = [];
+    foreach ($sheet->sheetData->row as $row) {
+        foreach ($row->c as $cell) {
+            $ref = (string) $cell['r'];
+            if (!preg_match('/^([A-Z]+)(\d+)$/', $ref, $m)) {
+                continue;
+            }
+            $type = (string) ($cell['t'] ?? '');
+            $value = (string) ($cell->v ?? '');
+            if ($type === 's' && isset($sharedStrings[(int) $value])) {
+                $value = $sharedStrings[(int) $value];
+            }
+            $grid[(int) $m[2]][$m[1]] = $value;
+        }
+    }
+
+    return $grid;
+}
+
+function isRekapBukuPersekolahGrid(array $grid): bool
+{
+    $row4 = array_map(static fn ($v): string => strtoupper(trim((string) $v)), $grid[4] ?? []);
+    $row1 = array_map(static fn ($v): string => strtoupper(trim((string) $v)), $grid[1] ?? []);
+
+    return in_array('BUKU GURU', $row4, true) && in_array('NPSN', $row1, true);
+}
+
+function parseRekapBukuPersekolahGrid(array $grid): array
+{
+    $rows = [];
+    $errors = [];
+    $guruCols = distribusiBukuGuruKolomMap();
+    $siswaCols = distribusiBukuSiswaMapelKolomMap();
+
+    ksort($grid);
+    foreach ($grid as $rowNum => $rowData) {
+        if ($rowNum < 5) {
+            continue;
+        }
+
+        $nama = rekapCell($rowData, 'E');
+        $npsnRaw = rekapCell($rowData, 'D');
+        $npsn = normalizeNpsn($npsnRaw);
+
+        if ($npsn === '' || strlen($npsn) < 8) {
+            if ($nama !== '' || $npsnRaw !== '') {
+                $errors[] = "Baris {$rowNum}: NPSN tidak valid" . ($nama !== '' ? " ({$nama})" : '') . ', dilewati.';
+            }
+            continue;
+        }
+
+        if ($nama === '') {
+            $errors[] = "Baris {$rowNum}: Nama lembaga kosong, dilewati.";
+            continue;
+        }
+
+        $kecamatan = rekapCell($rowData, 'F');
+        $alamat = $kecamatan !== ''
+            ? 'Kec. ' . $kecamatan . ', Kabupaten Magelang, Jawa Tengah'
+            : 'Kabupaten Magelang, Jawa Tengah';
+
+        $kelas = [];
+        $guru = [];
+        foreach ($siswaCols as $i => $col) {
+            $kelas[$i] = (int) preg_replace('/\D/', '', rekapCell($rowData, $col) ?: '0');
+        }
+        foreach ($guruCols as $i => $col) {
+            $guru[$i] = (int) preg_replace('/\D/', '', rekapCell($rowData, $col) ?: '0');
+        }
+
+        $totalBuku = (int) preg_replace('/\D/', '', rekapCell($rowData, 'BB') ?: '0');
+        if ($totalBuku === 0) {
+            $totalBuku = distribusiHitungTotalBukuSatuan([
+                'kebutuhan_kelas_1' => $kelas[1], 'kebutuhan_kelas_2' => $kelas[2],
+                'kebutuhan_kelas_3' => $kelas[3], 'kebutuhan_kelas_4' => $kelas[4],
+                'kebutuhan_kelas_5' => $kelas[5], 'kebutuhan_kelas_6' => $kelas[6],
+                'kebutuhan_guru_kelas_1' => $guru[1], 'kebutuhan_guru_kelas_2' => $guru[2],
+                'kebutuhan_guru_kelas_3' => $guru[3], 'kebutuhan_guru_kelas_4' => $guru[4],
+                'kebutuhan_guru_kelas_5' => $guru[5], 'kebutuhan_guru_kelas_6' => $guru[6],
+            ]);
+        }
+
+        $rows[] = [
+            'npsn' => $npsn,
+            'nama_lembaga' => $nama,
+            'alamat' => $alamat,
+            'kebutuhan_kelas_1' => $kelas[1],
+            'kebutuhan_kelas_2' => $kelas[2],
+            'kebutuhan_kelas_3' => $kelas[3],
+            'kebutuhan_kelas_4' => $kelas[4],
+            'kebutuhan_kelas_5' => $kelas[5],
+            'kebutuhan_kelas_6' => $kelas[6],
+            'kebutuhan_guru_kelas_1' => $guru[1],
+            'kebutuhan_guru_kelas_2' => $guru[2],
+            'kebutuhan_guru_kelas_3' => $guru[3],
+            'kebutuhan_guru_kelas_4' => $guru[4],
+            'kebutuhan_guru_kelas_5' => $guru[5],
+            'kebutuhan_guru_kelas_6' => $guru[6],
+            'total_buku' => $totalBuku,
+        ];
+    }
+
+    if ($rows === []) {
+        $errors[] = 'Tidak ada baris data valid di sheet DATA BUKU PERSEKOLAH.';
+    }
+
+    return ['rows' => $rows, 'errors' => $errors];
+}
+
 function parseDistribusiXlsx(string $filePath): array
 {
     if (!class_exists('ZipArchive')) {
@@ -829,54 +1204,36 @@ function parseDistribusiXlsx(string $filePath): array
         return ['rows' => [], 'errors' => ['Gagal membuka file XLSX.']];
     }
 
-    $sharedStrings = [];
-    $sharedXml = $zip->getFromName('xl/sharedStrings.xml');
-    if ($sharedXml !== false) {
-        $sx = @simplexml_load_string($sharedXml);
-        if ($sx !== false) {
-            foreach ($sx->si as $si) {
-                if (isset($si->t)) {
-                    $sharedStrings[] = trim((string) $si->t);
-                } else {
-                    $parts = [];
-                    foreach ($si->r ?? [] as $run) {
-                        $parts[] = (string) ($run->t ?? '');
-                    }
-                    $sharedStrings[] = trim(implode('', $parts));
-                }
-            }
+    $sharedStrings = xlsxReadSharedStrings($zip);
+    $sheets = xlsxWorkbookSheets($zip);
+
+    foreach ($sheets as $name => $path) {
+        if (stripos($name, 'DATA BUKU PERSEKOLAH') === false) {
+            continue;
+        }
+        $sheetXml = $zip->getFromName($path);
+        if ($sheetXml === false) {
+            continue;
+        }
+        $grid = xlsxGridFromSheetXml($sheetXml, $sharedStrings);
+        if ($grid !== [] && isRekapBukuPersekolahGrid($grid)) {
+            $zip->close();
+
+            return parseRekapBukuPersekolahGrid($grid);
         }
     }
 
     $sheetXml = $zip->getFromName('xl/worksheets/sheet1.xml');
+    if ($sheetXml === false && $sheets !== []) {
+        $sheetXml = $zip->getFromName((string) reset($sheets));
+    }
     $zip->close();
+
     if ($sheetXml === false) {
-        return ['rows' => [], 'errors' => ['Sheet 1 tidak ditemukan.']];
+        return ['rows' => [], 'errors' => ['Sheet tidak ditemukan.']];
     }
 
-    $sheet = @simplexml_load_string($sheetXml);
-    if ($sheet === false) {
-        return ['rows' => [], 'errors' => ['Gagal parse sheet Excel.']];
-    }
-
-    $grid = [];
-    foreach ($sheet->sheetData->row as $row) {
-        foreach ($row->c as $cell) {
-            $ref = (string) $cell['r'];
-            if (!preg_match('/^([A-Z]+)(\d+)$/', $ref, $m)) {
-                continue;
-            }
-            $col = $m[1];
-            $rowNum = (int) $m[2];
-            $type = (string) ($cell['t'] ?? '');
-            $value = (string) ($cell->v ?? '');
-            if ($type === 's' && isset($sharedStrings[(int) $value])) {
-                $value = $sharedStrings[(int) $value];
-            }
-            $grid[$rowNum][$col] = $value;
-        }
-    }
-
+    $grid = xlsxGridFromSheetXml($sheetXml, $sharedStrings);
     if ($grid === []) {
         return ['rows' => [], 'errors' => ['Sheet kosong.']];
     }
@@ -902,7 +1259,7 @@ function parseDistribusiXlsx(string $filePath): array
     $errors = [];
     foreach ($grid as $rowNum => $rowData) {
         $line = [];
-        foreach ($cols as $i => $col) {
+        foreach ($cols as $col) {
             $line[] = (string) ($rowData[$col] ?? '');
         }
         if (count(array_filter($line, static fn ($v) => trim($v) !== '')) === 0) {
@@ -1068,12 +1425,7 @@ function importDistribusiFile(string $tmpPath, string $originalName): array
 
 function satuanTotalKebutuhanBuku(array $satuan): int
 {
-    $total = 0;
-    for ($i = 1; $i <= 6; $i++) {
-        $total += (int) ($satuan['kebutuhan_kelas_' . $i] ?? 0);
-    }
-
-    return $total;
+    return distribusiHitungTotalBukuSatuan($satuan);
 }
 
 function getDistribusiDashboardStats(): array
@@ -1087,6 +1439,7 @@ function getDistribusiDashboardStats(): array
         'done' => 0,
         'total' => 0,
         'total_buku' => 0,
+        'total_buku_guru' => 0,
         'buku' => [
             'packing' => 0,
             'delivery' => 0,
@@ -1096,33 +1449,19 @@ function getDistribusiDashboardStats(): array
         'kelas' => [1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0, 6 => 0],
     ];
 
-    $rows = $pdo->query(
-        'SELECT status, COUNT(*) AS c,
-                SUM(kebutuhan_kelas_1 + kebutuhan_kelas_2 + kebutuhan_kelas_3 +
-                    kebutuhan_kelas_4 + kebutuhan_kelas_5 + kebutuhan_kelas_6) AS buku
-         FROM distribusi_lkpd_satuan GROUP BY status'
-    )->fetchAll();
-    foreach ($rows as $row) {
-        $st = $row['status'] ?? '';
-        $c = (int) ($row['c'] ?? 0);
-        $buku = (int) ($row['buku'] ?? 0);
+    $allRows = $pdo->query('SELECT * FROM distribusi_lkpd_satuan')->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($allRows as $satuan) {
+        $st = $satuan['status'] ?? '';
+        $buku = distribusiHitungTotalBukuSatuan($satuan);
         if (isset($stats[$st])) {
-            $stats[$st] = $c;
-            $stats['buku'][$st] = $buku;
+            $stats[$st]++;
+            $stats['buku'][$st] += $buku;
         }
-        $stats['total'] += $c;
+        $stats['total']++;
         $stats['total_buku'] += $buku;
-    }
-
-    $kelasRow = $pdo->query(
-        'SELECT SUM(kebutuhan_kelas_1) AS k1, SUM(kebutuhan_kelas_2) AS k2,
-                SUM(kebutuhan_kelas_3) AS k3, SUM(kebutuhan_kelas_4) AS k4,
-                SUM(kebutuhan_kelas_5) AS k5, SUM(kebutuhan_kelas_6) AS k6
-         FROM distribusi_lkpd_satuan'
-    )->fetch(PDO::FETCH_ASSOC);
-    if ($kelasRow !== false) {
         for ($i = 1; $i <= 6; $i++) {
-            $stats['kelas'][$i] = (int) ($kelasRow['k' . $i] ?? 0);
+            $stats['total_buku_guru'] += (int) ($satuan['kebutuhan_guru_kelas_' . $i] ?? 0);
+            $stats['kelas'][$i] += (int) ($satuan['kebutuhan_kelas_' . $i] ?? 0);
         }
     }
 

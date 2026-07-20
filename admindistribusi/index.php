@@ -143,6 +143,7 @@ try {
             exit;
         }
         $totalTerima = getTotalTerimaSatuan($id);
+        $totalTerimaGuru = getTotalTerimaGuruSatuan($id);
         $pengirimanList = loadPengirimanSatuan($id);
         $pengkinian = getPengkinianByNpsn((string) $satuan['npsn']);
         $pageTitle = 'Detail Satuan';

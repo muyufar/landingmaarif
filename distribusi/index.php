@@ -5,6 +5,7 @@ declare(strict_types=1);
 session_start();
 
 require_once dirname(__DIR__) . '/includes/distribusi_lkpd_functions.php';
+require_once dirname(__DIR__) . '/includes/distribusi_surat_jalan.php';
 
 $loginError = '';
 $flashMessage = $_GET['msg'] ?? '';
@@ -18,6 +19,23 @@ $extraScripts = '';
 if (isset($_GET['logout'])) {
     logoutDistribusi();
     header('Location: ' . url('distribusi/'));
+    exit;
+}
+
+if (isDistribusiPetugasLoggedIn() && isset($_GET['download_surat_jalan'])) {
+    $satuan = null;
+    if (!empty($_GET['satuan_id'])) {
+        $satuan = getSatuanById((int) $_GET['satuan_id']);
+    } elseif (!empty($_GET['pengiriman_id'])) {
+        $pengiriman = getPengirimanById((int) $_GET['pengiriman_id']);
+        if ($pengiriman !== null) {
+            $satuan = getSatuanById((int) ($pengiriman['satuan_id'] ?? 0));
+        }
+    }
+    if ($satuan !== null) {
+        streamDistribusiSuratJalanGenerated($satuan, getDistribusiPetugasSession());
+    }
+    http_response_code(404);
     exit;
 }
 
@@ -73,11 +91,21 @@ if (!isDistribusiPetugasLoggedIn()) {
 
 $petugas = getDistribusiPetugasSession();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dispatch_npsn'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dispatch_satuan_id'])) {
+    $result = dispatchDistribusiLkpdById((int) $petugas['id'], (int) $_POST['dispatch_satuan_id']);
+    if ($result['ok']) {
+        $_SESSION['distribusi_wa_links'] = $result['wa']['results'] ?? [];
+        header('Location: ' . url('distribusi/?page=terima&pid=' . (int) $result['pengiriman_id'] . '&new=1'));
+        exit;
+    }
+    $flashError = $result['error'] ?? 'Gagal memproses pengiriman.';
+    $_GET['q'] = trim($_POST['_q'] ?? '');
+    $_GET['kecamatan'] = trim($_POST['_kecamatan'] ?? '');
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dispatch_npsn'])) {
     $result = dispatchDistribusiLkpd((int) $petugas['id'], $_POST['dispatch_npsn'] ?? '');
     if ($result['ok']) {
         $_SESSION['distribusi_wa_links'] = $result['wa']['results'] ?? [];
-        header('Location: ' . url('distribusi/?page=kirim&success=1&pid=' . (int) $result['pengiriman_id']));
+        header('Location: ' . url('distribusi/?page=terima&pid=' . (int) $result['pengiriman_id'] . '&new=1'));
         exit;
     }
     $flashError = $result['error'] ?? 'Gagal memproses pengiriman.';
@@ -98,6 +126,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['receive_pengiriman_id
         exit;
     }
     $flashError = $result['error'] ?? 'Gagal mencatat penerimaan.';
+    $currentPage = 'terima';
+    $_GET['page'] = 'terima';
+    $_GET['pid'] = (int) ($_POST['receive_pengiriman_id'] ?? 0);
 }
 
 if (!in_array($currentPage, ['dashboard', 'kirim', 'terima', 'list', 'detail'], true)) {
@@ -113,17 +144,30 @@ try {
         require __DIR__ . '/views/dashboard.php';
         $content = ob_get_clean();
     } elseif ($currentPage === 'kirim') {
-        $waLinks = $_SESSION['distribusi_wa_links'] ?? [];
-        if (isset($_GET['success'])) {
-            unset($_SESSION['distribusi_wa_links']);
-        }
+        $search = trim($_GET['q'] ?? '');
+        $kecamatanFilter = trim($_GET['kecamatan'] ?? '');
+        $kecamatanOptions = loadDistribusiKecamatanOptions();
+        $kirimRows = loadDistribusiSatuan(
+            $search,
+            [DIST_STATUS_PACKING, DIST_STATUS_RECEIVE],
+            $kecamatanFilter !== '' ? $kecamatanFilter : null
+        );
         $pageTitle = 'Kirim Buku (Packing → Delivery)';
         ob_start();
         require __DIR__ . '/views/kirim.php';
         $content = ob_get_clean();
     } elseif ($currentPage === 'terima') {
         $deliveryRows = loadDistribusiSatuan('', DIST_STATUS_DELIVERY);
+        $selectedPid = (int) ($_GET['pid'] ?? 0);
+        $isNewDispatch = isset($_GET['new']);
+        $waLinks = [];
+        if ($isNewDispatch) {
+            $waLinks = $_SESSION['distribusi_wa_links'] ?? [];
+            unset($_SESSION['distribusi_wa_links']);
+        }
         $pageTitle = 'Terima Buku (Delivery → Receive/Done)';
+        $extraScripts = '<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>'
+            . '<script src="' . url('distribusi/assets/surat_jalan_ocr.js') . '"></script>';
         ob_start();
         require __DIR__ . '/views/terima.php';
         $content = ob_get_clean();
@@ -143,7 +187,8 @@ try {
             exit;
         }
         $totalTerima = getTotalTerimaSatuan($id);
-        $kurang = satuanKurangDetail($satuan, $totalTerima);
+        $totalTerimaGuru = getTotalTerimaGuruSatuan($id);
+        $kurang = satuanKurangDetail($satuan, $totalTerima, $totalTerimaGuru);
         $pengirimanList = loadPengirimanSatuan($id);
         $pengkinian = getPengkinianByNpsn((string) $satuan['npsn']);
         $pageTitle = 'Detail Satuan';
