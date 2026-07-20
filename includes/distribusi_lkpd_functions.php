@@ -170,10 +170,6 @@ function distribusiBukuSiswaMapelKolomMap(): array
 
 function distribusiHitungTotalBukuSatuan(array $satuan): int
 {
-    if ((int) ($satuan['total_buku'] ?? 0) > 0) {
-        return (int) $satuan['total_buku'];
-    }
-
     $mapelCount = distribusiMapelPerKelasCount();
     $total = 0;
     for ($i = 1; $i <= 6; $i++) {
@@ -1154,16 +1150,17 @@ function parseRekapBukuPersekolahGrid(array $grid): array
             $guru[$i] = (int) preg_replace('/\D/', '', rekapCell($rowData, $col) ?: '0');
         }
 
-        $totalBuku = (int) preg_replace('/\D/', '', rekapCell($rowData, 'BB') ?: '0');
-        if ($totalBuku === 0) {
-            $totalBuku = distribusiHitungTotalBukuSatuan([
-                'kebutuhan_kelas_1' => $kelas[1], 'kebutuhan_kelas_2' => $kelas[2],
-                'kebutuhan_kelas_3' => $kelas[3], 'kebutuhan_kelas_4' => $kelas[4],
-                'kebutuhan_kelas_5' => $kelas[5], 'kebutuhan_kelas_6' => $kelas[6],
-                'kebutuhan_guru_kelas_1' => $guru[1], 'kebutuhan_guru_kelas_2' => $guru[2],
-                'kebutuhan_guru_kelas_3' => $guru[3], 'kebutuhan_guru_kelas_4' => $guru[4],
-                'kebutuhan_guru_kelas_5' => $guru[5], 'kebutuhan_guru_kelas_6' => $guru[6],
-            ]);
+        $totalBuku = distribusiHitungTotalBukuSatuan([
+            'kebutuhan_kelas_1' => $kelas[1], 'kebutuhan_kelas_2' => $kelas[2],
+            'kebutuhan_kelas_3' => $kelas[3], 'kebutuhan_kelas_4' => $kelas[4],
+            'kebutuhan_kelas_5' => $kelas[5], 'kebutuhan_kelas_6' => $kelas[6],
+            'kebutuhan_guru_kelas_1' => $guru[1], 'kebutuhan_guru_kelas_2' => $guru[2],
+            'kebutuhan_guru_kelas_3' => $guru[3], 'kebutuhan_guru_kelas_4' => $guru[4],
+            'kebutuhan_guru_kelas_5' => $guru[5], 'kebutuhan_guru_kelas_6' => $guru[6],
+        ]);
+        $bbTotal = (int) preg_replace('/\D/', '', rekapCell($rowData, 'BB') ?: '0');
+        if ($bbTotal > 0 && $bbTotal !== $totalBuku) {
+            $errors[] = "Baris {$rowNum} ({$nama}): total BB={$bbTotal}, dihitung={$totalBuku} — pakai nilai dihitung.";
         }
 
         $rows[] = [
