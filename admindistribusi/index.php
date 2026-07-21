@@ -99,7 +99,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['import_file'])) {
     }
 }
 
-if (!in_array($currentPage, ['dashboard', 'import', 'list', 'detail', 'petugas'], true)) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_satuan'])) {
+    $satuanId = (int) ($_POST['satuan_id'] ?? 0);
+    if ($satuanId > 0) {
+        $result = updateDistribusiSatuanAdmin($satuanId, $_POST);
+        if ($result['ok']) {
+            $flashMessage = 'Data satuan berhasil diperbarui.';
+            header('Location: ' . url('admindistribusi/?page=detail&id=' . (int) $result['id']));
+            exit;
+        }
+        $flashError = $result['error'] ?? 'Gagal memperbarui data.';
+        $currentPage = 'edit';
+        $_GET['id'] = (string) $satuanId;
+    } else {
+        $result = createDistribusiSatuanAdmin($_POST);
+        if ($result['ok']) {
+            $flashMessage = 'Satuan baru berhasil ditambahkan.';
+            header('Location: ' . url('admindistribusi/?page=detail&id=' . (int) $result['id']));
+            exit;
+        }
+        $flashError = $result['error'] ?? 'Gagal menambah satuan.';
+        $currentPage = 'create';
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_satuan_id'])) {
+    $deleteId = (int) $_POST['delete_satuan_id'];
+    $result = deleteDistribusiSatuanAdmin($deleteId);
+    if ($result['ok']) {
+        $flashMessage = 'Data satuan berhasil dihapus.';
+        header('Location: ' . url('admindistribusi/?page=list'));
+        exit;
+    }
+    $flashError = $result['error'] ?? 'Gagal menghapus data.';
+    $currentPage = trim($_POST['_return_page'] ?? 'list');
+    if ($currentPage === 'detail') {
+        $_GET['id'] = (string) $deleteId;
+    }
+}
+
+if (!in_array($currentPage, ['dashboard', 'import', 'list', 'detail', 'petugas', 'create', 'edit'], true)) {
     $currentPage = 'dashboard';
 }
 
@@ -149,6 +188,32 @@ try {
         $pageTitle = 'Detail Satuan';
         ob_start();
         require __DIR__ . '/views/detail.php';
+        $content = ob_get_clean();
+    } elseif ($currentPage === 'create') {
+        $satuan = [];
+        $isEdit = false;
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_satuan']) && !empty($flashError)) {
+            $satuan = $_POST;
+        }
+        $pageTitle = 'Tambah Satuan';
+        ob_start();
+        require __DIR__ . '/views/form.php';
+        $content = ob_get_clean();
+    } elseif ($currentPage === 'edit') {
+        $id = (int) ($_GET['id'] ?? 0);
+        $satuan = getSatuanById($id);
+        if ($satuan === null) {
+            header('Location: ' . url('admindistribusi/?page=list'));
+            exit;
+        }
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_satuan']) && !empty($flashError)) {
+            $satuan = array_merge($satuan, $_POST);
+            $satuan['id'] = $id;
+        }
+        $isEdit = true;
+        $pageTitle = 'Edit Satuan';
+        ob_start();
+        require __DIR__ . '/views/form.php';
         $content = ob_get_clean();
     }
 } catch (Throwable $e) {

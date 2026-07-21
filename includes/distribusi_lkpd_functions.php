@@ -941,6 +941,164 @@ function upsertDistribusiSatuanRow(array $row): void
     }
 }
 
+function parseDistribusiSatuanAdminInput(array $input): array
+{
+    $npsn = normalizeNpsn($input['npsn'] ?? '');
+    $nama = trim($input['nama_lembaga'] ?? '');
+    $alamat = trim($input['alamat'] ?? '');
+    $status = trim($input['status'] ?? DIST_STATUS_PACKING);
+
+    if ($npsn === '' || strlen($npsn) < 8) {
+        return ['ok' => false, 'error' => 'NPSN tidak valid (minimal 8 digit).'];
+    }
+    if ($nama === '') {
+        return ['ok' => false, 'error' => 'Nama lembaga wajib diisi.'];
+    }
+
+    $allowedStatus = [DIST_STATUS_PACKING, DIST_STATUS_DELIVERY, DIST_STATUS_RECEIVE, DIST_STATUS_DONE];
+    if (!in_array($status, $allowedStatus, true)) {
+        $status = DIST_STATUS_PACKING;
+    }
+
+    $row = [
+        'npsn' => $npsn,
+        'nama_lembaga' => $nama,
+        'alamat' => $alamat !== '' ? $alamat : 'Kabupaten Magelang, Jawa Tengah',
+        'status' => $status,
+    ];
+    for ($i = 1; $i <= 6; $i++) {
+        $row['kebutuhan_kelas_' . $i] = max(0, (int) ($input['kebutuhan_kelas_' . $i] ?? 0));
+        $row['kebutuhan_guru_kelas_' . $i] = max(0, (int) ($input['kebutuhan_guru_kelas_' . $i] ?? 0));
+    }
+
+    return ['ok' => true, 'row' => $row];
+}
+
+function distribusiSatuanAdminBindParams(array $row): array
+{
+    return [
+        ':npsn' => $row['npsn'],
+        ':nama' => $row['nama_lembaga'],
+        ':alamat' => $row['alamat'],
+        ':k1' => (int) ($row['kebutuhan_kelas_1'] ?? 0),
+        ':k2' => (int) ($row['kebutuhan_kelas_2'] ?? 0),
+        ':k3' => (int) ($row['kebutuhan_kelas_3'] ?? 0),
+        ':k4' => (int) ($row['kebutuhan_kelas_4'] ?? 0),
+        ':k5' => (int) ($row['kebutuhan_kelas_5'] ?? 0),
+        ':k6' => (int) ($row['kebutuhan_kelas_6'] ?? 0),
+        ':g1' => (int) ($row['kebutuhan_guru_kelas_1'] ?? 0),
+        ':g2' => (int) ($row['kebutuhan_guru_kelas_2'] ?? 0),
+        ':g3' => (int) ($row['kebutuhan_guru_kelas_3'] ?? 0),
+        ':g4' => (int) ($row['kebutuhan_guru_kelas_4'] ?? 0),
+        ':g5' => (int) ($row['kebutuhan_guru_kelas_5'] ?? 0),
+        ':g6' => (int) ($row['kebutuhan_guru_kelas_6'] ?? 0),
+        ':tb' => distribusiHitungTotalBukuSatuan($row),
+        ':st' => $row['status'] ?? DIST_STATUS_PACKING,
+    ];
+}
+
+function createDistribusiSatuanAdmin(array $input): array
+{
+    ensureDistribusiLkpdSchema();
+    $parsed = parseDistribusiSatuanAdminInput($input);
+    if (!$parsed['ok']) {
+        return $parsed;
+    }
+
+    $row = $parsed['row'];
+    if (getSatuanByNpsn($row['npsn']) !== null) {
+        return ['ok' => false, 'error' => 'NPSN sudah terdaftar. Gunakan edit untuk memperbarui data.'];
+    }
+
+    $pdo = getDb();
+    $data = distribusiSatuanAdminBindParams($row);
+    $pdo->prepare(
+        'INSERT INTO distribusi_lkpd_satuan
+        (npsn, nama_lembaga, alamat, kebutuhan_kelas_1, kebutuhan_kelas_2, kebutuhan_kelas_3,
+         kebutuhan_kelas_4, kebutuhan_kelas_5, kebutuhan_kelas_6,
+         kebutuhan_guru_kelas_1, kebutuhan_guru_kelas_2, kebutuhan_guru_kelas_3,
+         kebutuhan_guru_kelas_4, kebutuhan_guru_kelas_5, kebutuhan_guru_kelas_6,
+         total_buku, status)
+         VALUES (:npsn, :nama, :alamat, :k1, :k2, :k3, :k4, :k5, :k6,
+                 :g1, :g2, :g3, :g4, :g5, :g6, :tb, :st)'
+    )->execute($data);
+
+    $satuan = getSatuanByNpsn($row['npsn']);
+
+    return ['ok' => true, 'id' => (int) ($satuan['id'] ?? 0)];
+}
+
+function updateDistribusiSatuanAdmin(int $id, array $input): array
+{
+    ensureDistribusiLkpdSchema();
+    $existing = getSatuanById($id);
+    if ($existing === null) {
+        return ['ok' => false, 'error' => 'Data satuan tidak ditemukan.'];
+    }
+
+    $parsed = parseDistribusiSatuanAdminInput($input);
+    if (!$parsed['ok']) {
+        return $parsed;
+    }
+
+    $row = $parsed['row'];
+    if ($row['npsn'] !== ($existing['npsn'] ?? '')) {
+        $dup = getSatuanByNpsn($row['npsn']);
+        if ($dup !== null && (int) ($dup['id'] ?? 0) !== $id) {
+            return ['ok' => false, 'error' => 'NPSN sudah digunakan satuan lain.'];
+        }
+    }
+
+    $pdo = getDb();
+    $data = distribusiSatuanAdminBindParams($row);
+    $data[':id'] = $id;
+    $pdo->prepare(
+        'UPDATE distribusi_lkpd_satuan SET
+            npsn = :npsn, nama_lembaga = :nama, alamat = :alamat, status = :st,
+            kebutuhan_kelas_1 = :k1, kebutuhan_kelas_2 = :k2, kebutuhan_kelas_3 = :k3,
+            kebutuhan_kelas_4 = :k4, kebutuhan_kelas_5 = :k5, kebutuhan_kelas_6 = :k6,
+            kebutuhan_guru_kelas_1 = :g1, kebutuhan_guru_kelas_2 = :g2, kebutuhan_guru_kelas_3 = :g3,
+            kebutuhan_guru_kelas_4 = :g4, kebutuhan_guru_kelas_5 = :g5, kebutuhan_guru_kelas_6 = :g6,
+            total_buku = :tb
+         WHERE id = :id'
+    )->execute($data);
+
+    return ['ok' => true, 'id' => $id];
+}
+
+function deleteDistribusiSatuanAdmin(int $id): array
+{
+    ensureDistribusiLkpdSchema();
+    $existing = getSatuanById($id);
+    if ($existing === null) {
+        return ['ok' => false, 'error' => 'Data satuan tidak ditemukan.'];
+    }
+
+    if (($existing['status'] ?? '') === DIST_STATUS_DELIVERY) {
+        return ['ok' => false, 'error' => 'Tidak dapat dihapus: satuan sedang Delivery. Selesaikan penerimaan terlebih dahulu.'];
+    }
+
+    $pengirimanList = loadPengirimanSatuan($id);
+    foreach ($pengirimanList as $p) {
+        foreach (['file_surat_jalan_distributor', 'file_surat_jalan_sekolah'] as $field) {
+            $rel = (string) ($p[$field] ?? '');
+            if ($rel === '') {
+                continue;
+            }
+            $path = APP_ROOT . '/' . ltrim(str_replace('\\', '/', $rel), '/');
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
+    }
+
+    $pdo = getDb();
+    $pdo->prepare('DELETE FROM distribusi_lkpd_pengiriman WHERE satuan_id = :id')->execute([':id' => $id]);
+    $pdo->prepare('DELETE FROM distribusi_lkpd_satuan WHERE id = :id')->execute([':id' => $id]);
+
+    return ['ok' => true];
+}
+
 function detectDistribusiImportExtension(string $filePath, string $originalName = ''): ?string
 {
     foreach ([$originalName, $filePath] as $name) {
@@ -1444,6 +1602,7 @@ function getDistribusiDashboardStats(): array
             'done' => 0,
         ],
         'kelas' => [1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0, 6 => 0],
+        'total_siswa' => 0,
     ];
 
     $allRows = $pdo->query('SELECT * FROM distribusi_lkpd_satuan')->fetchAll(PDO::FETCH_ASSOC);
@@ -1457,10 +1616,20 @@ function getDistribusiDashboardStats(): array
         $stats['total']++;
         $stats['total_buku'] += $buku;
         for ($i = 1; $i <= 6; $i++) {
+            $siswa = (int) ($satuan['kebutuhan_kelas_' . $i] ?? 0);
+            $stats['total_siswa'] += $siswa;
             $stats['total_buku_guru'] += (int) ($satuan['kebutuhan_guru_kelas_' . $i] ?? 0);
-            $stats['kelas'][$i] += (int) ($satuan['kebutuhan_kelas_' . $i] ?? 0);
+            $stats['kelas'][$i] += $siswa;
         }
     }
+
+    $stats['buku_lkpd'] = max(0, $stats['total_buku'] - $stats['total_buku_guru']);
+    $stats['pct_done'] = $stats['total'] > 0
+        ? round(($stats['done'] / $stats['total']) * 100, 1)
+        : 0.0;
+    $stats['pct_progress'] = $stats['total'] > 0
+        ? round((($stats['delivery'] + $stats['receive']) / $stats['total']) * 100, 1)
+        : 0.0;
 
     return $stats;
 }

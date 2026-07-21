@@ -1,0 +1,12 @@
+{
+  "name": "maarifnu-tutorial-distribusi",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "capture": "node capture-screenshots.mjs",
+    "build": "python build-pdf.py"
+  },
+  "devDependencies": {
+    "playwright": "^1.52.0"
+  }
+}

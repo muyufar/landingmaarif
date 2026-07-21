@@ -1,0 +1,83 @@
+{
+  "base": "http://localhost/maarifnu",
+  "shots": [
+    {
+      "id": "admin-login",
+      "name": "Login Super Admin",
+      "file": "01-admin-login.png",
+      "url": "http://localhost/maarifnu/admindistribusi/"
+    },
+    {
+      "id": "admin-dashboard",
+      "name": "Dashboard Admin",
+      "file": "02-admin-dashboard.png",
+      "url": "http://localhost/maarifnu/admindistribusi/?page=dashboard"
+    },
+    {
+      "id": "admin-import",
+      "name": "Import Data Excel",
+      "file": "03-admin-import.png",
+      "url": "http://localhost/maarifnu/admindistribusi/?page=import"
+    },
+    {
+      "id": "admin-list",
+      "name": "Monitoring Satuan",
+      "file": "04-admin-list.png",
+      "url": "http://localhost/maarifnu/admindistribusi/?page=list"
+    },
+    {
+      "id": "admin-detail",
+      "name": "Detail Satuan (Admin)",
+      "file": "05-admin-detail.png",
+      "url": "http://localhost/maarifnu/admindistribusi/?page=detail&id=150"
+    },
+    {
+      "id": "admin-petugas",
+      "name": "Kelola Akun Petugas",
+      "file": "06-admin-petugas.png",
+      "url": "http://localhost/maarifnu/admindistribusi/?page=petugas"
+    },
+    {
+      "id": "petugas-login",
+      "name": "Login Petugas Distribusi",
+      "file": "07-petugas-login.png",
+      "url": "http://localhost/maarifnu/distribusi/"
+    },
+    {
+      "id": "petugas-dashboard",
+      "name": "Dashboard Petugas",
+      "file": "08-petugas-dashboard.png",
+      "url": "http://localhost/maarifnu/distribusi/?page=dashboard"
+    },
+    {
+      "id": "petugas-kirim",
+      "name": "Kirim Buku",
+      "file": "09-petugas-kirim.png",
+      "url": "http://localhost/maarifnu/distribusi/?page=kirim"
+    },
+    {
+      "id": "petugas-terima",
+      "name": "Terima Buku & Upload Surat Jalan",
+      "file": "10-petugas-terima.png",
+      "url": "http://localhost/maarifnu/distribusi/?page=terima&npsn=60711402"
+    },
+    {
+      "id": "petugas-list",
+      "name": "List Satuan (Petugas)",
+      "file": "11-petugas-list.png",
+      "url": "http://localhost/maarifnu/distribusi/?page=list"
+    },
+    {
+      "id": "petugas-detail",
+      "name": "Detail Satuan (Petugas)",
+      "file": "12-petugas-detail.png",
+      "url": "http://localhost/maarifnu/distribusi/?page=detail&id=150"
+    },
+    {
+      "id": "portal-entry",
+      "name": "Akses dari Dashboard Layanan",
+      "file": "13-portal-entry.png",
+      "url": "http://localhost/maarifnu/dashboard/"
+    }
+  ]
+}

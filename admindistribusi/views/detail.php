@@ -1,6 +1,19 @@
 <?php declare(strict_types=1); /** @var array $satuan @var array $totalTerima @var array $totalTerimaGuru @var array $pengirimanList @var array|null $pengkinian */ ?>
 <?php $kurang = satuanKurangDetail($satuan, $totalTerima, $totalTerimaGuru); ?>
-<div class="mb-4"><a href="<?= url('admindistribusi/?page=list') ?>" class="text-green-700 text-sm hover:underline">← Kembali</a></div>
+<div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+  <a href="<?= url('admindistribusi/?page=list') ?>" class="text-green-700 text-sm hover:underline">&larr; Kembali ke Data Satuan</a>
+  <div class="flex flex-wrap gap-2">
+    <a href="<?= url('admindistribusi/?page=edit&id=' . (int) ($satuan['id'] ?? 0)) ?>"
+       class="bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">Edit Data</a>
+    <?php if (($satuan['status'] ?? '') !== DIST_STATUS_DELIVERY): ?>
+      <form method="post" onsubmit="return confirm('Hapus satuan ini beserta seluruh riwayat pengirimannya?');">
+        <input type="hidden" name="delete_satuan_id" value="<?= (int) ($satuan['id'] ?? 0) ?>">
+        <input type="hidden" name="_return_page" value="detail">
+        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">Hapus</button>
+      </form>
+    <?php endif; ?>
+  </div>
+</div>
 
 <div class="bg-white rounded-2xl border shadow-lg p-6 mb-6">
   <div class="flex flex-wrap items-start justify-between gap-4 mb-4">
@@ -8,9 +21,12 @@
       <h2 class="text-xl font-bold text-green-800"><?= sanitize($satuan['nama_lembaga'] ?? '') ?></h2>
       <p class="text-sm text-gray-500">NPSN: <?= sanitize($satuan['npsn'] ?? '') ?></p>
     </div>
-    <span class="text-sm font-bold px-3 py-1 rounded-full <?= distribusiStatusBadgeClass($satuan['status'] ?? '') ?>">
-      <?= sanitize(distribusiStatusLabel($satuan['status'] ?? '')) ?>
-    </span>
+    <div class="text-right">
+      <span class="text-sm font-bold px-3 py-1 rounded-full <?= distribusiStatusBadgeClass($satuan['status'] ?? '') ?>">
+        <?= sanitize(distribusiStatusLabel($satuan['status'] ?? '')) ?>
+      </span>
+      <p class="text-xs text-gray-500 mt-2">Total buku: <strong class="text-green-800"><?= number_format(satuanTotalKebutuhanBuku($satuan), 0, ',', '.') ?></strong></p>
+    </div>
   </div>
   <p class="text-sm text-gray-700 mb-4"><?= sanitize($satuan['alamat'] ?? '') ?></p>
   <?php if ($pengkinian): ?>

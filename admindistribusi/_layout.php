@@ -17,8 +17,8 @@
       <?php if (isDistribusiSuperAdminLoggedIn()): ?>
       <nav class="flex flex-wrap gap-2 text-sm">
         <a href="<?= url('admindistribusi/?page=dashboard') ?>" class="px-3 py-2 rounded-lg bg-green-900/50 hover:bg-green-700">Dashboard</a>
-        <a href="<?= url('admindistribusi/?page=import') ?>" class="px-3 py-2 rounded-lg bg-green-900/50 hover:bg-green-700">Import Data</a>
-        <a href="<?= url('admindistribusi/?page=list') ?>" class="px-3 py-2 rounded-lg bg-green-900/50 hover:bg-green-700">Monitoring</a>
+        <a href="<?= url('admindistribusi/?page=list') ?>" class="px-3 py-2 rounded-lg bg-green-900/50 hover:bg-green-700">Data Satuan</a>
+        <a href="<?= url('admindistribusi/?page=import') ?>" class="px-3 py-2 rounded-lg bg-green-900/50 hover:bg-green-700">Import Excel</a>
         <a href="<?= url('admindistribusi/?page=petugas') ?>" class="px-3 py-2 rounded-lg bg-green-900/50 hover:bg-green-700">Akun Petugas</a>
         <a href="<?= url('distribusi/') ?>" class="px-3 py-2 rounded-lg bg-green-900/50 hover:bg-green-700">Portal Petugas</a>
         <a href="<?= url('admindistribusi/?logout=1') ?>" class="px-3 py-2 rounded-lg bg-green-950">Logout</a>
@@ -31,5 +31,6 @@
     <?php if (!empty($flashError)): ?><div class="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-red-800 text-sm"><?= sanitize($flashError) ?></div><?php endif; ?>
     <?= $content ?? '' ?>
   </main>
+  <?php if (!empty($extraScripts)): ?><?= $extraScripts ?><?php endif; ?>
 </body>
 </html>

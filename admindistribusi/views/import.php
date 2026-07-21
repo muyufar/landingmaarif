@@ -23,5 +23,9 @@
     <button type="submit" class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 rounded-xl">Import Data</button>
   </form>
 
-  <p class="text-xs text-gray-500 mt-4">File CSV sederhana juga didukung jika kolom: npsn, nama_lembaga, kecamatan/alamat, kelas_1 … kelas_6.</p>
+  <p class="text-xs text-gray-500 mt-4">
+    File CSV sederhana juga didukung jika kolom: npsn, nama_lembaga, kecamatan/alamat, kelas_1 … kelas_6.
+    Untuk input satu sekolah saja, gunakan
+    <a href="<?= url('admindistribusi/?page=create') ?>" class="text-green-700 underline">Tambah Satuan Manual</a>.
+  </p>
 </div>

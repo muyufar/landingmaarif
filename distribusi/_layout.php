@@ -17,7 +17,7 @@ function distribusiNavClass(string $page, string $current): string
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen">
   <header class="bg-green-800 text-white shadow-lg">
-    <div class="max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
         <h1 class="text-lg font-bold">Distribusi LKPD MI Ma'arif</h1>
         <p class="text-sm text-green-100"><?= sanitize($petugas['nama'] ?? 'Petugas') ?></p>
@@ -33,7 +33,7 @@ function distribusiNavClass(string $page, string $current): string
       <?php endif; ?>
     </div>
   </header>
-  <main class="max-w-5xl mx-auto px-4 py-8">
+  <main class="max-w-6xl mx-auto px-4 py-8">
     <?php if (!empty($flashMessage)): ?>
       <div class="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-green-800 text-sm"><?= sanitize($flashMessage) ?></div>
     <?php endif; ?>
