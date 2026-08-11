@@ -16,3 +16,13 @@ CREATE TABLE IF NOT EXISTS `berita` (
   KEY `idx_berita_status` (`status`),
   KEY `idx_berita_published_at` (`published_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `berita_gambar` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `berita_id` int(10) UNSIGNED NOT NULL,
+  `path` varchar(255) NOT NULL,
+  `urutan` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_berita_gambar_berita` (`berita_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -31,7 +31,49 @@ function ensureBeritaSchema(): void
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
 
+    try {
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS `berita_gambar` (
+              `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+              `berita_id` int(10) UNSIGNED NOT NULL,
+              `path` varchar(255) NOT NULL,
+              `urutan` int(10) UNSIGNED NOT NULL DEFAULT 0,
+              `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (`id`),
+              KEY `idx_berita_gambar_berita` (`berita_id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+    } catch (PDOException) {
+        // Abaikan jika tabel sudah ada / constraint host terbatas
+    }
+
+    migrateLegacyBeritaGambar();
     $done = true;
+}
+
+function migrateLegacyBeritaGambar(): void
+{
+    $pdo = getDb();
+    $rows = $pdo->query(
+        "SELECT b.id, b.gambar
+         FROM berita b
+         LEFT JOIN berita_gambar g ON g.berita_id = b.id
+         WHERE b.gambar IS NOT NULL AND b.gambar != '' AND g.id IS NULL"
+    )->fetchAll();
+
+    if ($rows === []) {
+        return;
+    }
+
+    $stmt = $pdo->prepare(
+        'INSERT INTO berita_gambar (berita_id, path, urutan) VALUES (:berita_id, :path, 0)'
+    );
+    foreach ($rows as $row) {
+        $stmt->execute([
+            ':berita_id' => (int) $row['id'],
+            ':path' => $row['gambar'],
+        ]);
+    }
 }
 
 function beritaUploadDir(): string
@@ -88,6 +130,7 @@ function beritaFormDefaults(?array $row = null): array
         'konten' => $row['konten'] ?? '',
         'status' => $row['status'] ?? 'draft',
         'gambar' => $row['gambar'] ?? '',
+        'galeri' => $row['galeri'] ?? [],
     ];
 }
 
@@ -119,20 +162,45 @@ function validateBerita(array $input): array
     return ['errors' => $errors, 'data' => $data];
 }
 
-function handleBeritaGambarUpload(array $file, ?string $existingPath = null): array
+function normalizeBeritaFilesInput(array $files): array
+{
+    if (!isset($files['name'])) {
+        return [];
+    }
+
+    // Single file shape
+    if (!is_array($files['name'])) {
+        return [$files];
+    }
+
+    $normalized = [];
+    foreach ($files['name'] as $i => $name) {
+        $normalized[] = [
+            'name' => $name,
+            'type' => $files['type'][$i] ?? '',
+            'tmp_name' => $files['tmp_name'][$i] ?? '',
+            'error' => $files['error'][$i] ?? UPLOAD_ERR_NO_FILE,
+            'size' => $files['size'][$i] ?? 0,
+        ];
+    }
+
+    return $normalized;
+}
+
+function storeBeritaGambarFile(array $file): array
 {
     $errorCode = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
 
     if ($errorCode === UPLOAD_ERR_NO_FILE) {
-        return ['error' => null, 'path' => $existingPath];
+        return ['error' => null, 'path' => null];
     }
 
     if ($errorCode !== UPLOAD_ERR_OK) {
-        return ['error' => 'Gagal mengunggah gambar. Silakan coba lagi.', 'path' => null];
+        return ['error' => 'Gagal mengunggah salah satu gambar. Silakan coba lagi.', 'path' => null];
     }
 
     if (($file['size'] ?? 0) > 3 * 1024 * 1024) {
-        return ['error' => 'Ukuran gambar maksimal 3 MB.', 'path' => null];
+        return ['error' => 'Ukuran tiap gambar maksimal 3 MB.', 'path' => null];
     }
 
     $ext = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
@@ -149,11 +217,34 @@ function handleBeritaGambarUpload(array $file, ?string $existingPath = null): ar
         return ['error' => 'Gagal menyimpan gambar berita.', 'path' => null];
     }
 
-    if ($existingPath !== null && $existingPath !== '') {
-        deleteBeritaGambarFile($existingPath);
+    return ['error' => null, 'path' => $relative];
+}
+
+function handleBeritaMultiGambarUpload(array $filesInput): array
+{
+    $files = normalizeBeritaFilesInput($filesInput);
+    $paths = [];
+
+    foreach ($files as $file) {
+        if ((int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+
+        $result = storeBeritaGambarFile($file);
+        if ($result['error'] !== null) {
+            foreach ($paths as $path) {
+                deleteBeritaGambarFile($path);
+            }
+
+            return ['error' => $result['error'], 'paths' => []];
+        }
+
+        if (!empty($result['path'])) {
+            $paths[] = $result['path'];
+        }
     }
 
-    return ['error' => null, 'path' => $relative];
+    return ['error' => null, 'paths' => $paths];
 }
 
 function deleteBeritaGambarFile(?string $path): void
@@ -166,6 +257,142 @@ function deleteBeritaGambarFile(?string $path): void
     if (is_file($full)) {
         @unlink($full);
     }
+}
+
+function getBeritaGambarList(int $beritaId): array
+{
+    ensureBeritaSchema();
+    $pdo = getDb();
+    $stmt = $pdo->prepare(
+        'SELECT id, berita_id, path, urutan, created_at
+         FROM berita_gambar
+         WHERE berita_id = :berita_id
+         ORDER BY urutan ASC, id ASC'
+    );
+    $stmt->execute([':berita_id' => $beritaId]);
+
+    return $stmt->fetchAll();
+}
+
+function getBeritaCoverPath(array $row): string
+{
+    if (!empty($row['gambar'])) {
+        return (string) $row['gambar'];
+    }
+
+    $galeri = $row['galeri'] ?? [];
+    if ($galeri !== [] && !empty($galeri[0]['path'])) {
+        return (string) $galeri[0]['path'];
+    }
+
+    return '';
+}
+
+function attachBeritaGaleri(array $rows): array
+{
+    if ($rows === []) {
+        return [];
+    }
+
+    $ids = array_values(array_filter(array_map(static fn (array $row): int => (int) ($row['id'] ?? 0), $rows)));
+    if ($ids === []) {
+        return $rows;
+    }
+
+    ensureBeritaSchema();
+    $pdo = getDb();
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $stmt = $pdo->prepare(
+        "SELECT id, berita_id, path, urutan, created_at
+         FROM berita_gambar
+         WHERE berita_id IN ({$placeholders})
+         ORDER BY urutan ASC, id ASC"
+    );
+    $stmt->execute($ids);
+    $byBerita = [];
+    foreach ($stmt->fetchAll() as $img) {
+        $byBerita[(int) $img['berita_id']][] = $img;
+    }
+
+    foreach ($rows as &$row) {
+        $id = (int) ($row['id'] ?? 0);
+        $galeri = $byBerita[$id] ?? [];
+        if ($galeri === [] && !empty($row['gambar'])) {
+            $galeri = [[
+                'id' => 0,
+                'berita_id' => $id,
+                'path' => $row['gambar'],
+                'urutan' => 0,
+            ]];
+        }
+        $row['galeri'] = $galeri;
+        if (empty($row['gambar']) && !empty($galeri[0]['path'])) {
+            $row['gambar'] = $galeri[0]['path'];
+        }
+    }
+    unset($row);
+
+    return $rows;
+}
+
+function syncBeritaCover(int $beritaId): void
+{
+    $images = getBeritaGambarList($beritaId);
+    $cover = $images[0]['path'] ?? null;
+    $pdo = getDb();
+    $stmt = $pdo->prepare('UPDATE berita SET gambar = :gambar WHERE id = :id');
+    $stmt->execute([
+        ':gambar' => $cover,
+        ':id' => $beritaId,
+    ]);
+}
+
+function addBeritaGambarRows(int $beritaId, array $paths): void
+{
+    if ($paths === []) {
+        return;
+    }
+
+    ensureBeritaSchema();
+    $pdo = getDb();
+    $stmtMax = $pdo->prepare('SELECT COALESCE(MAX(urutan), -1) FROM berita_gambar WHERE berita_id = :id');
+    $stmtMax->execute([':id' => $beritaId]);
+    $urutan = (int) $stmtMax->fetchColumn() + 1;
+
+    $stmt = $pdo->prepare(
+        'INSERT INTO berita_gambar (berita_id, path, urutan) VALUES (:berita_id, :path, :urutan)'
+    );
+    foreach ($paths as $path) {
+        $stmt->execute([
+            ':berita_id' => $beritaId,
+            ':path' => $path,
+            ':urutan' => $urutan,
+        ]);
+        $urutan++;
+    }
+
+    syncBeritaCover($beritaId);
+}
+
+function deleteBeritaGambarById(int $gambarId, int $beritaId): bool
+{
+    ensureBeritaSchema();
+    $pdo = getDb();
+    $stmt = $pdo->prepare('SELECT * FROM berita_gambar WHERE id = :id AND berita_id = :berita_id LIMIT 1');
+    $stmt->execute([':id' => $gambarId, ':berita_id' => $beritaId]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        return false;
+    }
+
+    $del = $pdo->prepare('DELETE FROM berita_gambar WHERE id = :id');
+    $ok = $del->execute([':id' => $gambarId]);
+    if ($ok) {
+        deleteBeritaGambarFile($row['path'] ?? null);
+        syncBeritaCover($beritaId);
+    }
+
+    return $ok;
 }
 
 function loadBerita(string $search = '', string $status = ''): array
@@ -189,7 +416,7 @@ function loadBerita(string $search = '', string $status = ''): array
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
 
-    return $stmt->fetchAll();
+    return attachBeritaGaleri($stmt->fetchAll());
 }
 
 function loadBeritaPublished(int $limit = 12): array
@@ -205,7 +432,7 @@ function loadBeritaPublished(int $limit = 12): array
     $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
     $stmt->execute();
 
-    return $stmt->fetchAll();
+    return attachBeritaGaleri($stmt->fetchAll());
 }
 
 function getBeritaById(int $id): ?array
@@ -215,8 +442,13 @@ function getBeritaById(int $id): ?array
     $stmt = $pdo->prepare('SELECT * FROM berita WHERE id = :id LIMIT 1');
     $stmt->execute([':id' => $id]);
     $row = $stmt->fetch();
+    if (!$row) {
+        return null;
+    }
 
-    return $row ?: null;
+    $rows = attachBeritaGaleri([$row]);
+
+    return $rows[0] ?? null;
 }
 
 function getBeritaBySlug(string $slug): ?array
@@ -226,34 +458,51 @@ function getBeritaBySlug(string $slug): ?array
     $stmt = $pdo->prepare('SELECT * FROM berita WHERE slug = :slug LIMIT 1');
     $stmt->execute([':slug' => $slug]);
     $row = $stmt->fetch();
+    if (!$row) {
+        return null;
+    }
 
-    return $row ?: null;
+    $rows = attachBeritaGaleri([$row]);
+
+    return $rows[0] ?? null;
 }
 
-function addBerita(array $data): bool
+function addBerita(array $data, array $gambarPaths = []): int|false
 {
     ensureBeritaSchema();
     $pdo = getDb();
     $slug = uniqueBeritaSlug($data['judul']);
     $publishedAt = $data['status'] === 'published' ? date('Y-m-d H:i:s') : null;
+    $cover = $gambarPaths[0] ?? ($data['gambar'] ?? null);
 
     $stmt = $pdo->prepare(
         'INSERT INTO berita (judul, slug, ringkasan, konten, gambar, status, published_at)
          VALUES (:judul, :slug, :ringkasan, :konten, :gambar, :status, :published_at)'
     );
 
-    return $stmt->execute([
+    $ok = $stmt->execute([
         ':judul' => $data['judul'],
         ':slug' => $slug,
         ':ringkasan' => $data['ringkasan'] !== '' ? $data['ringkasan'] : null,
         ':konten' => $data['konten'],
-        ':gambar' => $data['gambar'] !== '' ? $data['gambar'] : null,
+        ':gambar' => $cover !== '' ? $cover : null,
         ':status' => $data['status'],
         ':published_at' => $publishedAt,
     ]);
+
+    if (!$ok) {
+        return false;
+    }
+
+    $id = (int) $pdo->lastInsertId();
+    if ($gambarPaths !== []) {
+        addBeritaGambarRows($id, $gambarPaths);
+    }
+
+    return $id;
 }
 
-function updateBerita(int $id, array $data): bool
+function updateBerita(int $id, array $data, array $gambarPaths = []): bool
 {
     ensureBeritaSchema();
     $existing = getBeritaById($id);
@@ -274,20 +523,31 @@ function updateBerita(int $id, array $data): bool
     $stmt = $pdo->prepare(
         'UPDATE berita SET
             judul = :judul, slug = :slug, ringkasan = :ringkasan, konten = :konten,
-            gambar = :gambar, status = :status, published_at = :published_at
+            status = :status, published_at = :published_at
          WHERE id = :id'
     );
 
-    return $stmt->execute([
+    $ok = $stmt->execute([
         ':id' => $id,
         ':judul' => $data['judul'],
         ':slug' => $slug,
         ':ringkasan' => $data['ringkasan'] !== '' ? $data['ringkasan'] : null,
         ':konten' => $data['konten'],
-        ':gambar' => $data['gambar'] !== '' ? $data['gambar'] : null,
         ':status' => $data['status'],
         ':published_at' => $publishedAt,
     ]);
+
+    if (!$ok) {
+        return false;
+    }
+
+    if ($gambarPaths !== []) {
+        addBeritaGambarRows($id, $gambarPaths);
+    } else {
+        syncBeritaCover($id);
+    }
+
+    return true;
 }
 
 function deleteBerita(int $id): bool
@@ -298,11 +558,17 @@ function deleteBerita(int $id): bool
         return false;
     }
 
+    $images = getBeritaGambarList($id);
     $pdo = getDb();
     $stmt = $pdo->prepare('DELETE FROM berita WHERE id = :id');
     $ok = $stmt->execute([':id' => $id]);
     if ($ok) {
-        deleteBeritaGambarFile($row['gambar'] ?? null);
+        foreach ($images as $img) {
+            deleteBeritaGambarFile($img['path'] ?? null);
+        }
+        if (!empty($row['gambar'])) {
+            deleteBeritaGambarFile($row['gambar']);
+        }
     }
 
     return $ok && $stmt->rowCount() > 0;

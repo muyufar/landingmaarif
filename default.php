@@ -169,10 +169,11 @@ try {
       <?php else: ?>
         <div class="grid md:grid-cols-3 gap-6">
           <?php foreach ($beritaTerbaru as $item): ?>
+            <?php $cover = getBeritaCoverPath($item); ?>
             <a href="<?= url('berita/?slug=' . urlencode($item['slug'] ?? '')) ?>"
                class="bg-gray-50 rounded-2xl border border-green-100 overflow-hidden hover:shadow-lg transition block">
-              <?php if (!empty($item['gambar'])): ?>
-                <img src="<?= url($item['gambar']) ?>" alt="<?= sanitize($item['judul'] ?? '') ?>" class="w-full h-44 object-cover">
+              <?php if ($cover !== ''): ?>
+                <img src="<?= url($cover) ?>" alt="<?= sanitize($item['judul'] ?? '') ?>" class="w-full h-44 object-cover">
               <?php else: ?>
                 <div class="w-full h-44 bg-green-50 flex items-center justify-center text-4xl">📰</div>
               <?php endif; ?>

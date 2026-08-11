@@ -56,9 +56,13 @@ try {
 
   <main class="max-w-5xl mx-auto px-6 py-10">
     <?php if ($pageMode === 'detail' && $row): ?>
+      <?php
+        $galeri = $row['galeri'] ?? [];
+        $cover = getBeritaCoverPath($row);
+      ?>
       <article class="bg-white rounded-2xl shadow-lg border border-green-100 overflow-hidden">
-        <?php if (!empty($row['gambar'])): ?>
-          <img src="<?= url($row['gambar']) ?>" alt="<?= sanitize($row['judul'] ?? '') ?>" class="w-full max-h-[420px] object-cover">
+        <?php if ($cover !== ''): ?>
+          <img src="<?= url($cover) ?>" alt="<?= sanitize($row['judul'] ?? '') ?>" class="w-full max-h-[420px] object-cover">
         <?php endif; ?>
         <div class="px-6 sm:px-10 py-8">
           <p class="text-sm text-green-700 mb-2"><?= sanitize(formatTanggalBerita($row['published_at'] ?? $row['created_at'] ?? null)) ?></p>
@@ -67,6 +71,21 @@ try {
             <p class="text-lg text-gray-600 mb-6"><?= sanitize($row['ringkasan']) ?></p>
           <?php endif; ?>
           <div class="prose max-w-none text-gray-800 leading-relaxed whitespace-pre-wrap"><?= sanitize($row['konten'] ?? '') ?></div>
+
+          <?php if (count($galeri) > 1): ?>
+            <div class="mt-8">
+              <h3 class="text-sm font-semibold text-green-800 mb-3">Galeri Foto</h3>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <?php foreach ($galeri as $img): ?>
+                  <a href="<?= url($img['path'] ?? '') ?>" target="_blank" rel="noopener"
+                     class="block rounded-xl overflow-hidden border border-green-100 hover:shadow-md transition">
+                    <img src="<?= url($img['path'] ?? '') ?>" alt="<?= sanitize($row['judul'] ?? '') ?>" class="w-full h-36 object-cover">
+                  </a>
+                <?php endforeach; ?>
+              </div>
+            </div>
+          <?php endif; ?>
+
           <div class="mt-10 pt-6 border-t border-gray-100">
             <a href="<?= url('berita') ?>" class="text-green-700 hover:underline text-sm font-medium">← Semua Berita</a>
           </div>
@@ -97,10 +116,11 @@ try {
       <?php else: ?>
         <div class="grid md:grid-cols-2 gap-6">
           <?php foreach ($list as $item): ?>
+            <?php $cover = getBeritaCoverPath($item); ?>
             <a href="<?= url('berita/?slug=' . urlencode($item['slug'] ?? '')) ?>"
                class="bg-white rounded-2xl shadow border border-green-100 overflow-hidden hover:shadow-lg hover:border-green-300 transition block">
-              <?php if (!empty($item['gambar'])): ?>
-                <img src="<?= url($item['gambar']) ?>" alt="<?= sanitize($item['judul'] ?? '') ?>" class="w-full h-48 object-cover">
+              <?php if ($cover !== ''): ?>
+                <img src="<?= url($cover) ?>" alt="<?= sanitize($item['judul'] ?? '') ?>" class="w-full h-48 object-cover">
               <?php else: ?>
                 <div class="w-full h-48 bg-green-50 flex items-center justify-center text-4xl">📰</div>
               <?php endif; ?>
@@ -108,6 +128,9 @@ try {
                 <p class="text-xs text-green-700 mb-1"><?= sanitize(formatTanggalBerita($item['published_at'] ?? $item['created_at'] ?? null)) ?></p>
                 <h3 class="font-bold text-green-900 text-lg leading-snug mb-2"><?= sanitize($item['judul'] ?? '') ?></h3>
                 <p class="text-sm text-gray-600 line-clamp-3"><?= sanitize(ringkasanBerita($item)) ?></p>
+                <?php if (count($item['galeri'] ?? []) > 1): ?>
+                  <p class="text-xs text-gray-400 mt-2"><?= count($item['galeri']) ?> foto</p>
+                <?php endif; ?>
                 <span class="inline-block mt-4 text-sm font-semibold text-green-700">Baca selengkapnya →</span>
               </div>
             </a>

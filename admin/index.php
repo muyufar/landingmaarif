@@ -60,25 +60,40 @@ if ($isLoggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_b
         $formData = array_merge(beritaFormDefaults(), $result['data']);
         if ($editId > 0) {
             $existing = getBeritaById($editId);
-            $formData['gambar'] = $existing['gambar'] ?? '';
+            $formData['galeri'] = $existing['galeri'] ?? [];
+            $formData['gambar'] = getBeritaCoverPath($existing ?? []);
         }
     } else {
         try {
-            $upload = handleBeritaGambarUpload($_FILES['gambar'] ?? [], $editId > 0 ? (getBeritaById($editId)['gambar'] ?? null) : null);
+            $upload = handleBeritaMultiGambarUpload($_FILES['gambar'] ?? []);
             if ($upload['error'] !== null) {
                 $currentPage = 'berita-form';
                 $formErrors = [$upload['error']];
                 $formData = array_merge(beritaFormDefaults(), $result['data']);
-                $formData['gambar'] = $editId > 0 ? (getBeritaById($editId)['gambar'] ?? '') : '';
+                if ($editId > 0) {
+                    $existing = getBeritaById($editId);
+                    $formData['galeri'] = $existing['galeri'] ?? [];
+                    $formData['gambar'] = getBeritaCoverPath($existing ?? []);
+                }
             } else {
-                $payload = $result['data'];
-                $payload['gambar'] = $upload['path'] ?? '';
-
-                $ok = $editId > 0 ? updateBerita($editId, $payload) : addBerita($payload);
-                if ($ok) {
-                    $flag = $editId > 0 ? 'updated' : 'created';
-                    header('Location: ' . url('admin/?page=berita&' . $flag . '=1'));
-                    exit;
+                if ($editId > 0) {
+                    $hapusIds = $_POST['hapus_gambar'] ?? [];
+                    if (is_array($hapusIds)) {
+                        foreach ($hapusIds as $gambarId) {
+                            deleteBeritaGambarById((int) $gambarId, $editId);
+                        }
+                    }
+                    $ok = updateBerita($editId, $result['data'], $upload['paths']);
+                    if ($ok) {
+                        header('Location: ' . url('admin/?page=berita&updated=1'));
+                        exit;
+                    }
+                } else {
+                    $newId = addBerita($result['data'], $upload['paths']);
+                    if ($newId) {
+                        header('Location: ' . url('admin/?page=berita&created=1'));
+                        exit;
+                    }
                 }
                 $flashError = 'Gagal menyimpan berita.';
                 $currentPage = 'berita-form';

@@ -51,8 +51,11 @@ declare(strict_types=1);
               <td class="px-4 py-3 text-gray-500"><?= $index + 1 ?></td>
               <td class="px-4 py-3">
                 <div class="flex items-start gap-3">
-                  <?php if (!empty($row['gambar'])): ?>
-                    <img src="<?= url($row['gambar']) ?>" alt="" class="w-14 h-14 object-cover rounded-lg border border-gray-200 shrink-0">
+                  <?php
+                    $cover = getBeritaCoverPath($row);
+                  ?>
+                  <?php if ($cover !== ''): ?>
+                    <img src="<?= url($cover) ?>" alt="" class="w-14 h-14 object-cover rounded-lg border border-gray-200 shrink-0">
                   <?php endif; ?>
                   <div class="min-w-0">
                     <p class="font-semibold"><?= sanitize($row['judul'] ?? '') ?></p>

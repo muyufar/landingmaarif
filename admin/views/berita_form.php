@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 /** @var array $formData @var array $errors @var bool $isEdit @var int $editId */
+$galeri = $formData['galeri'] ?? [];
 ?>
 <div class="max-w-3xl">
   <div class="mb-4">
@@ -51,16 +52,27 @@ declare(strict_types=1);
       </div>
 
       <div>
-        <label for="gambar" class="block text-sm font-semibold text-gray-700 mb-2">Gambar Utama</label>
-        <?php if (!empty($formData['gambar'])): ?>
-          <div class="mb-3">
-            <img src="<?= url($formData['gambar']) ?>" alt="Gambar berita" class="w-48 h-32 object-cover rounded-lg border border-gray-200">
-            <p class="text-xs text-gray-500 mt-1">Gambar saat ini. Upload file baru untuk mengganti.</p>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Galeri Gambar</label>
+        <?php if (!empty($galeri)): ?>
+          <div class="mb-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <?php foreach ($galeri as $img): ?>
+              <div class="relative rounded-lg border border-gray-200 overflow-hidden bg-gray-50">
+                <img src="<?= url($img['path'] ?? '') ?>" alt="" class="w-full h-28 object-cover">
+                <?php if ($isEdit && !empty($img['id'])): ?>
+                  <label class="absolute inset-x-0 bottom-0 bg-black/55 text-white text-[11px] px-2 py-1 flex items-center gap-1 cursor-pointer">
+                    <input type="checkbox" name="hapus_gambar[]" value="<?= (int) $img['id'] ?>" class="rounded">
+                    Hapus
+                  </label>
+                <?php endif; ?>
+              </div>
+            <?php endforeach; ?>
           </div>
+          <p class="text-xs text-gray-500 mb-2">Centang gambar yang ingin dihapus, lalu simpan. Gambar pertama menjadi sampul daftar berita.</p>
         <?php endif; ?>
-        <input type="file" id="gambar" name="gambar" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+        <input type="file" id="gambar" name="gambar[]" multiple
+               accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                class="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm bg-white">
-        <p class="text-xs text-gray-500 mt-1">JPG / PNG / WEBP, maks. 3 MB</p>
+        <p class="text-xs text-gray-500 mt-1">Bisa pilih lebih dari satu. JPG / PNG / WEBP, maks. 3 MB per file.</p>
       </div>
 
       <div>
