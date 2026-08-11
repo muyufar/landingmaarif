@@ -3,6 +3,14 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/includes/functions.php';
+
+$beritaTerbaru = [];
+try {
+    require_once __DIR__ . '/includes/berita_functions.php';
+    $beritaTerbaru = loadBeritaPublished(3);
+} catch (Throwable) {
+    $beritaTerbaru = [];
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -28,6 +36,7 @@ require_once __DIR__ . '/includes/functions.php';
         <a href="#beranda" class="hover:text-yellow-300">Beranda</a>
         <a href="#tentang" class="hover:text-yellow-300">Tentang</a>
         <a href="#program" class="hover:text-yellow-300">Program</a>
+        <a href="#berita" class="hover:text-yellow-300">Berita</a>
         <a href="<?= url('dashboard') ?>" class="hover:text-yellow-300">Layanan Online</a>
         <a href="<?= url('dokumentasi') ?>" class="hover:text-yellow-300">Dokumentasi</a>
         <a href="#kontak" class="hover:text-yellow-300">Kontak</a>
@@ -147,8 +156,47 @@ require_once __DIR__ . '/includes/functions.php';
     </div>
   </section>
 
+  <!-- Berita -->
+  <section id="berita" class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="text-center mb-12">
+        <h3 class="text-3xl font-bold text-green-800">Berita Terbaru</h3>
+        <p class="text-gray-600 mt-3">Informasi kegiatan dan pengumuman LP Ma'arif NU Kabupaten Magelang</p>
+      </div>
+
+      <?php if (empty($beritaTerbaru)): ?>
+        <p class="text-center text-gray-500">Belum ada berita yang dipublikasikan.</p>
+      <?php else: ?>
+        <div class="grid md:grid-cols-3 gap-6">
+          <?php foreach ($beritaTerbaru as $item): ?>
+            <a href="<?= url('berita/?slug=' . urlencode($item['slug'] ?? '')) ?>"
+               class="bg-gray-50 rounded-2xl border border-green-100 overflow-hidden hover:shadow-lg transition block">
+              <?php if (!empty($item['gambar'])): ?>
+                <img src="<?= url($item['gambar']) ?>" alt="<?= sanitize($item['judul'] ?? '') ?>" class="w-full h-44 object-cover">
+              <?php else: ?>
+                <div class="w-full h-44 bg-green-50 flex items-center justify-center text-4xl">📰</div>
+              <?php endif; ?>
+              <div class="p-5">
+                <p class="text-xs text-green-700 mb-1"><?= sanitize(formatTanggalBerita($item['published_at'] ?? $item['created_at'] ?? null)) ?></p>
+                <h4 class="font-bold text-green-900 leading-snug mb-2"><?= sanitize($item['judul'] ?? '') ?></h4>
+                <p class="text-sm text-gray-600 line-clamp-3"><?= sanitize(ringkasanBerita($item)) ?></p>
+              </div>
+            </a>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+
+      <div class="text-center mt-10">
+        <a href="<?= url('berita') ?>"
+           class="inline-block bg-green-700 hover:bg-green-800 text-white font-semibold px-6 py-3 rounded-full transition">
+          Lihat Semua Berita
+        </a>
+      </div>
+    </div>
+  </section>
+
   <!-- Kontak -->
-  <section id="kontak" class="py-20 bg-white">
+  <section id="kontak" class="py-20 bg-gray-50">
     <div class="max-w-4xl mx-auto px-6 text-center">
       <h3 class="text-3xl font-bold text-green-800 mb-6">Hubungi Kami</h3>
       <p class="text-gray-600 mb-8">

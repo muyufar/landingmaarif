@@ -14,8 +14,8 @@ $pageTitle = 'Admin Distribusi LKPD';
 $currentPage = trim($_GET['page'] ?? 'dashboard');
 
 if (isset($_GET['logout'])) {
-    logoutDistribusi();
-    header('Location: ' . url('admindistribusi/'));
+    logoutMaarifAdmin();
+    header('Location: ' . url('admin/'));
     exit;
 }
 
@@ -41,6 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_password']) && 
     }
     $loginError = 'Password super admin salah.';
 }
+
+syncMaarifAdminSession();
 
 if (!isDistribusiSuperAdminLoggedIn()) {
     ob_start();

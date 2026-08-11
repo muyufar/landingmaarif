@@ -16,6 +16,7 @@
       </div>
       <?php if (isDistribusiSuperAdminLoggedIn()): ?>
       <nav class="flex flex-wrap gap-2 text-sm">
+        <a href="<?= url('admin/') ?>" class="px-3 py-2 rounded-lg bg-green-900/50 hover:bg-green-700">Portal Admin</a>
         <a href="<?= url('admindistribusi/?page=dashboard') ?>" class="px-3 py-2 rounded-lg bg-green-900/50 hover:bg-green-700">Dashboard</a>
         <a href="<?= url('admindistribusi/?page=list') ?>" class="px-3 py-2 rounded-lg bg-green-900/50 hover:bg-green-700">Data Satuan</a>
         <a href="<?= url('admindistribusi/?page=import') ?>" class="px-3 py-2 rounded-lg bg-green-900/50 hover:bg-green-700">Import Excel</a>

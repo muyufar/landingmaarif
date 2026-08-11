@@ -3,6 +3,8 @@ DirectoryIndex default.php index.php
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
+  RewriteRule ^admin/?$ admin/index.php [L,QSA]
+  RewriteRule ^berita/?$ berita/index.php [L,QSA]
   RewriteRule ^rakerdinma/?$ rakerdinma/index.php [L]
   RewriteRule ^rakerdinma/sertifikat/?$ rakerdinma/sertifikat.php [L,QSA]
   RewriteRule ^pesertakerdinma/?$ pesertakerdinma/index.php [L]

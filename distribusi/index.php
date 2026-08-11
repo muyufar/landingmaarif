@@ -17,7 +17,7 @@ $petugas = getDistribusiPetugasSession();
 $extraScripts = '';
 
 if (isset($_GET['logout'])) {
-    logoutDistribusi();
+    logoutDistribusiPetugas();
     header('Location: ' . url('distribusi/'));
     exit;
 }

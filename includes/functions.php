@@ -768,9 +768,45 @@ function deletePeserta(string $id): bool
     return $stmt->rowCount() > 0;
 }
 
+function loginMaarifAdmin(): void
+{
+    $_SESSION['maarif_admin'] = true;
+    $_SESSION['rakerdinma_admin'] = true;
+    $_SESSION['pemesanan_buku_admin'] = true;
+    $_SESSION['pengkinian_data_admin'] = true;
+    $_SESSION['distribusi_super_admin'] = true;
+}
+
+function logoutMaarifAdmin(): void
+{
+    unset(
+        $_SESSION['maarif_admin'],
+        $_SESSION['rakerdinma_admin'],
+        $_SESSION['pemesanan_buku_admin'],
+        $_SESSION['pengkinian_data_admin'],
+        $_SESSION['distribusi_super_admin']
+    );
+}
+
+function isMaarifAdminLoggedIn(): bool
+{
+    return !empty($_SESSION['maarif_admin'])
+        || !empty($_SESSION['rakerdinma_admin'])
+        || !empty($_SESSION['pemesanan_buku_admin'])
+        || !empty($_SESSION['pengkinian_data_admin'])
+        || !empty($_SESSION['distribusi_super_admin']);
+}
+
+function syncMaarifAdminSession(): void
+{
+    if (isMaarifAdminLoggedIn() && empty($_SESSION['maarif_admin'])) {
+        loginMaarifAdmin();
+    }
+}
+
 function isAdminLoggedIn(): bool
 {
-    return !empty($_SESSION['rakerdinma_admin']);
+    return !empty($_SESSION['rakerdinma_admin']) || !empty($_SESSION['maarif_admin']);
 }
 
 function requireAdmin(): void

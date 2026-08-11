@@ -16,19 +16,21 @@ $extraHead = '';
 $extraScripts = '';
 
 if (isset($_GET['logout'])) {
-    unset($_SESSION['pengkinian_data_admin']);
-    header('Location: ' . url('adminpengkinian/'));
+    logoutMaarifAdmin();
+    header('Location: ' . url('admin/'));
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_password']) && !isset($_POST['delete_id'])) {
     if (password_verify($_POST['admin_password'], ADMIN_PASSWORD_HASH)) {
-        $_SESSION['pengkinian_data_admin'] = true;
+        loginMaarifAdmin();
         header('Location: ' . url('adminpengkinian/?page=dashboard'));
         exit;
     }
     $loginError = 'Password salah.';
 }
+
+syncMaarifAdminSession();
 
 if (!in_array($currentPage, ['dashboard', 'list', 'detail'], true)) {
     $currentPage = 'dashboard';

@@ -33,6 +33,8 @@ function adminNavClass(string $page, string $current): string
           </div>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
+          <a href="<?= url('admin/') ?>"
+             class="text-sm bg-green-900 hover:bg-green-950 px-4 py-2 rounded-lg transition">Portal Admin</a>
           <a href="<?= url() ?>"
              class="text-sm bg-green-900 hover:bg-green-950 px-4 py-2 rounded-lg transition">Home</a>
           <?php if (function_exists('isAdminLoggedIn') && isAdminLoggedIn()): ?>

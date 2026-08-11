@@ -246,7 +246,7 @@ function isDistribusiPetugasLoggedIn(): bool
 
 function isDistribusiSuperAdminLoggedIn(): bool
 {
-    return !empty($_SESSION['distribusi_super_admin']);
+    return !empty($_SESSION['distribusi_super_admin']) || !empty($_SESSION['maarif_admin']);
 }
 
 function getDistribusiPetugasSession(): ?array
@@ -302,7 +302,7 @@ function loginDistribusiSuperAdmin(string $password): bool
         return false;
     }
 
-    $_SESSION['distribusi_super_admin'] = true;
+    loginMaarifAdmin();
     unset($_SESSION['distribusi_petugas_id']);
 
     return true;
@@ -311,6 +311,11 @@ function loginDistribusiSuperAdmin(string $password): bool
 function logoutDistribusi(): void
 {
     unset($_SESSION['distribusi_petugas_id'], $_SESSION['distribusi_super_admin']);
+}
+
+function logoutDistribusiPetugas(): void
+{
+    unset($_SESSION['distribusi_petugas_id']);
 }
 
 function createDistribusiPetugas(string $username, string $password, string $nama): array

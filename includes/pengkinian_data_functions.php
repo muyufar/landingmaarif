@@ -658,7 +658,7 @@ function pengkinianKecamatanOptions(array $rows): array
 
 function isPengkinianAdminLoggedIn(): bool
 {
-    return !empty($_SESSION['pengkinian_data_admin']);
+    return !empty($_SESSION['pengkinian_data_admin']) || !empty($_SESSION['maarif_admin']);
 }
 
 function exportPengkinianCsv(array $rows): void

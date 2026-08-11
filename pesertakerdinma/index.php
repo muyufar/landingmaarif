@@ -14,19 +14,21 @@ $formErrors = [];
 $formData = null;
 
 if (isset($_GET['logout'])) {
-    unset($_SESSION['rakerdinma_admin']);
-    header('Location: ' . url('pesertakerdinma/'));
+    logoutMaarifAdmin();
+    header('Location: ' . url('admin/'));
     exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_password']) && !isset($_POST['delete_id']) && !isset($_POST['save_peserta'])) {
     if (password_verify($_POST['admin_password'], ADMIN_PASSWORD_HASH)) {
-        $_SESSION['rakerdinma_admin'] = true;
+        loginMaarifAdmin();
         header('Location: ' . url('pesertakerdinma/?page=dashboard'));
         exit;
     }
     $loginError = 'Password salah.';
 }
+
+syncMaarifAdminSession();
 
 $page = trim($_GET['page'] ?? 'dashboard');
 if (!in_array($page, ['dashboard', 'list', 'form', 'detail'], true)) {

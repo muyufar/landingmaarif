@@ -882,6 +882,6 @@ function exportPemesananXls(array $rows): void
 
 function isPemesananAdminLoggedIn(): bool
 {
-    return !empty($_SESSION['pemesanan_buku_admin']);
+    return !empty($_SESSION['pemesanan_buku_admin']) || !empty($_SESSION['maarif_admin']);
 }
 
