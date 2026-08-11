@@ -123,13 +123,14 @@ try {
           </p>
         </div>
 
-        <div class="bg-white p-8 rounded-2xl shadow hover:shadow-lg transition">
+        <a href="https://sekolah.maarifnumagelang.or.id/" target="_blank" rel="noopener noreferrer"
+           class="bg-white p-8 rounded-2xl shadow hover:shadow-lg transition block">
           <div class="text-4xl mb-4">🌍</div>
           <h4 class="text-xl font-semibold mb-3">Digitalisasi Pendidikan</h4>
           <p class="text-gray-600">
             Pengembangan teknologi dan sistem informasi pendidikan modern.
           </p>
-        </div>
+        </a>
       </div>
     </div>
   </section>
