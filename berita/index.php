@@ -100,13 +100,25 @@ try {
           <?php if (count($galeri) > 1): ?>
             <div class="mt-8">
               <h3 class="text-sm font-semibold text-green-800 mb-3">Galeri Foto</h3>
-              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <?php foreach ($galeri as $img): ?>
-                  <a href="<?= url($img['path'] ?? '') ?>" target="_blank" rel="noopener"
-                     class="block rounded-xl overflow-hidden border border-green-100 hover:shadow-md transition">
-                    <img src="<?= url($img['path'] ?? '') ?>" alt="<?= sanitize($row['judul'] ?? '') ?>" class="w-full h-36 object-cover">
-                  </a>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="galeri-thumbs">
+                <?php foreach ($galeri as $index => $img): ?>
+                  <button type="button"
+                          class="galeri-thumb block rounded-xl overflow-hidden border border-green-100 hover:shadow-md transition text-left w-full"
+                          data-index="<?= (int) $index ?>"
+                          aria-label="Lihat foto <?= (int) $index + 1 ?>">
+                    <img src="<?= url($img['path'] ?? '') ?>" alt="<?= sanitize($row['judul'] ?? '') ?>" class="w-full h-36 object-cover pointer-events-none">
+                  </button>
                 <?php endforeach; ?>
+              </div>
+            </div>
+
+            <div id="galeri-lightbox" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/85 p-4" role="dialog" aria-modal="true" aria-label="Galeri foto">
+              <button type="button" id="galeri-close" class="absolute top-4 right-4 text-white/90 hover:text-white text-3xl leading-none px-3 py-1" aria-label="Tutup">&times;</button>
+              <button type="button" id="galeri-prev" class="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 rounded-full w-11 h-11 text-2xl" aria-label="Sebelumnya">&#8249;</button>
+              <button type="button" id="galeri-next" class="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 text-white bg-white/10 hover:bg-white/20 rounded-full w-11 h-11 text-2xl" aria-label="Berikutnya">&#8250;</button>
+              <div class="max-w-5xl w-full flex flex-col items-center gap-3">
+                <img id="galeri-image" src="" alt="" class="max-h-[80vh] max-w-full object-contain rounded-lg shadow-2xl">
+                <p id="galeri-counter" class="text-white/80 text-sm"></p>
               </div>
             </div>
           <?php endif; ?>
@@ -163,6 +175,57 @@ try {
         }
         document.getElementById('btn-copy-link')?.addEventListener('click', function () { copyShareLink(this); });
         document.getElementById('btn-copy-short')?.addEventListener('click', function () { copyShareLink(this); });
+
+        (function initGaleriSlider() {
+          const thumbs = Array.from(document.querySelectorAll('.galeri-thumb'));
+          const lightbox = document.getElementById('galeri-lightbox');
+          if (!thumbs.length || !lightbox) return;
+
+          const images = thumbs.map((btn) => btn.querySelector('img')?.getAttribute('src') || '');
+          const imgEl = document.getElementById('galeri-image');
+          const counterEl = document.getElementById('galeri-counter');
+          const btnPrev = document.getElementById('galeri-prev');
+          const btnNext = document.getElementById('galeri-next');
+          const btnClose = document.getElementById('galeri-close');
+          let current = 0;
+
+          function show(index) {
+            if (!images.length) return;
+            current = (index + images.length) % images.length;
+            imgEl.src = images[current];
+            imgEl.alt = 'Foto ' + (current + 1);
+            counterEl.textContent = (current + 1) + ' / ' + images.length;
+          }
+
+          function open(index) {
+            show(index);
+            lightbox.classList.remove('hidden');
+            lightbox.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+          }
+
+          function close() {
+            lightbox.classList.add('hidden');
+            lightbox.classList.remove('flex');
+            document.body.style.overflow = '';
+          }
+
+          thumbs.forEach((btn) => {
+            btn.addEventListener('click', () => open(Number(btn.dataset.index || 0)));
+          });
+          btnPrev?.addEventListener('click', (e) => { e.stopPropagation(); show(current - 1); });
+          btnNext?.addEventListener('click', (e) => { e.stopPropagation(); show(current + 1); });
+          btnClose?.addEventListener('click', close);
+          lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox) close();
+          });
+          document.addEventListener('keydown', (e) => {
+            if (lightbox.classList.contains('hidden')) return;
+            if (e.key === 'Escape') close();
+            if (e.key === 'ArrowLeft') show(current - 1);
+            if (e.key === 'ArrowRight') show(current + 1);
+          });
+        })();
       </script>
 
     <?php elseif ($pageMode === 'notfound'): ?>
