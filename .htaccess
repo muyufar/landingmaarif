@@ -4,6 +4,7 @@ DirectoryIndex default.php index.php
   RewriteEngine On
 
   RewriteRule ^admin/?$ admin/index.php [L,QSA]
+  RewriteRule ^b/([A-Za-z0-9]+)/?$ berita/index.php?kode=$1 [L,QSA]
   RewriteRule ^berita/?$ berita/index.php [L,QSA]
   RewriteRule ^rakerdinma/?$ rakerdinma/index.php [L]
   RewriteRule ^rakerdinma/sertifikat/?$ rakerdinma/sertifikat.php [L,QSA]

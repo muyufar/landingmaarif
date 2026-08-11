@@ -170,7 +170,7 @@ try {
         <div class="grid md:grid-cols-3 gap-6">
           <?php foreach ($beritaTerbaru as $item): ?>
             <?php $cover = getBeritaCoverPath($item); ?>
-            <a href="<?= url('berita/?slug=' . urlencode($item['slug'] ?? '')) ?>"
+            <a href="<?= url(beritaShortPath($item)) ?>"
                class="bg-gray-50 rounded-2xl border border-green-100 overflow-hidden hover:shadow-lg transition block">
               <?php if ($cover !== ''): ?>
                 <img src="<?= url($cover) ?>" alt="<?= sanitize($item['judul'] ?? '') ?>" class="w-full h-44 object-cover">

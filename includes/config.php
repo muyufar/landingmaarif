@@ -102,3 +102,14 @@ function url(string $path = ''): string
 
     return ($base === '' ? '' : $base) . '/' . $path;
 }
+
+function absoluteUrl(string $path = ''): string
+{
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || ((int) ($_SERVER['SERVER_PORT'] ?? 80) === 443)
+        || (strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https');
+    $scheme = $https ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
+    return $scheme . '://' . $host . url($path);
+}

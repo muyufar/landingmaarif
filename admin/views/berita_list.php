@@ -60,6 +60,9 @@ declare(strict_types=1);
                   <div class="min-w-0">
                     <p class="font-semibold"><?= sanitize($row['judul'] ?? '') ?></p>
                     <p class="text-xs text-gray-500 mt-0.5 line-clamp-2"><?= sanitize(ringkasanBerita($row, 100)) ?></p>
+                    <?php if (!empty($row['kode_singkat'])): ?>
+                      <p class="text-[11px] text-emerald-700 mt-1">/b/<?= sanitize($row['kode_singkat']) ?></p>
+                    <?php endif; ?>
                   </div>
                 </div>
               </td>
@@ -76,8 +79,13 @@ declare(strict_types=1);
               <td class="px-4 py-3">
                 <div class="flex items-center justify-center gap-2 flex-wrap">
                   <?php if (($row['status'] ?? '') === 'published'): ?>
-                    <a href="<?= url('berita/?slug=' . urlencode($row['slug'] ?? '')) ?>" target="_blank"
+                    <a href="<?= url(beritaShortPath($row)) ?>" target="_blank"
                        class="text-green-700 hover:underline text-xs font-medium">Lihat</a>
+                    <button type="button"
+                            class="text-emerald-700 hover:underline text-xs font-medium btn-copy-admin"
+                            data-url="<?= sanitize(beritaShortUrl($row)) ?>">
+                      Salin Link
+                    </button>
                   <?php endif; ?>
                   <a href="<?= url('admin/?page=berita-form&id=' . (int) ($row['id'] ?? 0)) ?>"
                      class="text-blue-700 hover:underline text-xs font-medium">Edit</a>
@@ -94,3 +102,22 @@ declare(strict_types=1);
     </div>
   <?php endif; ?>
 </div>
+<?php if (!empty($rows)): ?>
+<script>
+  document.querySelectorAll('.btn-copy-admin').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const url = btn.getAttribute('data-url') || '';
+      const done = () => {
+        const old = btn.textContent;
+        btn.textContent = 'Tersalin!';
+        setTimeout(() => { btn.textContent = old; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(done).catch(() => window.prompt('Salin link:', url));
+      } else {
+        window.prompt('Salin link:', url);
+      }
+    });
+  });
+</script>
+<?php endif; ?>

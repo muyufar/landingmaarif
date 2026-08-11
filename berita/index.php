@@ -5,12 +5,21 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/includes/berita_functions.php';
 
 $slug = trim($_GET['slug'] ?? '');
+$kode = trim($_GET['kode'] ?? '');
 $row = null;
 $list = [];
 $pageMode = 'list';
 
 try {
-    if ($slug !== '') {
+    if ($kode !== '') {
+        $row = getBeritaByKode($kode);
+        if ($row && ($row['status'] ?? '') === 'published') {
+            $pageMode = 'detail';
+        } else {
+            $row = null;
+            $pageMode = 'notfound';
+        }
+    } elseif ($slug !== '') {
         $row = getBeritaBySlug($slug);
         if ($row && ($row['status'] ?? '') === 'published') {
             $pageMode = 'detail';
@@ -37,6 +46,21 @@ try {
     <?php endif; ?>
     Berita | LP Ma'arif NU Magelang
   </title>
+  <?php if ($pageMode === 'detail' && $row): ?>
+    <?php
+      $share = beritaShareLinks($row);
+      $coverMeta = getBeritaCoverPath($row);
+    ?>
+    <meta name="description" content="<?= sanitize(ringkasanBerita($row, 150)) ?>">
+    <meta property="og:title" content="<?= sanitize($row['judul'] ?? '') ?>">
+    <meta property="og:description" content="<?= sanitize(ringkasanBerita($row, 150)) ?>">
+    <meta property="og:url" content="<?= sanitize($share['url']) ?>">
+    <meta property="og:type" content="article">
+    <?php if ($coverMeta !== ''): ?>
+      <meta property="og:image" content="<?= sanitize(absoluteUrl($coverMeta)) ?>">
+    <?php endif; ?>
+    <meta name="twitter:card" content="summary_large_image">
+  <?php endif; ?>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen">
@@ -59,6 +83,7 @@ try {
       <?php
         $galeri = $row['galeri'] ?? [];
         $cover = getBeritaCoverPath($row);
+        $share = beritaShareLinks($row);
       ?>
       <article class="bg-white rounded-2xl shadow-lg border border-green-100 overflow-hidden">
         <?php if ($cover !== ''): ?>
@@ -86,11 +111,59 @@ try {
             </div>
           <?php endif; ?>
 
-          <div class="mt-10 pt-6 border-t border-gray-100">
-            <a href="<?= url('berita') ?>" class="text-green-700 hover:underline text-sm font-medium">← Semua Berita</a>
+          <div class="mt-10 pt-6 border-t border-gray-100 space-y-4">
+            <div>
+              <p class="text-sm font-semibold text-green-800 mb-2">Bagikan Berita</p>
+              <div class="flex flex-wrap gap-2">
+                <a href="<?= sanitize($share['whatsapp']) ?>" target="_blank" rel="noopener"
+                   class="bg-green-600 hover:bg-green-700 text-white text-sm font-medium px-4 py-2 rounded-lg">WhatsApp</a>
+                <a href="<?= sanitize($share['facebook']) ?>" target="_blank" rel="noopener"
+                   class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg">Facebook</a>
+                <a href="<?= sanitize($share['telegram']) ?>" target="_blank" rel="noopener"
+                   class="bg-sky-500 hover:bg-sky-600 text-white text-sm font-medium px-4 py-2 rounded-lg">Telegram</a>
+                <a href="<?= sanitize($share['twitter']) ?>" target="_blank" rel="noopener"
+                   class="bg-gray-800 hover:bg-black text-white text-sm font-medium px-4 py-2 rounded-lg">X / Twitter</a>
+                <button type="button" id="btn-copy-link"
+                        class="bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-medium px-4 py-2 rounded-lg"
+                        data-url="<?= sanitize($share['url']) ?>">
+                  Salin Link
+                </button>
+              </div>
+            </div>
+            <div class="rounded-xl bg-green-50 border border-green-100 px-4 py-3">
+              <p class="text-xs text-gray-500 mb-1">Link singkat</p>
+              <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                <code id="short-link" class="text-sm text-green-900 break-all font-medium"><?= sanitize($share['url']) ?></code>
+                <button type="button" id="btn-copy-short"
+                        class="shrink-0 text-xs bg-green-700 hover:bg-green-800 text-white px-3 py-1.5 rounded-lg"
+                        data-url="<?= sanitize($share['url']) ?>">
+                  Salin
+                </button>
+              </div>
+            </div>
+            <a href="<?= url('berita') ?>" class="inline-block text-green-700 hover:underline text-sm font-medium">← Semua Berita</a>
           </div>
         </div>
       </article>
+      <script>
+        function copyShareLink(btn) {
+          const url = btn.getAttribute('data-url') || '';
+          const done = () => {
+            const old = btn.textContent;
+            btn.textContent = 'Tersalin!';
+            setTimeout(() => { btn.textContent = old; }, 1500);
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(done).catch(() => {
+              window.prompt('Salin link ini:', url);
+            });
+          } else {
+            window.prompt('Salin link ini:', url);
+          }
+        }
+        document.getElementById('btn-copy-link')?.addEventListener('click', function () { copyShareLink(this); });
+        document.getElementById('btn-copy-short')?.addEventListener('click', function () { copyShareLink(this); });
+      </script>
 
     <?php elseif ($pageMode === 'notfound'): ?>
       <div class="bg-white rounded-2xl shadow border border-red-100 p-10 text-center">
@@ -117,7 +190,7 @@ try {
         <div class="grid md:grid-cols-2 gap-6">
           <?php foreach ($list as $item): ?>
             <?php $cover = getBeritaCoverPath($item); ?>
-            <a href="<?= url('berita/?slug=' . urlencode($item['slug'] ?? '')) ?>"
+            <a href="<?= url(beritaShortPath($item)) ?>"
                class="bg-white rounded-2xl shadow border border-green-100 overflow-hidden hover:shadow-lg hover:border-green-300 transition block">
               <?php if ($cover !== ''): ?>
                 <img src="<?= url($cover) ?>" alt="<?= sanitize($item['judul'] ?? '') ?>" class="w-full h-48 object-cover">

@@ -47,19 +47,34 @@ function ensureBeritaSchema(): void
         // Abaikan jika tabel sudah ada / constraint host terbatas
     }
 
+    try {
+        $columns = array_column($pdo->query('SHOW COLUMNS FROM berita')->fetchAll(), 'Field');
+        if (!in_array('kode_singkat', $columns, true)) {
+            $pdo->exec('ALTER TABLE berita ADD COLUMN `kode_singkat` varchar(12) DEFAULT NULL AFTER `slug`');
+            $pdo->exec('ALTER TABLE berita ADD UNIQUE KEY `uq_berita_kode_singkat` (`kode_singkat`)');
+        }
+    } catch (PDOException) {
+        // Abaikan jika kolom/index sudah ada
+    }
+
     migrateLegacyBeritaGambar();
+    ensureAllBeritaHaveShortCode();
     $done = true;
 }
 
 function migrateLegacyBeritaGambar(): void
 {
     $pdo = getDb();
-    $rows = $pdo->query(
-        "SELECT b.id, b.gambar
-         FROM berita b
-         LEFT JOIN berita_gambar g ON g.berita_id = b.id
-         WHERE b.gambar IS NOT NULL AND b.gambar != '' AND g.id IS NULL"
-    )->fetchAll();
+    try {
+        $rows = $pdo->query(
+            "SELECT b.id, b.gambar
+             FROM berita b
+             LEFT JOIN berita_gambar g ON g.berita_id = b.id
+             WHERE b.gambar IS NOT NULL AND b.gambar != '' AND g.id IS NULL"
+        )->fetchAll();
+    } catch (PDOException) {
+        return;
+    }
 
     if ($rows === []) {
         return;
@@ -74,6 +89,119 @@ function migrateLegacyBeritaGambar(): void
             ':path' => $row['gambar'],
         ]);
     }
+}
+
+function generateBeritaShortCode(int $length = 6): string
+{
+    $alphabet = 'abcdefghijkmnopqrstuvwxyz23456789';
+    $max = strlen($alphabet) - 1;
+    $code = '';
+    for ($i = 0; $i < $length; $i++) {
+        $code .= $alphabet[random_int(0, $max)];
+    }
+
+    return $code;
+}
+
+function uniqueBeritaShortCode(): string
+{
+    $pdo = getDb();
+    do {
+        $code = generateBeritaShortCode();
+        $stmt = $pdo->prepare('SELECT id FROM berita WHERE kode_singkat = :kode LIMIT 1');
+        $stmt->execute([':kode' => $code]);
+        $exists = (bool) $stmt->fetch();
+    } while ($exists);
+
+    return $code;
+}
+
+function ensureAllBeritaHaveShortCode(): void
+{
+    $pdo = getDb();
+    try {
+        $rows = $pdo->query(
+            "SELECT id FROM berita WHERE kode_singkat IS NULL OR kode_singkat = ''"
+        )->fetchAll();
+    } catch (PDOException) {
+        return;
+    }
+
+    if ($rows === []) {
+        return;
+    }
+
+    $stmt = $pdo->prepare('UPDATE berita SET kode_singkat = :kode WHERE id = :id');
+    foreach ($rows as $row) {
+        $stmt->execute([
+            ':kode' => uniqueBeritaShortCode(),
+            ':id' => (int) $row['id'],
+        ]);
+    }
+}
+
+function getBeritaByKode(string $kode): ?array
+{
+    $kode = strtolower(trim($kode));
+    if ($kode === '' || !preg_match('/^[a-z0-9]{4,12}$/', $kode)) {
+        return null;
+    }
+
+    ensureBeritaSchema();
+    $pdo = getDb();
+    $stmt = $pdo->prepare('SELECT * FROM berita WHERE kode_singkat = :kode LIMIT 1');
+    $stmt->execute([':kode' => $kode]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        return null;
+    }
+
+    $rows = attachBeritaGaleri([$row]);
+
+    return $rows[0] ?? null;
+}
+
+function beritaShortPath(array $row): string
+{
+    $kode = trim((string) ($row['kode_singkat'] ?? ''));
+    if ($kode === '') {
+        $id = (int) ($row['id'] ?? 0);
+        if ($id > 0) {
+            ensureBeritaSchema();
+            $kode = uniqueBeritaShortCode();
+            $pdo = getDb();
+            $stmt = $pdo->prepare('UPDATE berita SET kode_singkat = :kode WHERE id = :id AND (kode_singkat IS NULL OR kode_singkat = "")');
+            $stmt->execute([':kode' => $kode, ':id' => $id]);
+            $row['kode_singkat'] = $kode;
+        }
+    }
+
+    return 'b/' . $kode;
+}
+
+function beritaShortUrl(array $row): string
+{
+    return absoluteUrl(beritaShortPath($row));
+}
+
+function beritaPublicUrl(array $row): string
+{
+    return beritaShortUrl($row);
+}
+
+function beritaShareLinks(array $row): array
+{
+    $url = beritaShortUrl($row);
+    $judul = trim((string) ($row['judul'] ?? 'Berita LP Ma\'arif NU Magelang'));
+    $text = $judul . ' — ' . $url;
+
+    return [
+        'url' => $url,
+        'whatsapp' => 'https://wa.me/?text=' . rawurlencode($text),
+        'facebook' => 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode($url),
+        'telegram' => 'https://t.me/share/url?url=' . rawurlencode($url) . '&text=' . rawurlencode($judul),
+        'twitter' => 'https://twitter.com/intent/tweet?text=' . rawurlencode($judul) . '&url=' . rawurlencode($url),
+    ];
 }
 
 function beritaUploadDir(): string
@@ -476,13 +604,14 @@ function addBerita(array $data, array $gambarPaths = []): int|false
     $cover = $gambarPaths[0] ?? ($data['gambar'] ?? null);
 
     $stmt = $pdo->prepare(
-        'INSERT INTO berita (judul, slug, ringkasan, konten, gambar, status, published_at)
-         VALUES (:judul, :slug, :ringkasan, :konten, :gambar, :status, :published_at)'
+        'INSERT INTO berita (judul, slug, kode_singkat, ringkasan, konten, gambar, status, published_at)
+         VALUES (:judul, :slug, :kode_singkat, :ringkasan, :konten, :gambar, :status, :published_at)'
     );
 
     $ok = $stmt->execute([
         ':judul' => $data['judul'],
         ':slug' => $slug,
+        ':kode_singkat' => uniqueBeritaShortCode(),
         ':ringkasan' => $data['ringkasan'] !== '' ? $data['ringkasan'] : null,
         ':konten' => $data['konten'],
         ':gambar' => $cover !== '' ? $cover : null,
@@ -539,6 +668,11 @@ function updateBerita(int $id, array $data, array $gambarPaths = []): bool
 
     if (!$ok) {
         return false;
+    }
+
+    if (empty($existing['kode_singkat'])) {
+        $pdo->prepare('UPDATE berita SET kode_singkat = :kode WHERE id = :id')
+            ->execute([':kode' => uniqueBeritaShortCode(), ':id' => $id]);
     }
 
     if ($gambarPaths !== []) {
