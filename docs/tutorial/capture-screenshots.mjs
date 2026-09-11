@@ -26,10 +26,20 @@ function absUrl(href) {
   return `${BASE.replace(/\/$/, '')}/${href}`;
 }
 
+async function waitCharts(page) {
+  try {
+    await page.waitForSelector('canvas', { timeout: 10000 });
+    await page.waitForTimeout(1200);
+  } catch {
+    await page.waitForTimeout(800);
+  }
+}
+
 async function snap(page, id, name, url, opts = {}) {
   const file = `${String(shots.length + 1).padStart(2, '0')}-${id}.png`;
   const full = path.join(OUT, file);
   await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
+  if (opts.waitCharts) await waitCharts(page);
   if (opts.waitMs) await page.waitForTimeout(opts.waitMs);
   if (opts.selector) {
     try {
@@ -63,17 +73,42 @@ async function main() {
   await page.click('button[type="submit"]');
   await page.waitForURL(/page=dashboard/, { timeout: 30000 });
 
-  await snap(page, 'admin-dashboard', 'Dashboard Admin', `${BASE}/admindistribusi/?page=dashboard`);
+  await snap(
+    page,
+    'admin-dashboard',
+    'Dashboard Admin (Infografis)',
+    `${BASE}/admindistribusi/?page=dashboard`,
+    { waitCharts: true, fullPage: false }
+  );
   await snap(page, 'admin-import', 'Import Data Excel', `${BASE}/admindistribusi/?page=import`);
   await snap(page, 'admin-list', 'Monitoring Satuan', `${BASE}/admindistribusi/?page=list`, { fullPage: false });
 
-  // Open first detail link if exists
+  const editHref = await page.locator('a[href*="page=edit"]').first().getAttribute('href').catch(() => null);
   const detailHref = await page.locator('a[href*="page=detail"]').first().getAttribute('href').catch(() => null);
-  if (detailHref) {
-  await snap(page, 'admin-detail', 'Detail Satuan (Admin)', absUrl(detailHref), { fullPage: false });
-  } else {
-    await snap(page, 'admin-detail', 'Detail Satuan (Admin)', `${BASE}/admindistribusi/?page=detail&id=1`, { fullPage: false });
+
+  if (editHref) {
+    await snap(page, 'admin-edit', 'Edit Satuan Pendidikan', absUrl(editHref), { fullPage: false });
   }
+
+  if (detailHref) {
+    await snap(page, 'admin-detail', 'Detail Satuan (Admin)', absUrl(detailHref), { fullPage: false });
+  } else {
+    await snap(
+      page,
+      'admin-detail',
+      'Detail Satuan (Admin)',
+      `${BASE}/admindistribusi/?page=detail&id=1`,
+      { fullPage: false }
+    );
+  }
+
+  await snap(
+    page,
+    'admin-create',
+    'Tambah Satuan Manual',
+    `${BASE}/admindistribusi/?page=create`,
+    { fullPage: false }
+  );
 
   await snap(page, 'admin-petugas', 'Kelola Akun Petugas', `${BASE}/admindistribusi/?page=petugas`);
 
@@ -90,17 +125,24 @@ async function main() {
     console.warn('Petugas login may have failed — check TUTORIAL_PETUGAS_PASS');
   });
 
-  await snap(page, 'petugas-dashboard', 'Dashboard Petugas', `${BASE}/distribusi/?page=dashboard`);
+  await snap(
+    page,
+    'petugas-dashboard',
+    'Dashboard Petugas (Infografis)',
+    `${BASE}/distribusi/?page=dashboard`,
+    { waitCharts: true, fullPage: false }
+  );
   await snap(page, 'petugas-kirim', 'Kirim Buku', `${BASE}/distribusi/?page=kirim`, { fullPage: false });
 
-  // Terima — pick delivery satuan if dropdown has options
   await page.goto(`${BASE}/distribusi/?page=terima`, { waitUntil: 'networkidle' });
   const options = page.locator('select[name="npsn"] option');
   const count = await options.count();
   if (count > 1) {
     const val = await options.nth(1).getAttribute('value');
     if (val) {
-      await page.goto(`${BASE}/distribusi/?page=terima&npsn=${encodeURIComponent(val)}`, { waitUntil: 'networkidle' });
+      await page.goto(`${BASE}/distribusi/?page=terima&npsn=${encodeURIComponent(val)}`, {
+        waitUntil: 'networkidle',
+      });
     }
   }
   await page.setViewportSize({ width: 1360, height: 1400 });
@@ -114,7 +156,6 @@ async function main() {
     await snap(page, 'petugas-detail', 'Detail Satuan (Petugas)', absUrl(pDetail), { fullPage: false });
   }
 
-  // Public dashboard entry
   await page.goto(`${BASE}/dashboard/`, { waitUntil: 'networkidle' });
   await snap(page, 'portal-entry', 'Akses dari Dashboard Layanan', `${BASE}/dashboard/`, { fullPage: true });
 

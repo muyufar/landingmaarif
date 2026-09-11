@@ -2,12 +2,18 @@
 
 Panduan lengkap penggunaan sistem tracking distribusi buku LKPD (Admin + Petugas), dengan **screenshot live** dari aplikasi.
 
+**Versi terbaru (Juni 2026)** mencakup:
+- Dashboard infografis Admin & Petugas (Chart.js)
+- CRUD satuan pendidikan (tambah, edit, hapus)
+- Tracking Buku Guru terpisah di penerimaan
+- Surat jalan Excel otomatis + OCR surat jalan
+
 ## File utama
 
 | File | Keterangan |
 |------|------------|
 | `TUTORIAL-DISTRIBUSI-LKPD-MI-MAARIF.pdf` | **Dokumen tutorial siap pakai** |
-| `screenshots/` | Tangkapan layar live (13 halaman) |
+| `screenshots/` | Tangkapan layar live (15 halaman) |
 | `generate.php` | Script generator otomatis |
 | `capture-screenshots.mjs` | Playwright: login & screenshot |
 | `build-pdf.py` | Susun teks + gambar jadi PDF |
@@ -35,6 +41,7 @@ php docs/tutorial/generate.php
 
 ```bash
 set TUTORIAL_BASE_URL=http://localhost/maarifnu
+set TUTORIAL_ADMIN_PASS=rakerdinma2026
 set TUTORIAL_PETUGAS_USER=panji
 set TUTORIAL_PETUGAS_PASS=tutorial2026
 ```
@@ -48,6 +55,6 @@ set TUTORIAL_PETUGAS_PASS=tutorial2026
 ## Isi tutorial PDF
 
 1. Pengenalan & alur status (Packing -> Delivery -> Receive -> Done)
-2. **Super Admin**: login, dashboard, import Excel, monitoring, detail, kelola petugas
-3. **Petugas**: login, kirim buku, surat jalan, terima buku, OCR, list/detail
+2. **Super Admin**: login, dashboard infografis, import Excel, CRUD satuan, monitoring, detail, kelola petugas
+3. **Petugas**: login, dashboard infografis, kirim buku, surat jalan, terima buku + Buku Guru, OCR, list/detail
 4. Tips & troubleshooting

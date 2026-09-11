@@ -26,6 +26,7 @@ ROOT = Path(__file__).resolve().parent
 SHOTS = ROOT / "screenshots"
 META = ROOT / "screenshots.json"
 OUT = ROOT / "TUTORIAL-DISTRIBUSI-LKPD-MI-MAARIF.pdf"
+VERSION = "Juni 2026"
 
 
 def ascii_safe(text: str) -> str:
@@ -50,7 +51,11 @@ class TutorialPDF(FPDF):
         self.set_y(-15)
         self.set_font("Helvetica", "I", 8)
         self.set_text_color(120, 120, 120)
-        self.cell(0, 10, f"Tutorial Distribusi LKPD MI Ma'arif NU - Halaman {self.page_no()}", align="C")
+        self.cell(
+            0, 10,
+            f"Tutorial Distribusi LKPD MI Ma'arif NU ({VERSION}) - Halaman {self.page_no()}",
+            align="C",
+        )
 
 
 def section_title(pdf, title, level=1):
@@ -80,6 +85,12 @@ def bullet(pdf, text):
     pdf.multi_cell(0, 5.5, ascii_safe(f"- {text}"))
 
 
+def numbered(pdf, n, text):
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.multi_cell(0, 5.5, ascii_safe(f"{n}. {text}"))
+
+
 def add_image_page(pdf, img_path, caption):
     if not img_path or not img_path.exists():
         body(pdf, f"[Screenshot tidak tersedia: {caption}]")
@@ -90,7 +101,6 @@ def add_image_page(pdf, img_path, caption):
     display_w_mm = 180.0
     display_h_mm = (px_h / px_w) * display_w_mm if px_w else display_w_mm
 
-    # Ruang gambar per halaman (mm) — sisakan caption + footer
     first_page_cap_mm = 12
     next_page_cap_mm = 8
     footer_mm = 18
@@ -162,15 +172,16 @@ def build():
     pdf.ln(2)
     pdf.set_font("Helvetica", "B", 18)
     pdf.multi_cell(0, 9, "SISTEM TRACKING DISTRIBUSI\nBUKU LKPD MI MA'ARIF NU\nKABUPATEN MAGELANG")
-    pdf.ln(8)
+    pdf.ln(6)
     pdf.set_font("Helvetica", "", 11)
     pdf.set_text_color(60, 60, 60)
     body(
         pdf,
         "Dokumen ini menjelaskan langkah demi langkah penggunaan sistem distribusi LKPD "
-        "untuk Super Admin dan Petugas Pengiriman, dilengkapi tangkapan layar langsung "
-        "dari aplikasi.",
+        "untuk Super Admin dan Petugas Pengiriman. Termasuk fitur terbaru: dashboard infografis, "
+        "CRUD satuan pendidikan, tracking Buku Guru, surat jalan Excel otomatis, dan OCR surat jalan.",
     )
+    body(pdf, f"Versi: {VERSION}")
     body(pdf, f"Dibuat otomatis: {datetime.now().strftime('%d/%m/%Y %H:%M')} WIB")
     pdf.ln(4)
     pdf.set_font("Helvetica", "B", 11)
@@ -178,8 +189,8 @@ def build():
     body(pdf, "Isi dokumen:")
     for item in [
         "1. Pengenalan & alur status",
-        "2. Panduan Super Admin (import, monitoring, akun petugas)",
-        "3. Panduan Petugas (kirim buku, surat jalan, terima buku, OCR)",
+        "2. Panduan Super Admin (dashboard infografis, import, CRUD satuan, monitoring, petugas)",
+        "3. Panduan Petugas (dashboard infografis, kirim buku, surat jalan, terima buku + Buku Guru, OCR)",
         "4. Tips & troubleshooting",
     ]:
         bullet(pdf, item)
@@ -197,6 +208,9 @@ def build():
     section_title(pdf, "Alamat portal", 2)
     bullet(pdf, "Portal Petugas: /distribusi/ (bisa diakses dari Dashboard Layanan)")
     bullet(pdf, "Portal Super Admin: /admindistribusi/ (URL khusus admin)")
+    section_title(pdf, "Peran pengguna", 2)
+    bullet(pdf, "Super Admin: import data, kelola satuan, pantau progres, kelola akun petugas")
+    bullet(pdf, "Petugas: kirim buku, unduh surat jalan, catat penerimaan, upload dokumen")
     section_title(pdf, "Alur status satuan pendidikan", 2)
     body(
         pdf,
@@ -204,9 +218,14 @@ def build():
         "Packing -> Delivery -> Receive (jika kurang) atau Done (jika lengkap).\n\n"
         "Packing = data sudah diimport, buku siap dikirim.\n"
         "Delivery = petugas sudah mencatat pengiriman, menunggu konfirmasi sekolah.\n"
-        "Receive = sekolah menerima sebagian; masih ada kekurangan.\n"
-        "Done = semua LKPD siswa dan buku guru sudah diterima lengkap.",
+        "Receive = sekolah menerima sebagian; masih ada kekurangan (bisa dikirim ulang).\n"
+        "Done = semua LKPD siswa dan Buku Guru sudah diterima lengkap.",
     )
+    section_title(pdf, "Istilah penting", 2)
+    bullet(pdf, "K1-K6 = jumlah siswa per kelas (bukan total buku)")
+    bullet(pdf, "Buku Guru = kebutuhan buku guru per kelas, dicatat terpisah dari LKPD siswa")
+    bullet(pdf, "Total buku = (siswa x jumlah mapel per kelas) + buku guru per kelas")
+    bullet(pdf, "Surat Jalan (SJ) = dokumen Excel otomatis berisi daftar mapel + BUKU GURU")
 
     add_image_page(
         pdf,
@@ -220,7 +239,7 @@ def build():
     body(
         pdf,
         "Super Admin bertugas menyiapkan data sekolah, membuat akun petugas, "
-        "dan memantau progres distribusi seluruh MI Ma'arif.",
+        "mengelola data satuan pendidikan, dan memantau progres distribusi seluruh MI Ma'arif.",
     )
 
     section_title(pdf, "2.1 Login Super Admin", 2)
@@ -228,58 +247,94 @@ def build():
     bullet(pdf, "Password default awal: rakerdinma2026 (segera ganti di production)")
     add_image_page(pdf, find_shot(shots, "admin-login"), "Gambar 2 - Halaman login Super Admin")
 
-    section_title(pdf, "2.2 Dashboard Admin", 2)
+    section_title(pdf, "2.2 Dashboard Admin (Infografis)", 2)
     body(
         pdf,
-        "Dashboard menampilkan ringkasan: jumlah satuan per status (Packing, Delivery, Receive, Done), "
-        "total buku LKS, dan statistik siswa per kelas. Gunakan kartu pintasan untuk Import, "
-        "Kelola Petugas, atau Monitoring.",
+        "Dashboard admin menampilkan ringkasan visual distribusi:\n"
+        "- Hero dengan total satuan, total buku, total siswa, dan progress bar\n"
+        "- Kartu KPI per status (Packing, Delivery, Receive, Done)\n"
+        "- Grafik donut: proporsi satuan per status\n"
+        "- Grafik batang: volume buku per status\n"
+        "- Grafik siswa per kelas (K1-K6)\n"
+        "- Grafik pie: komposisi buku LKPD siswa vs Buku Guru\n\n"
+        "Gunakan pintasan Import Data, Tambah Satuan, Monitoring, atau Kelola Petugas.",
     )
-    add_image_page(pdf, find_shot(shots, "admin-dashboard"), "Gambar 3 - Dashboard Super Admin")
+    add_image_page(pdf, find_shot(shots, "admin-dashboard"), "Gambar 3 - Dashboard Super Admin dengan infografis")
 
     section_title(pdf, "2.3 Import Data Excel", 2)
     body(
         pdf,
-        "Langkah import data kebutuhan buku:\n"
-        "1. Siapkan file REKAP SISWA DAN KEBUTUHAN BUKU LKS MI MAARIF MGL.xlsx\n"
-        "2. Buka menu Import Data\n"
-        "3. Pilih file (.xlsx / .csv)\n"
-        "4. Klik Import Data\n\n"
+        "Langkah import data kebutuhan buku:",
+    )
+    numbered(pdf, 1, "Siapkan file REKAP SISWA DAN KEBUTUHAN BUKU LKS MI MAARIF MGL.xlsx")
+    numbered(pdf, 2, "Buka menu Import Data")
+    numbered(pdf, 3, "Pilih file (.xlsx / .csv)")
+    numbered(pdf, 4, "Klik Import Data")
+    body(
+        pdf,
         "Sistem membaca sheet DATA BUKU PERSEKOLAH (prioritas) atau DATA SEKOLAH DAN SISWA. "
-        "Data meliputi jumlah siswa per kelas (K1–K6), buku guru per kelas, dan total buku. "
-        "Import ulang akan memperbarui data NPSN yang sama.",
+        "Data meliputi jumlah siswa per kelas (K1-K6), buku guru per kelas, dan total buku. "
+        "Import ulang akan memperbarui data NPSN yang sama.\n\n"
+        "Total buku dihitung otomatis dari siswa x mapel + buku guru. "
+        "Jika kolom total Excel (BB) berbeda, sistem menampilkan peringatan saat import.",
     )
     add_image_page(pdf, find_shot(shots, "admin-import"), "Gambar 4 - Halaman Import Data Excel")
 
-    section_title(pdf, "2.4 Monitoring & Export", 2)
+    section_title(pdf, "2.4 Tambah & Edit Satuan Manual", 2)
     body(
         pdf,
-        "Menu Monitoring menampilkan seluruh satuan pendidikan. Filter berdasarkan:\n"
-        "- Kata kunci (NPSN, nama, alamat)\n"
-        "- Kecamatan\n"
-        "- Status (Packing / Delivery / Receive / Done)\n\n"
-        "Klik Detail untuk melihat riwayat pengiriman. Klik Export CSV untuk unduh laporan.",
+        "Selain import Excel, admin dapat menambah atau mengubah satuan secara manual:",
     )
-    add_image_page(pdf, find_shot(shots, "admin-list"), "Gambar 5 - Halaman Monitoring Satuan")
+    numbered(pdf, 1, "Klik + Tambah Satuan di Monitoring atau dashboard")
+    numbered(pdf, 2, "Isi NPSN, nama lembaga, alamat, kecamatan")
+    numbered(pdf, 3, "Isi jumlah siswa K1-K6 dan kebutuhan Buku Guru per kelas")
+    numbered(pdf, 4, "Sistem menampilkan preview total buku otomatis")
+    numbered(pdf, 5, "Klik Simpan")
+    body(
+        pdf,
+        "Edit satuan: klik Edit di daftar Monitoring atau dari halaman Detail. "
+        "Hati-hati mengubah status manual jika ada proses pengiriman aktif.\n\n"
+        "Hapus satuan: klik Hapus di daftar Monitoring. "
+        "Penghapusan diblokir jika status masih Delivery (pengiriman aktif). "
+        "Jika dihapus, riwayat pengiriman dan file surat jalan ikut terhapus.",
+    )
+    add_image_page(pdf, find_shot(shots, "admin-create"), "Gambar 5 - Form Tambah Satuan Pendidikan")
+    add_image_page(pdf, find_shot(shots, "admin-edit"), "Gambar 6 - Form Edit Satuan Pendidikan")
 
-    section_title(pdf, "2.5 Detail Satuan (Admin)", 2)
+    section_title(pdf, "2.5 Monitoring & Export", 2)
+    body(
+        pdf,
+        "Menu Monitoring menampilkan seluruh satuan pendidikan. Filter berdasarkan:",
+    )
+    bullet(pdf, "Kata kunci (NPSN, nama, alamat)")
+    bullet(pdf, "Kecamatan")
+    bullet(pdf, "Status (Packing / Delivery / Receive / Done)")
+    body(
+        pdf,
+        "Klik Detail untuk melihat riwayat pengiriman. "
+        "Klik Edit/Hapus untuk kelola data. Klik Export CSV untuk unduh laporan.",
+    )
+    add_image_page(pdf, find_shot(shots, "admin-list"), "Gambar 7 - Halaman Monitoring Satuan")
+
+    section_title(pdf, "2.6 Detail Satuan (Admin)", 2)
     body(
         pdf,
         "Halaman detail menampilkan kebutuhan vs penerimaan per kelas (LKPD Siswa dan Buku Guru), "
-        "serta riwayat setiap pengiriman beserta file surat jalan yang diupload petugas.",
+        "serta riwayat setiap pengiriman beserta file surat jalan yang diupload petugas. "
+        "Admin dapat langsung Edit dari halaman ini.",
     )
-    add_image_page(pdf, find_shot(shots, "admin-detail"), "Gambar 6 - Detail Satuan (Admin)")
+    add_image_page(pdf, find_shot(shots, "admin-detail"), "Gambar 8 - Detail Satuan (Admin)")
 
-    section_title(pdf, "2.6 Kelola Akun Petugas", 2)
+    section_title(pdf, "2.7 Kelola Akun Petugas", 2)
     body(
         pdf,
-        "Buat akun untuk setiap petugas pengiriman:\n"
-        "1. Isi Nama Lengkap, Username, Password (min. 6 karakter)\n"
-        "2. Klik Simpan Akun\n"
-        "3. Bagikan username & password ke petugas\n\n"
-        "Admin dapat menonaktifkan/mengaktifkan kembali akun petugas dari daftar.",
+        "Buat akun untuk setiap petugas pengiriman:",
     )
-    add_image_page(pdf, find_shot(shots, "admin-petugas"), "Gambar 7 - Kelola Akun Petugas Pengiriman")
+    numbered(pdf, 1, "Isi Nama Lengkap, Username, Password (min. 6 karakter)")
+    numbered(pdf, 2, "Klik Simpan Akun")
+    numbered(pdf, 3, "Bagikan username & password ke petugas")
+    body(pdf, "Admin dapat menonaktifkan/mengaktifkan kembali akun petugas dari daftar.")
+    add_image_page(pdf, find_shot(shots, "admin-petugas"), "Gambar 9 - Kelola Akun Petugas Pengiriman")
 
     # --- PETUGAS ---
     pdf.add_page()
@@ -292,70 +347,103 @@ def build():
 
     section_title(pdf, "3.1 Login Petugas", 2)
     body(pdf, "Masuk dengan username dan password yang diberikan admin.")
-    add_image_page(pdf, find_shot(shots, "petugas-login"), "Gambar 8 - Login Petugas Distribusi")
+    add_image_page(pdf, find_shot(shots, "petugas-login"), "Gambar 10 - Login Petugas Distribusi")
 
-    section_title(pdf, "3.2 Dashboard Petugas", 2)
+    section_title(pdf, "3.2 Dashboard Petugas (Infografis)", 2)
     body(
         pdf,
-        "Dashboard menampilkan jumlah satuan per status dan daftar satuan yang sedang Delivery. "
-        "Klik Proses Penerimaan untuk langsung ke halaman terima buku.",
+        "Dashboard petugas dirancang untuk tugas operasional harian:\n"
+        "- Hero: siap dikirim, menunggu terima, buku siap kirim, % distribusi selesai\n"
+        "- Progress bar: Done vs sedang proses (Delivery + Receive)\n"
+        "- Kartu KPI per status dengan jumlah satuan dan buku\n"
+        "- Grafik donut: status semua satuan\n"
+        "- Grafik batang: fokus tugas (Siap Kirim / Sedang Delivery / Selesai)\n"
+        "- Grafik volume buku per tahap\n"
+        "- Daftar satuan Sedang Delivery dengan tombol Proses Penerimaan\n\n"
+        "Kartu aksi cepat Kirim Buku dan Terima Buku menampilkan badge jumlah tugas aktif.",
     )
-    add_image_page(pdf, find_shot(shots, "petugas-dashboard"), "Gambar 9 - Dashboard Petugas")
+    add_image_page(pdf, find_shot(shots, "petugas-dashboard"), "Gambar 11 - Dashboard Petugas dengan infografis")
 
     section_title(pdf, "3.3 Kirim Buku (Packing -> Delivery)", 2)
     body(
         pdf,
-        "Langkah pengiriman buku ke sekolah:\n"
-        "1. Buka menu Kirim Buku\n"
-        "2. Cari/filter satuan (NPSN, nama, kecamatan)\n"
-        "3. Klik Surat Jalan - unduh Excel SEBELUM berangkat\n"
-        "4. Bawa buku + surat jalan ke sekolah\n"
-        "5. Klik Kirim Buku - konfirmasi untuk mencatat status Delivery\n\n"
-        "Setelah Kirim Buku, sistem mengirim notifikasi WhatsApp ke kepsek/operator (jika nomor HP ada di data pengkinian). "
+        "Langkah pengiriman buku ke sekolah:",
+    )
+    numbered(pdf, 1, "Buka menu Kirim Buku")
+    numbered(pdf, 2, "Cari/filter satuan (NPSN, nama, kecamatan)")
+    numbered(pdf, 3, "Klik Surat Jalan - unduh Excel SEBELUM berangkat")
+    numbered(pdf, 4, "Bawa buku + surat jalan ke sekolah")
+    numbered(pdf, 5, "Klik Kirim Buku - konfirmasi untuk mencatat status Delivery")
+    body(
+        pdf,
+        "Setelah Kirim Buku, sistem mengirim notifikasi WhatsApp ke kepsek/operator "
+        "(jika nomor HP ada di data pengkinian). "
         "Satuan dengan status Receive (kurang) juga bisa dikirim ulang.",
     )
-    add_image_page(pdf, find_shot(shots, "petugas-kirim"), "Gambar 10 - Halaman Kirim Buku")
+    add_image_page(pdf, find_shot(shots, "petugas-kirim"), "Gambar 12 - Halaman Kirim Buku")
 
     section_title(pdf, "3.4 Surat Jalan Excel", 2)
     body(
         pdf,
-        "Surat jalan berisi daftar mapel LKPD per kelas, baris BUKU GURU per kelas, "
-        "dan total buku. File digenerate otomatis dari data import. "
-        "Cetak atau bawa di HP/tablet saat pengiriman.",
+        "Surat jalan berisi:\n"
+        "- Identitas sekolah (NPSN, nama, alamat)\n"
+        "- Daftar mapel LKPD per kelas dengan jumlah buku\n"
+        "- Baris BUKU GURU per kelas (setelah blok mapel tiap kelas)\n"
+        "- Total buku keseluruhan\n\n"
+        "File digenerate otomatis dari data import/admin. "
+        "Cetak atau bawa di HP/tablet saat pengiriman. "
+        "Format mengikuti template resmi LP Ma'arif NU.",
     )
 
     section_title(pdf, "3.5 Terima Buku (Delivery -> Receive/Done)", 2)
     body(
         pdf,
-        "Setelah sekolah menerima buku:\n"
-        "1. Buka Terima Buku, pilih satuan berstatus Delivery\n"
-        "2. Upload foto Surat Jalan Distributor (boleh dari kamera)\n"
-        "3. Upload Surat Jalan Sekolah yang sudah ditandatangani & dicap\n"
-        "4. Isi jumlah LKPD siswa diterima per kelas (angka sesuai kolom Jumlah di surat jalan)\n"
-        "5. Isi Buku Guru per kelas jika ada kebutuhan guru\n"
-        "6. Klik Simpan Penerimaan\n\n"
-        "OCR otomatis: sistem membaca foto surat jalan dan mengisi angka. "
-        "Selalu periksa ulang sebelum simpan.",
+        "Setelah sekolah menerima buku:",
     )
-    add_image_page(pdf, find_shot(shots, "petugas-terima"), "Gambar 11 - Halaman Terima Buku & Upload Surat Jalan")
+    numbered(pdf, 1, "Buka Terima Buku, pilih satuan berstatus Delivery (atau klik dari dashboard)")
+    numbered(pdf, 2, "Upload foto Surat Jalan Distributor (boleh dari kamera HP)")
+    numbered(pdf, 3, "Upload Surat Jalan Sekolah yang sudah ditandatangani & dicap")
+    numbered(pdf, 4, "Isi jumlah LKPD siswa diterima per kelas (angka sesuai kolom Jumlah di SJ)")
+    numbered(pdf, 5, "Isi Buku Guru per kelas jika ada kebutuhan guru (baris BUKU GURU di SJ)")
+    numbered(pdf, 6, "Klik Simpan Penerimaan")
+    body(
+        pdf,
+        "OCR otomatis: sistem membaca foto surat jalan dan mengisi angka LKPD siswa "
+        "serta Buku Guru. Selalu periksa ulang sebelum simpan.\n\n"
+        "Jika semua kelas lengkap (LKPD siswa + Buku Guru) -> status Done.\n"
+        "Jika masih kurang -> status Receive, satuan muncul kembali di Kirim Buku untuk pengiriman lanjutan.",
+    )
+    add_image_page(
+        pdf,
+        find_shot(shots, "petugas-terima"),
+        "Gambar 13 - Halaman Terima Buku, Upload Surat Jalan & Input Buku Guru",
+    )
 
     section_title(pdf, "3.6 List & Detail Satuan", 2)
-    body(pdf, "Petugas dapat melihat seluruh satuan dan riwayat pengiriman dari menu List Satuan -> Detail.")
-    add_image_page(pdf, find_shot(shots, "petugas-list"), "Gambar 12 - List Satuan (Petugas)")
-    add_image_page(pdf, find_shot(shots, "petugas-detail"), "Gambar 13 - Detail Satuan (Petugas)")
+    body(
+        pdf,
+        "Petugas dapat melihat seluruh satuan dan riwayat pengiriman dari menu List Satuan -> Detail. "
+        "Detail menampilkan perbandingan kebutuhan vs diterima per kelas.",
+    )
+    add_image_page(pdf, find_shot(shots, "petugas-list"), "Gambar 14 - List Satuan (Petugas)")
+    add_image_page(pdf, find_shot(shots, "petugas-detail"), "Gambar 15 - Detail Satuan (Petugas)")
 
     # --- Tips ---
     pdf.add_page()
     section_title(pdf, "4. Tips & Troubleshooting")
     tips = [
-        "Total buku di sistem dihitung dari siswa × jumlah mapel + buku guru per kelas. "
+        "Total buku di sistem dihitung dari siswa x jumlah mapel + buku guru per kelas. "
         "Harus sama dengan total di surat jalan Excel.",
-        "Kolom K1–K6 di tabel = jumlah siswa per kelas, bukan total buku.",
+        "Kolom K1-K6 di tabel = jumlah siswa per kelas, bukan total buku.",
         "Buku Guru dicatat terpisah di form penerimaan (baris BUKU GURU di surat jalan).",
-        "Jika OCR gagal, isi jumlah buku secara manual.",
         "Status Done hanya tercapai jika LKPD siswa DAN buku guru semua kelas sudah lengkap.",
-        "Re-import Excel admin jika data kebutuhan buku berubah.",
+        "Jika OCR gagal atau angka salah, isi jumlah buku secara manual.",
+        "Foto surat jalan yang jelas dan tidak blur meningkatkan akurasi OCR.",
+        "Re-import Excel admin jika data kebutuhan buku berubah di awal tahun.",
+        "Satuan baru bisa ditambah manual admin tanpa import ulang seluruh file.",
+        "Jangan hapus satuan yang statusnya Delivery; selesaikan penerimaan dulu.",
         "Password admin default harus diganti untuk keamanan production.",
+        "Reset password petugas lewat Admin > Akun Petugas jika lupa.",
     ]
     for t in tips:
         bullet(pdf, t)
@@ -363,8 +451,16 @@ def build():
     section_title(pdf, "Ringkasan alur kerja harian petugas", 2)
     body(
         pdf,
-        "Login -> Kirim Buku (unduh SJ + catat kirim) -> antar buku ke sekolah -> "
-        "Terima Buku (upload SJ + isi jumlah) -> ulangi jika masih kurang hingga Done.",
+        "Login -> lihat dashboard (prioritas tugas) -> Kirim Buku (unduh SJ + catat kirim) -> "
+        "antar buku ke sekolah -> Terima Buku (upload SJ + isi jumlah LKPD & Buku Guru) -> "
+        "ulangi jika masih kurang hingga Done.",
+    )
+
+    section_title(pdf, "Ringkasan alur kerja admin", 2)
+    body(
+        pdf,
+        "Login -> pantau dashboard infografis -> import/perbarui data Excel -> "
+        "kelola satuan manual jika perlu -> buat akun petugas -> monitoring & export laporan.",
     )
 
     pdf.output(str(OUT))
