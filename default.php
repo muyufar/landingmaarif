@@ -55,18 +55,32 @@ try {
           LP Ma'arif NU Kabupaten Magelang berkomitmen meningkatkan mutu pendidikan
           melalui madrasah dan sekolah yang unggul, religius, dan berdaya saing.
         </p>
-        <div class="flex flex-col sm:flex-row gap-4">
+        <div class="flex flex-col sm:flex-row sm:flex-wrap gap-3">
           <a href="<?= url('dashboard') ?>"
-             class="inline-block text-center bg-yellow-400 hover:bg-yellow-500 text-green-900 font-semibold px-6 py-3 rounded-full shadow-lg transition">
-            Layanan Online
+             class="inline-flex items-center justify-center gap-2.5 w-full sm:w-auto bg-yellow-400 hover:bg-yellow-500 text-green-900 font-semibold px-5 py-3 rounded-full shadow-lg transition text-sm sm:text-base">
+            <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            <span class="whitespace-nowrap">Layanan Online</span>
           </a>
           <a href="<?= url('twibbon') ?>"
-             class="inline-block text-center bg-green-600 hover:bg-green-500 text-white font-semibold px-6 py-3 rounded-full shadow-lg transition border-2 border-green-500">
-            Bikin Twibbon
+             class="inline-flex items-center justify-center gap-2.5 w-full sm:w-auto bg-green-600 hover:bg-green-500 text-white font-semibold px-5 py-3 rounded-full shadow-lg transition border-2 border-green-500 text-sm sm:text-base">
+            <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" stroke="none"/>
+              <path d="M21 15l-5-5L5 21"/>
+            </svg>
+            <span class="whitespace-nowrap">Bikin Twibbon</span>
           </a>
           <a href="<?= url('banner-harlah') ?>"
-             class="inline-block text-center bg-white hover:bg-green-50 text-green-800 font-semibold px-6 py-3 rounded-full shadow-lg transition border-2 border-white">
-            Download Banner Harlah 97
+             class="inline-flex items-center justify-center gap-2.5 w-full sm:w-auto bg-white hover:bg-green-50 text-green-800 font-semibold px-5 py-3 rounded-full shadow-lg transition border-2 border-white text-sm sm:text-base">
+            <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+            </svg>
+            <span class="leading-tight text-center sm:text-left">
+              <span class="block whitespace-nowrap">Download Banner</span>
+              <span class="block text-xs font-medium text-green-700/90">Harlah Ke-97</span>
+            </span>
           </a>
         </div>
       </div>
@@ -82,13 +96,19 @@ try {
                  alt="Selamat Harlah Ke-97 LP Ma'arif NU"
                  class="w-full h-full object-cover">
           </div>
+          <div class="carousel-slide absolute inset-0 opacity-0 transition-opacity duration-700" data-slide="2">
+            <img src="<?= url('image/fotorakerdinma2026.png') ?>"
+                 alt="RAKERDINMA 2026 LP Ma'arif NU Kabupaten Magelang"
+                 class="w-full h-full object-cover">
+          </div>
           <button type="button" id="carousel-prev" aria-label="Gambar sebelumnya"
-                  class="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/55 text-white text-xl leading-none">‹</button>
+                  class="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/40 hover:bg-black/55 text-white text-xl leading-none">‹</button>
           <button type="button" id="carousel-next" aria-label="Gambar berikutnya"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/55 text-white text-xl leading-none">›</button>
-          <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+                  class="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-black/40 hover:bg-black/55 text-white text-xl leading-none">›</button>
+          <div class="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex gap-2">
             <button type="button" class="carousel-dot w-2.5 h-2.5 rounded-full bg-white" data-dot="0" aria-label="Slide 1"></button>
             <button type="button" class="carousel-dot w-2.5 h-2.5 rounded-full bg-white/50" data-dot="1" aria-label="Slide 2"></button>
+            <button type="button" class="carousel-dot w-2.5 h-2.5 rounded-full bg-white/50" data-dot="2" aria-label="Slide 3"></button>
           </div>
         </div>
       </div>
