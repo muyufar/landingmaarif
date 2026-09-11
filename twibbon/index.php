@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/includes/functions.php';
 
-$templateUrl = url('image/Twibbon_Final_HD_2400.png');
-$templateExists = is_file(dirname(__DIR__) . '/image/Twibbon_Final_HD_2400.png');
+$templateFile = dirname(__DIR__) . '/image/Twibbon_KIM_Mint_2400.png';
+$templateUrl = url('image/Twibbon_KIM_Mint_2400.png');
+$templateExists = is_file($templateFile);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -131,7 +132,7 @@ $templateExists = is_file(dirname(__DIR__) . '/image/Twibbon_Final_HD_2400.png')
       hole: { x: 250, y: 0, w: 2150, h: 1912 },
     };
   </script>
-  <script src="<?= url('twibbon/twibbon.js?v=2') ?>"></script>
+  <script src="<?= url('twibbon/twibbon.js?v=3') ?>"></script>
   <?php endif; ?>
 
 </body>
