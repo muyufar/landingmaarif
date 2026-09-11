@@ -97,6 +97,30 @@ try {
           <?php endif; ?>
           <div class="prose max-w-none text-gray-800 leading-relaxed whitespace-pre-wrap"><?= sanitize($row['konten'] ?? '') ?></div>
 
+          <?php if (beritaHasPdf($row)): ?>
+            <div class="mt-8 rounded-2xl border border-green-100 bg-gray-50 overflow-hidden">
+              <div class="px-4 sm:px-6 py-4 border-b border-green-100 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h3 class="text-sm font-semibold text-green-800">Dokumen PDF</h3>
+                  <p class="text-xs text-gray-500 mt-0.5"><?= sanitize(beritaPdfBasename($row)) ?></p>
+                </div>
+                <a href="<?= url($row['pdf']) ?>" target="_blank" rel="noopener"
+                   class="inline-flex items-center justify-center gap-2 text-sm bg-green-700 hover:bg-green-800 text-white font-medium px-4 py-2 rounded-lg shrink-0">
+                  Buka di tab baru
+                </a>
+              </div>
+              <iframe src="<?= url($row['pdf']) ?>#view=FitH"
+                      title="Dokumen PDF: <?= sanitize($row['judul'] ?? '') ?>"
+                      class="w-full bg-white border-0"
+                      style="height: min(75vh, 720px); min-height: 420px;"
+                      loading="lazy"></iframe>
+              <p class="text-xs text-gray-500 px-4 py-3 bg-white border-t border-green-100">
+                Jika pratinjau tidak muncul di perangkat Anda,
+                <a href="<?= url($row['pdf']) ?>" target="_blank" rel="noopener" class="text-green-700 font-medium hover:underline">unduh atau buka PDF di tab baru</a>.
+              </p>
+            </div>
+          <?php endif; ?>
+
           <?php if (count($galeri) > 1): ?>
             <div class="mt-8">
               <h3 class="text-sm font-semibold text-green-800 mb-3">Galeri Foto</h3>
@@ -264,9 +288,14 @@ try {
                 <p class="text-xs text-green-700 mb-1"><?= sanitize(formatTanggalBerita($item['published_at'] ?? $item['created_at'] ?? null)) ?></p>
                 <h3 class="font-bold text-green-900 text-lg leading-snug mb-2"><?= sanitize($item['judul'] ?? '') ?></h3>
                 <p class="text-sm text-gray-600 line-clamp-3"><?= sanitize(ringkasanBerita($item)) ?></p>
-                <?php if (count($item['galeri'] ?? []) > 1): ?>
-                  <p class="text-xs text-gray-400 mt-2"><?= count($item['galeri']) ?> foto</p>
-                <?php endif; ?>
+                <div class="flex flex-wrap gap-2 mt-2">
+                  <?php if (count($item['galeri'] ?? []) > 1): ?>
+                    <span class="text-xs text-gray-400"><?= count($item['galeri']) ?> foto</span>
+                  <?php endif; ?>
+                  <?php if (beritaHasPdf($item)): ?>
+                    <span class="text-xs text-red-700 bg-red-50 px-2 py-0.5 rounded">PDF</span>
+                  <?php endif; ?>
+                </div>
                 <span class="inline-block mt-4 text-sm font-semibold text-green-700">Baca selengkapnya →</span>
               </div>
             </a>

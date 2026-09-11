@@ -76,6 +76,29 @@ $galeri = $formData['galeri'] ?? [];
       </div>
 
       <div>
+        <label for="pdf" class="block text-sm font-semibold text-gray-700 mb-2">Dokumen PDF</label>
+        <?php if (!empty($formData['pdf'])): ?>
+          <div class="mb-3 rounded-lg border border-red-100 bg-red-50/40 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-gray-800 truncate"><?= sanitize(beritaPdfBasename(['pdf' => $formData['pdf']])) ?></p>
+              <a href="<?= url($formData['pdf']) ?>" target="_blank" rel="noopener"
+                 class="text-xs text-green-700 hover:underline">Buka / pratinjau PDF</a>
+            </div>
+            <?php if ($isEdit): ?>
+              <label class="inline-flex items-center gap-2 text-sm text-red-700 shrink-0 cursor-pointer">
+                <input type="checkbox" name="hapus_pdf" value="1" class="rounded">
+                Hapus PDF
+              </label>
+            <?php endif; ?>
+          </div>
+        <?php endif; ?>
+        <input type="file" id="pdf" name="pdf"
+               accept=".pdf,application/pdf"
+               class="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm bg-white">
+        <p class="text-xs text-gray-500 mt-1">Opsional. PDF maks. 15 MB — pembaca bisa membaca langsung di halaman berita.</p>
+      </div>
+
+      <div>
         <label for="status" class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
         <select id="status" name="status" class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-green-600">
           <option value="draft" <?= ($formData['status'] ?? '') === 'draft' ? 'selected' : '' ?>>Draft (belum tampil di website)</option>

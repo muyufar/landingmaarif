@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS `berita` (
   `ringkasan` text DEFAULT NULL,
   `konten` mediumtext NOT NULL,
   `gambar` varchar(255) DEFAULT NULL,
+  `pdf` varchar(255) DEFAULT NULL,
   `status` enum('draft','published') NOT NULL DEFAULT 'draft',
   `published_at` datetime DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -32,3 +33,4 @@ CREATE TABLE IF NOT EXISTS `berita_gambar` (
 -- Jika tabel berita sudah ada tanpa kode_singkat, jalankan:
 -- ALTER TABLE berita ADD COLUMN `kode_singkat` varchar(12) DEFAULT NULL AFTER `slug`;
 -- ALTER TABLE berita ADD UNIQUE KEY `uq_berita_kode_singkat` (`kode_singkat`);
+-- ALTER TABLE berita ADD COLUMN `pdf` varchar(255) DEFAULT NULL AFTER `gambar`;

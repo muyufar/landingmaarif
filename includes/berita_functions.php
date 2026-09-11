@@ -53,6 +53,9 @@ function ensureBeritaSchema(): void
             $pdo->exec('ALTER TABLE berita ADD COLUMN `kode_singkat` varchar(12) DEFAULT NULL AFTER `slug`');
             $pdo->exec('ALTER TABLE berita ADD UNIQUE KEY `uq_berita_kode_singkat` (`kode_singkat`)');
         }
+        if (!in_array('pdf', $columns, true)) {
+            $pdo->exec('ALTER TABLE berita ADD COLUMN `pdf` varchar(255) DEFAULT NULL AFTER `gambar`');
+        }
     } catch (PDOException) {
         // Abaikan jika kolom/index sudah ada
     }
@@ -258,6 +261,7 @@ function beritaFormDefaults(?array $row = null): array
         'konten' => $row['konten'] ?? '',
         'status' => $row['status'] ?? 'draft',
         'gambar' => $row['gambar'] ?? '',
+        'pdf' => $row['pdf'] ?? '',
         'galeri' => $row['galeri'] ?? [],
     ];
 }
@@ -343,6 +347,51 @@ function storeBeritaGambarFile(array $file): array
 
     if (!move_uploaded_file((string) ($file['tmp_name'] ?? ''), $dest)) {
         return ['error' => 'Gagal menyimpan gambar berita.', 'path' => null];
+    }
+
+    return ['error' => null, 'path' => $relative];
+}
+
+function storeBeritaPdfFile(array $file): array
+{
+    $errorCode = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+
+    if ($errorCode === UPLOAD_ERR_NO_FILE) {
+        return ['error' => null, 'path' => null];
+    }
+
+    if ($errorCode !== UPLOAD_ERR_OK) {
+        return ['error' => 'Gagal mengunggah PDF. Silakan coba lagi.', 'path' => null];
+    }
+
+    if (($file['size'] ?? 0) > 15 * 1024 * 1024) {
+        return ['error' => 'Ukuran PDF maksimal 15 MB.', 'path' => null];
+    }
+
+    $ext = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
+    if ($ext !== 'pdf') {
+        return ['error' => 'Format dokumen harus PDF.', 'path' => null];
+    }
+
+    $mime = '';
+    if (function_exists('finfo_open')) {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if ($finfo) {
+            $mime = (string) (finfo_file($finfo, (string) ($file['tmp_name'] ?? '')) ?: '');
+            finfo_close($finfo);
+        }
+    }
+    if ($mime !== '' && $mime !== 'application/pdf' && $mime !== 'application/x-pdf') {
+        return ['error' => 'File bukan dokumen PDF yang valid.', 'path' => null];
+    }
+
+    $dir = beritaUploadDir();
+    $filename = 'berita_pdf_' . date('YmdHis') . '_' . bin2hex(random_bytes(4)) . '.pdf';
+    $dest = $dir . '/' . $filename;
+    $relative = 'uploads/berita/' . $filename;
+
+    if (!move_uploaded_file((string) ($file['tmp_name'] ?? ''), $dest)) {
+        return ['error' => 'Gagal menyimpan PDF berita.', 'path' => null];
     }
 
     return ['error' => null, 'path' => $relative];
@@ -595,7 +644,7 @@ function getBeritaBySlug(string $slug): ?array
     return $rows[0] ?? null;
 }
 
-function addBerita(array $data, array $gambarPaths = []): int|false
+function addBerita(array $data, array $gambarPaths = [], ?string $pdfPath = null): int|false
 {
     ensureBeritaSchema();
     $pdo = getDb();
@@ -604,8 +653,8 @@ function addBerita(array $data, array $gambarPaths = []): int|false
     $cover = $gambarPaths[0] ?? ($data['gambar'] ?? null);
 
     $stmt = $pdo->prepare(
-        'INSERT INTO berita (judul, slug, kode_singkat, ringkasan, konten, gambar, status, published_at)
-         VALUES (:judul, :slug, :kode_singkat, :ringkasan, :konten, :gambar, :status, :published_at)'
+        'INSERT INTO berita (judul, slug, kode_singkat, ringkasan, konten, gambar, pdf, status, published_at)
+         VALUES (:judul, :slug, :kode_singkat, :ringkasan, :konten, :gambar, :pdf, :status, :published_at)'
     );
 
     $ok = $stmt->execute([
@@ -615,6 +664,7 @@ function addBerita(array $data, array $gambarPaths = []): int|false
         ':ringkasan' => $data['ringkasan'] !== '' ? $data['ringkasan'] : null,
         ':konten' => $data['konten'],
         ':gambar' => $cover !== '' ? $cover : null,
+        ':pdf' => $pdfPath !== null && $pdfPath !== '' ? $pdfPath : null,
         ':status' => $data['status'],
         ':published_at' => $publishedAt,
     ]);
@@ -631,8 +681,13 @@ function addBerita(array $data, array $gambarPaths = []): int|false
     return $id;
 }
 
-function updateBerita(int $id, array $data, array $gambarPaths = []): bool
-{
+function updateBerita(
+    int $id,
+    array $data,
+    array $gambarPaths = [],
+    ?string $pdfPath = null,
+    bool $removePdf = false
+): bool {
     ensureBeritaSchema();
     $existing = getBeritaById($id);
     if (!$existing) {
@@ -648,11 +703,23 @@ function updateBerita(int $id, array $data, array $gambarPaths = []): bool
         $publishedAt = $existing['published_at'] ?? null;
     }
 
+    $pdfFinal = $existing['pdf'] ?? null;
+    if ($removePdf) {
+        deleteBeritaGambarFile($pdfFinal);
+        $pdfFinal = null;
+    }
+    if ($pdfPath !== null && $pdfPath !== '') {
+        if (!empty($existing['pdf']) && $existing['pdf'] !== $pdfPath) {
+            deleteBeritaGambarFile($existing['pdf']);
+        }
+        $pdfFinal = $pdfPath;
+    }
+
     $pdo = getDb();
     $stmt = $pdo->prepare(
         'UPDATE berita SET
             judul = :judul, slug = :slug, ringkasan = :ringkasan, konten = :konten,
-            status = :status, published_at = :published_at
+            pdf = :pdf, status = :status, published_at = :published_at
          WHERE id = :id'
     );
 
@@ -662,6 +729,7 @@ function updateBerita(int $id, array $data, array $gambarPaths = []): bool
         ':slug' => $slug,
         ':ringkasan' => $data['ringkasan'] !== '' ? $data['ringkasan'] : null,
         ':konten' => $data['konten'],
+        ':pdf' => $pdfFinal !== null && $pdfFinal !== '' ? $pdfFinal : null,
         ':status' => $data['status'],
         ':published_at' => $publishedAt,
     ]);
@@ -703,9 +771,27 @@ function deleteBerita(int $id): bool
         if (!empty($row['gambar'])) {
             deleteBeritaGambarFile($row['gambar']);
         }
+        if (!empty($row['pdf'])) {
+            deleteBeritaGambarFile($row['pdf']);
+        }
     }
 
     return $ok && $stmt->rowCount() > 0;
+}
+
+function beritaHasPdf(array $row): bool
+{
+    return trim((string) ($row['pdf'] ?? '')) !== '';
+}
+
+function beritaPdfBasename(array $row): string
+{
+    $path = trim((string) ($row['pdf'] ?? ''));
+    if ($path === '') {
+        return 'dokumen.pdf';
+    }
+
+    return basename(str_replace('\\', '/', $path));
 }
 
 function countBeritaByStatus(): array
