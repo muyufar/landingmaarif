@@ -5,9 +5,9 @@
   if (!cfg) return;
 
   var SIZE = cfg.size;
-  var CX = cfg.photoCx;
-  var CY = cfg.photoCy;
-  var R = cfg.photoR;
+  var HOLE = cfg.hole || { x: 250, y: 0, w: 2150, h: 1912 };
+  var HOLE_CX = HOLE.x + HOLE.w / 2;
+  var HOLE_CY = HOLE.y + HOLE.h / 2;
 
   var photoInput = document.getElementById('photo-input');
   var fileNameEl = document.getElementById('file-name');
@@ -28,7 +28,6 @@
   var exportCtx = exportCanvas.getContext('2d');
 
   var templateImg = null;
-  var overlayCanvas = null;
   var userPhoto = null;
   var offsetX = 0;
   var offsetY = 0;
@@ -51,63 +50,35 @@
     });
   }
 
-  function buildOverlay(img) {
-    var c = document.createElement('canvas');
-    c.width = SIZE;
-    c.height = SIZE;
-    var ctx = c.getContext('2d');
-    ctx.drawImage(img, 0, 0, SIZE, SIZE);
-    var data = ctx.getImageData(0, 0, SIZE, SIZE);
-    var px = data.data;
-    for (var y = 0; y < SIZE; y++) {
-      for (var x = 0; x < SIZE; x++) {
-        var dx = x - CX;
-        var dy = y - CY;
-        if (dx * dx + dy * dy > R * R) continue;
-        var i = (y * SIZE + x) * 4;
-        if (px[i] + px[i + 1] + px[i + 2] < 120) {
-          px[i + 3] = 0;
-        }
-      }
-    }
-    ctx.putImageData(data, 0, 0);
-    return c;
-  }
-
   function coverRect(img, scale, ox, oy) {
-    var cover = (2 * R) / Math.min(img.width, img.height) * scale;
+    var cover = Math.max(HOLE.w / img.width, HOLE.h / img.height) * scale;
     var dw = img.width * cover;
     var dh = img.height * cover;
     return {
-      dx: CX - dw / 2 + ox,
-      dy: CY - dh / 2 + oy,
+      dx: HOLE_CX - dw / 2 + ox,
+      dy: HOLE_CY - dh / 2 + oy,
       dw: dw,
       dh: dh,
     };
   }
 
-  function render(targetCtx, targetSize) {
-    targetCtx.clearRect(0, 0, targetSize, targetSize);
+  function render(targetCtx) {
+    targetCtx.clearRect(0, 0, SIZE, SIZE);
     targetCtx.fillStyle = '#ffffff';
-    targetCtx.fillRect(0, 0, targetSize, targetSize);
+    targetCtx.fillRect(0, 0, SIZE, SIZE);
 
     if (userPhoto) {
-      targetCtx.save();
-      targetCtx.beginPath();
-      targetCtx.arc(CX, CY, R, 0, Math.PI * 2);
-      targetCtx.clip();
       var rect = coverRect(userPhoto, zoom, offsetX, offsetY);
       targetCtx.drawImage(userPhoto, rect.dx, rect.dy, rect.dw, rect.dh);
-      targetCtx.restore();
     }
 
-    if (overlayCanvas) {
-      targetCtx.drawImage(overlayCanvas, 0, 0, SIZE, SIZE);
+    if (templateImg) {
+      targetCtx.drawImage(templateImg, 0, 0, SIZE, SIZE);
     }
   }
 
   function renderPreview() {
-    render(exportCtx, SIZE);
+    render(exportCtx);
     previewCtx.clearRect(0, 0, PREVIEW, PREVIEW);
     previewCtx.drawImage(exportCanvas, 0, 0, PREVIEW, PREVIEW);
   }
@@ -190,7 +161,7 @@
 
   downloadBtn.addEventListener('click', function () {
     if (!userPhoto) return;
-    render(exportCtx, SIZE);
+    render(exportCtx);
     exportCanvas.toBlob(function (blob) {
       if (!blob) return;
       var a = document.createElement('a');
@@ -230,7 +201,6 @@
 
   loadImage(cfg.templateUrl).then(function (img) {
     templateImg = img;
-    overlayCanvas = buildOverlay(img);
   }).catch(function () {
     alert('Gagal memuat template twibbon. Muat ulang halaman.');
   });

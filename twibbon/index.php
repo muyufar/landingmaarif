@@ -66,7 +66,7 @@ $templateExists = is_file(dirname(__DIR__) . '/image/Twibbon_Final_HD_2400.png')
           <!-- Preview -->
           <div id="editor-section" class="hidden">
             <label class="block text-sm font-semibold text-gray-700 mb-2">2. Sesuaikan posisi foto</label>
-            <p class="text-xs text-gray-500 mb-3">Geser foto dengan drag/touch. Gunakan slider zoom agar wajah pas di lingkaran.</p>
+            <p class="text-xs text-gray-500 mb-3">Geser foto dengan drag/touch. Gunakan slider zoom agar wajah pas di area foto.</p>
 
             <div id="preview-wrap" class="relative bg-gray-200 rounded-xl overflow-hidden mx-auto max-w-md aspect-square">
               <canvas id="preview-canvas" width="480" height="480"></canvas>
@@ -110,7 +110,7 @@ $templateExists = is_file(dirname(__DIR__) . '/image/Twibbon_Final_HD_2400.png')
         <p class="font-semibold mb-1">Tips</p>
         <ul class="list-disc list-inside space-y-1 text-green-800 text-xs sm:text-sm">
           <li>Gunakan foto portrait dengan wajah terang dan latar sederhana.</li>
-          <li>Pastikan wajah berada di tengah lingkaran sebelum unduh.</li>
+          <li>Pastikan wajah berada di tengah area foto sebelum unduh.</li>
           <li>Bagikan twibbon dengan caption: <em>#Harlah97 #LPMaarifNU #MaarifNUMagelang</em></li>
         </ul>
       </div>
@@ -128,12 +128,10 @@ $templateExists = is_file(dirname(__DIR__) . '/image/Twibbon_Final_HD_2400.png')
     window.TWIBBON_CONFIG = {
       templateUrl: <?= json_encode($templateUrl, JSON_UNESCAPED_SLASHES) ?>,
       size: 2400,
-      photoCx: 1200,
-      photoCy: 1015,
-      photoR: 618,
+      hole: { x: 250, y: 0, w: 2150, h: 1912 },
     };
   </script>
-  <script src="<?= url('twibbon/twibbon.js') ?>"></script>
+  <script src="<?= url('twibbon/twibbon.js?v=2') ?>"></script>
   <?php endif; ?>
 
 </body>
