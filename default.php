@@ -64,16 +64,33 @@ try {
              class="inline-block text-center bg-green-600 hover:bg-green-500 text-white font-semibold px-6 py-3 rounded-full shadow-lg transition border-2 border-green-500">
             Bikin Twibbon
           </a>
-          <a href="<?= url('dokumentasi') ?>"
+          <a href="<?= url('banner-harlah') ?>"
              class="inline-block text-center bg-white hover:bg-green-50 text-green-800 font-semibold px-6 py-3 rounded-full shadow-lg transition border-2 border-white">
-            Dokumentasi Acara
+            Download Banner Harlah 97
           </a>
         </div>
       </div>
       <div>
-        <img src="https://suaranu.id/storage/2025/07/IMG-20250722-WA0064.jpg"
-             alt="Pendidikan"
-             class="rounded-3xl shadow-2xl w-full object-cover h-[400px]">
+        <div id="hero-carousel" class="relative rounded-3xl shadow-2xl overflow-hidden h-[280px] sm:h-[360px] lg:h-[400px] bg-green-900/30">
+          <div class="carousel-slide absolute inset-0 opacity-100 transition-opacity duration-700" data-slide="0">
+            <img src="https://suaranu.id/storage/2025/07/IMG-20250722-WA0064.jpg"
+                 alt="Kegiatan LP Ma'arif NU Kabupaten Magelang"
+                 class="w-full h-full object-cover">
+          </div>
+          <div class="carousel-slide absolute inset-0 opacity-0 transition-opacity duration-700" data-slide="1">
+            <img src="<?= url('image/Carousel_Harlah97_Master_1764x1182.png') ?>"
+                 alt="Selamat Harlah Ke-97 LP Ma'arif NU"
+                 class="w-full h-full object-cover">
+          </div>
+          <button type="button" id="carousel-prev" aria-label="Gambar sebelumnya"
+                  class="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/55 text-white text-xl leading-none">‹</button>
+          <button type="button" id="carousel-next" aria-label="Gambar berikutnya"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 hover:bg-black/55 text-white text-xl leading-none">›</button>
+          <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+            <button type="button" class="carousel-dot w-2.5 h-2.5 rounded-full bg-white" data-dot="0" aria-label="Slide 1"></button>
+            <button type="button" class="carousel-dot w-2.5 h-2.5 rounded-full bg-white/50" data-dot="1" aria-label="Slide 2"></button>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -217,6 +234,47 @@ try {
       © 2026 LP Ma'arif NU Kabupaten Magelang. All rights reserved.
     </div>
   </footer>
+
+  <script>
+  (function () {
+    var slides = document.querySelectorAll('#hero-carousel .carousel-slide');
+    var dots = document.querySelectorAll('#hero-carousel .carousel-dot');
+    if (!slides.length) return;
+    var current = 0;
+    var timer;
+
+    function show(index) {
+      current = (index + slides.length) % slides.length;
+      slides.forEach(function (el, i) {
+        el.style.opacity = i === current ? '1' : '0';
+        el.style.zIndex = i === current ? '1' : '0';
+      });
+      dots.forEach(function (el, i) {
+        el.classList.toggle('bg-white', i === current);
+        el.classList.toggle('bg-white/50', i !== current);
+      });
+    }
+
+    function next() { show(current + 1); }
+    function prev() { show(current - 1); }
+    function restart() {
+      clearInterval(timer);
+      timer = setInterval(next, 6000);
+    }
+
+    document.getElementById('carousel-next')?.addEventListener('click', function () { next(); restart(); });
+    document.getElementById('carousel-prev')?.addEventListener('click', function () { prev(); restart(); });
+    dots.forEach(function (dot) {
+      dot.addEventListener('click', function () {
+        show(parseInt(dot.getAttribute('data-dot'), 10));
+        restart();
+      });
+    });
+
+    show(0);
+    restart();
+  })();
+  </script>
 
 </body>
 </html>

@@ -1,0 +1,11 @@
+BANNER REVISI LOGO, KIM, DAN MEDSOS
+
+Logo Ma'arif diperbesar dan ditempatkan dekat teks nama lembaga. Logo Harlah berwarna diperbesar. Logo KIM ditambahkan di kanan atas. Tulisan lembaga di bagian bawah diganti dengan IG: @maarifnumagelang | maarifnumagelang.com, sesuai teks yang diberikan pengguna.
+
+Area tambahan untuk satu atau dua foto tetap kosong di sebelah kiri, di bawah logo Harlah. Area rekomendasi pada ukuran jadi: dari kiri 7,5 cm, dari atas 39,5 cm, lebar 55 cm, tinggi 40,5 cm. Foto dapat dimasukkan oleh operator desain sebelum cetak. Panduan_Area_Foto.jpg menunjukkan area tersebut; garis dan keterangan panduan tidak ada pada berkas cetak.
+
+Banner_Logo_KIM_Medsos_3x1m_Cetak.pdf: master cetak 1:1, ukuran jadi 300 x 100 cm (TrimBox), bleed 1 cm di setiap sisi, halaman 302 x 102 cm. Teks vektor dan font tertanam. Cetak ukuran aktual 100%. Warna RGB; penyesuaian profil mesin dilakukan percetakan jika diperlukan. Bukan PDF/X terprofil.
+
+Banner_Logo_KIM_Medsos_3x1m_150dpi.jpg: 17717 x 5906 piksel, 150 dpi pada ukuran jadi, tanpa bleed. Resolusi ekspor tidak berarti setiap aset memiliki detail native 150 dpi pada penempatan cetak.
+
+Foto kedua ketua memakai hasil enhancement dari revisi sebelumnya. Siluet gedung Magelang, tema Harlah ke-97, latar mint-krem, dan gelombang hijau dipertahankan. Tidak ada perubahan pada twibbon dalam revisi banner ini.
