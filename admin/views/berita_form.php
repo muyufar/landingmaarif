@@ -99,6 +99,28 @@ $galeri = $formData['galeri'] ?? [];
       </div>
 
       <div>
+        <label for="youtube_url" class="block text-sm font-semibold text-gray-700 mb-2">Video YouTube</label>
+        <input type="url" id="youtube_url" name="youtube_url"
+               value="<?= sanitize($formData['youtube_url'] ?? '') ?>"
+               placeholder="https://www.youtube.com/watch?v=XXXXXXXXXXX"
+               class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-green-600">
+        <p class="text-xs text-gray-500 mt-1">
+          Opsional. Tempel link YouTube (watch, youtu.be, shorts, atau embed). Kosongkan jika tidak ada video.
+        </p>
+        <?php if (!empty($formData['youtube_url']) && beritaHasYoutube($formData)): ?>
+          <div class="mt-3 rounded-xl overflow-hidden border border-gray-200 bg-black aspect-video">
+            <iframe
+              src="<?= sanitize(youtubeEmbedUrl($formData['youtube_url']) ?? '') ?>"
+              title="Pratinjau YouTube"
+              class="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+              loading="lazy"></iframe>
+          </div>
+        <?php endif; ?>
+      </div>
+
+      <div>
         <label for="status" class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
         <select id="status" name="status" class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-green-600">
           <option value="draft" <?= ($formData['status'] ?? '') === 'draft' ? 'selected' : '' ?>>Draft (belum tampil di website)</option>

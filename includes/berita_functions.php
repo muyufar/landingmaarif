@@ -56,6 +56,9 @@ function ensureBeritaSchema(): void
         if (!in_array('pdf', $columns, true)) {
             $pdo->exec('ALTER TABLE berita ADD COLUMN `pdf` varchar(255) DEFAULT NULL AFTER `gambar`');
         }
+        if (!in_array('youtube_url', $columns, true)) {
+            $pdo->exec('ALTER TABLE berita ADD COLUMN `youtube_url` varchar(500) DEFAULT NULL AFTER `pdf`');
+        }
     } catch (PDOException) {
         // Abaikan jika kolom/index sudah ada
     }
@@ -262,8 +265,60 @@ function beritaFormDefaults(?array $row = null): array
         'status' => $row['status'] ?? 'draft',
         'gambar' => $row['gambar'] ?? '',
         'pdf' => $row['pdf'] ?? '',
+        'youtube_url' => $row['youtube_url'] ?? '',
         'galeri' => $row['galeri'] ?? [],
     ];
+}
+
+function extractYoutubeVideoId(string $input): ?string
+{
+    $input = trim($input);
+    if ($input === '') {
+        return null;
+    }
+
+    // Sudah berupa ID singkat
+    if (preg_match('/^[A-Za-z0-9_-]{11}$/', $input)) {
+        return $input;
+    }
+
+    $patterns = [
+        '/(?:youtube\.com\/watch\?(?:.*&)?v=|youtube\.com\/embed\/|youtube\.com\/shorts\/|youtu\.be\/)([A-Za-z0-9_-]{11})/',
+        '/youtube\.com\/live\/([A-Za-z0-9_-]{11})/',
+    ];
+
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $input, $matches)) {
+            return $matches[1];
+        }
+    }
+
+    return null;
+}
+
+function youtubeEmbedUrl(?string $youtubeUrl): ?string
+{
+    $id = extractYoutubeVideoId((string) $youtubeUrl);
+    if ($id === null) {
+        return null;
+    }
+
+    return 'https://www.youtube.com/embed/' . $id;
+}
+
+function youtubeWatchUrl(?string $youtubeUrl): ?string
+{
+    $id = extractYoutubeVideoId((string) $youtubeUrl);
+    if ($id === null) {
+        return null;
+    }
+
+    return 'https://www.youtube.com/watch?v=' . $id;
+}
+
+function beritaHasYoutube(array $row): bool
+{
+    return extractYoutubeVideoId((string) ($row['youtube_url'] ?? '')) !== null;
 }
 
 function validateBerita(array $input): array
@@ -286,6 +341,19 @@ function validateBerita(array $input): array
         $errors[] = 'Isi berita wajib diisi.';
     } else {
         $data['konten'] = $konten;
+    }
+
+    $youtube = trim($input['youtube_url'] ?? '');
+    if ($youtube !== '') {
+        $videoId = extractYoutubeVideoId($youtube);
+        if ($videoId === null) {
+            $errors[] = 'Link YouTube tidak valid. Contoh: https://www.youtube.com/watch?v=XXXXXXXXXXX';
+            $data['youtube_url'] = $youtube;
+        } else {
+            $data['youtube_url'] = 'https://www.youtube.com/watch?v=' . $videoId;
+        }
+    } else {
+        $data['youtube_url'] = '';
     }
 
     $status = trim($input['status'] ?? 'draft');
@@ -653,8 +721,8 @@ function addBerita(array $data, array $gambarPaths = [], ?string $pdfPath = null
     $cover = $gambarPaths[0] ?? ($data['gambar'] ?? null);
 
     $stmt = $pdo->prepare(
-        'INSERT INTO berita (judul, slug, kode_singkat, ringkasan, konten, gambar, pdf, status, published_at)
-         VALUES (:judul, :slug, :kode_singkat, :ringkasan, :konten, :gambar, :pdf, :status, :published_at)'
+        'INSERT INTO berita (judul, slug, kode_singkat, ringkasan, konten, gambar, pdf, youtube_url, status, published_at)
+         VALUES (:judul, :slug, :kode_singkat, :ringkasan, :konten, :gambar, :pdf, :youtube_url, :status, :published_at)'
     );
 
     $ok = $stmt->execute([
@@ -665,6 +733,7 @@ function addBerita(array $data, array $gambarPaths = [], ?string $pdfPath = null
         ':konten' => $data['konten'],
         ':gambar' => $cover !== '' ? $cover : null,
         ':pdf' => $pdfPath !== null && $pdfPath !== '' ? $pdfPath : null,
+        ':youtube_url' => !empty($data['youtube_url']) ? $data['youtube_url'] : null,
         ':status' => $data['status'],
         ':published_at' => $publishedAt,
     ]);
@@ -719,7 +788,7 @@ function updateBerita(
     $stmt = $pdo->prepare(
         'UPDATE berita SET
             judul = :judul, slug = :slug, ringkasan = :ringkasan, konten = :konten,
-            pdf = :pdf, status = :status, published_at = :published_at
+            pdf = :pdf, youtube_url = :youtube_url, status = :status, published_at = :published_at
          WHERE id = :id'
     );
 
@@ -730,6 +799,7 @@ function updateBerita(
         ':ringkasan' => $data['ringkasan'] !== '' ? $data['ringkasan'] : null,
         ':konten' => $data['konten'],
         ':pdf' => $pdfFinal !== null && $pdfFinal !== '' ? $pdfFinal : null,
+        ':youtube_url' => !empty($data['youtube_url']) ? $data['youtube_url'] : null,
         ':status' => $data['status'],
         ':published_at' => $publishedAt,
     ]);

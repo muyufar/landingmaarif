@@ -97,6 +97,28 @@ try {
           <?php endif; ?>
           <div class="prose max-w-none text-gray-800 leading-relaxed whitespace-pre-wrap"><?= sanitize($row['konten'] ?? '') ?></div>
 
+          <?php if (beritaHasYoutube($row)): ?>
+            <?php $ytEmbed = youtubeEmbedUrl($row['youtube_url'] ?? ''); ?>
+            <div class="mt-8">
+              <h3 class="text-sm font-semibold text-green-800 mb-3">Video</h3>
+              <div class="rounded-2xl overflow-hidden border border-green-100 bg-black aspect-video shadow-sm">
+                <iframe
+                  src="<?= sanitize($ytEmbed ?? '') ?>"
+                  title="Video: <?= sanitize($row['judul'] ?? '') ?>"
+                  class="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  allowfullscreen
+                  loading="lazy"></iframe>
+              </div>
+              <p class="text-xs text-gray-500 mt-2">
+                Tidak bisa diputar?
+                <a href="<?= sanitize(youtubeWatchUrl($row['youtube_url'] ?? '') ?? '#') ?>" target="_blank" rel="noopener"
+                   class="text-green-700 font-medium hover:underline">Buka di YouTube</a>.
+              </p>
+            </div>
+          <?php endif; ?>
+
           <?php if (beritaHasPdf($row)): ?>
             <div class="mt-8 rounded-2xl border border-green-100 bg-gray-50 overflow-hidden">
               <div class="px-4 sm:px-6 py-4 border-b border-green-100 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -291,6 +313,9 @@ try {
                 <div class="flex flex-wrap gap-2 mt-2">
                   <?php if (count($item['galeri'] ?? []) > 1): ?>
                     <span class="text-xs text-gray-400"><?= count($item['galeri']) ?> foto</span>
+                  <?php endif; ?>
+                  <?php if (beritaHasYoutube($item)): ?>
+                    <span class="text-xs text-red-700 bg-red-50 px-2 py-0.5 rounded">YouTube</span>
                   <?php endif; ?>
                   <?php if (beritaHasPdf($item)): ?>
                     <span class="text-xs text-red-700 bg-red-50 px-2 py-0.5 rounded">PDF</span>

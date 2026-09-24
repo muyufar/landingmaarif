@@ -63,6 +63,9 @@ declare(strict_types=1);
                     <?php if (!empty($row['kode_singkat'])): ?>
                       <p class="text-[11px] text-emerald-700 mt-1">/b/<?= sanitize($row['kode_singkat']) ?></p>
                     <?php endif; ?>
+                    <?php if (beritaHasYoutube($row)): ?>
+                      <p class="text-[11px] text-red-600 mt-0.5">▶ Ada video YouTube</p>
+                    <?php endif; ?>
                   </div>
                 </div>
               </td>
