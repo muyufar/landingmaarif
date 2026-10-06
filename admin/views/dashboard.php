@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /** @var array $stats @var array $modules @var array $latestBerita */
 ?>
-<div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+<div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
   <div class="bg-white rounded-2xl shadow border border-green-100 p-5">
     <p class="text-xs text-gray-500">Berita Terbit</p>
     <p class="text-3xl font-bold text-green-800 mt-1"><?= (int) ($stats['berita']['published'] ?? 0) ?></p>
@@ -25,6 +25,10 @@ declare(strict_types=1);
   <div class="bg-white rounded-2xl shadow border border-green-100 p-5">
     <p class="text-xs text-gray-500">Satuan Distribusi</p>
     <p class="text-3xl font-bold text-green-800 mt-1"><?= (int) ($stats['distribusi'] ?? 0) ?></p>
+  </div>
+  <div class="bg-white rounded-2xl shadow border border-green-100 p-5">
+    <p class="text-xs text-gray-500">Pendaftar Jalan Sehat</p>
+    <p class="text-3xl font-bold text-green-800 mt-1"><?= (int) ($stats['jalansehat'] ?? 0) ?></p>
   </div>
 </div>
 

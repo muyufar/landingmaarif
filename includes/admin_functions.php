@@ -55,6 +55,14 @@ function getAdminModules(): array
             'icon' => '📦',
             'internal' => false,
         ],
+        [
+            'key' => 'jalansehat',
+            'label' => 'Jalan Sehat HSN 2026',
+            'desc' => 'Pendaftar, kupon door prize, kaos & paket',
+            'url' => url('adminjalansehat/?page=dashboard'),
+            'icon' => '🚶',
+            'internal' => false,
+        ],
     ];
 }
 
@@ -66,6 +74,7 @@ function getAdminHubStats(): array
         'pemesanan' => 0,
         'pengkinian' => 0,
         'distribusi' => 0,
+        'jalansehat' => 0,
     ];
 
     try {
@@ -88,6 +97,9 @@ function getAdminHubStats(): array
         }
         if ($pdo->query("SHOW TABLES LIKE 'distribusi_lkpd_satuan'")->fetch()) {
             $stats['distribusi'] = (int) $pdo->query('SELECT COUNT(*) FROM distribusi_lkpd_satuan')->fetchColumn();
+        }
+        if ($pdo->query("SHOW TABLES LIKE 'jalan_sehat_pendaftaran'")->fetch()) {
+            $stats['jalansehat'] = (int) $pdo->query('SELECT COUNT(*) FROM jalan_sehat_pendaftaran')->fetchColumn();
         }
     } catch (Throwable) {
     }

@@ -34,6 +34,17 @@ require_once dirname(__DIR__) . '/includes/functions.php';
     </div>
 
     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <a href="<?= url('jalansehat') ?>"
+         class="group relative bg-white rounded-2xl shadow-lg border border-green-100 p-8 hover:shadow-xl hover:border-green-300 transition">
+        <span class="absolute top-4 right-4 bg-amber-400 text-amber-950 text-xs font-bold px-2.5 py-1 rounded-full">BARU</span>
+        <div class="text-4xl mb-4">🚶</div>
+        <h3 class="text-xl font-bold text-green-800 group-hover:text-green-700 mb-2">Pendaftaran Jalan Sehat HSN 2026</h3>
+        <p class="text-gray-600 text-sm leading-relaxed">
+          Jalan Sehat dalam rangka memperingati Hari Santri Nasional Tahun 2026 PCNU Kabupaten Magelang. Pemesanan kupon door prize &amp; kaos.
+        </p>
+        <span class="inline-block mt-5 text-green-700 font-semibold text-sm">Daftar Sekarang →</span>
+      </a>
+
       <a href="<?= url('rakerdinma') ?>"
          class="group bg-white rounded-2xl shadow-lg border border-green-100 p-8 hover:shadow-xl hover:border-green-300 transition">
         <div class="text-4xl mb-4">📋</div>
@@ -75,7 +86,7 @@ require_once dirname(__DIR__) . '/includes/functions.php';
       </a>
 
       <a href="<?= url('twibbon') ?>"
-         class="group bg-white rounded-2xl shadow-lg border border-green-100 p-8 hover:shadow-xl hover:border-green-300 transition md:col-span-2 lg:col-span-1">
+         class="group bg-white rounded-2xl shadow-lg border border-green-100 p-8 hover:shadow-xl hover:border-green-300 transition">
         <div class="text-4xl mb-4">🖼️</div>
         <h3 class="text-xl font-bold text-green-800 group-hover:text-green-700 mb-2">Bikin Twibbon Harlah Ke-97</h3>
         <p class="text-gray-600 text-sm leading-relaxed">

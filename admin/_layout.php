@@ -39,6 +39,7 @@ function adminNavClass(string $page, string $current): string
             <a href="<?= url('adminpemesananbuku/?page=dashboard') ?>" class="px-3 py-2 transition text-green-100 hover:bg-green-700/60">Pemesanan</a>
             <a href="<?= url('adminpengkinian/?page=dashboard') ?>" class="px-3 py-2 transition text-green-100 hover:bg-green-700/60">Pengkinian</a>
             <a href="<?= url('admindistribusi/?page=dashboard') ?>" class="px-3 py-2 transition text-green-100 hover:bg-green-700/60">Distribusi</a>
+            <a href="<?= url('adminjalansehat/?page=dashboard') ?>" class="px-3 py-2 transition text-green-100 hover:bg-green-700/60">Jalan Sehat</a>
           </nav>
           <a href="<?= url('admin/?logout=1') ?>" class="text-sm bg-green-900 hover:bg-green-950 px-4 py-2 rounded-lg transition">Logout</a>
           <?php endif; ?>

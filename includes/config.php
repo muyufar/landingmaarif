@@ -37,6 +37,9 @@ define('PENGKINIAN_DATA_SUBTITLE', 'LP MA\'ARIF NU KABUPATEN MAGELANG');
 
 define('DISTRIBUSI_LKPD_TITLE', 'TRACKING DISTRIBUSI BUKU LKPD MI MA\'ARIF NU MAGELANG');
 
+define('JALAN_SEHAT_TITLE', 'PENDAFTARAN JALAN SEHAT HARI SANTRI NASIONAL 2026');
+define('JALAN_SEHAT_SUBTITLE', 'Dalam rangka memperingati Hari Santri Nasional Tahun 2026 — PCNU Kabupaten Magelang');
+
 /** WA API (opsional). Kosongkan/false = gunakan link wa.me */
 if (!defined('WA_API_ENABLED')) {
     define('WA_API_ENABLED', false);
