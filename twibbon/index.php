@@ -13,6 +13,7 @@ $templateExists = is_file($templateFile);
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <?= siteHeadIcons() ?>
   <title>Bikin Twibbon Harlah LP Ma'arif NU Ke-97 | LP Ma'arif NU Magelang</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>

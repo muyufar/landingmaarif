@@ -9,6 +9,7 @@ require_once dirname(__DIR__) . '/includes/functions.php';
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <?= siteHeadIcons() ?>
   <title>Dashboard Layanan | LP Ma'arif NU Kabupaten Magelang</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>

@@ -106,6 +106,17 @@ function url(string $path = ''): string
     return ($base === '' ? '' : $base) . '/' . $path;
 }
 
+function siteHeadIcons(): string
+{
+    return '<link rel="icon" href="' . htmlspecialchars(url('favicon.ico'), ENT_QUOTES, 'UTF-8') . '" sizes="any">' . "\n  "
+        . '<link rel="icon" type="image/png" sizes="32x32" href="'
+        . htmlspecialchars(url('image/favicon-32.png'), ENT_QUOTES, 'UTF-8') . '">' . "\n  "
+        . '<link rel="icon" type="image/png" sizes="16x16" href="'
+        . htmlspecialchars(url('image/favicon-16.png'), ENT_QUOTES, 'UTF-8') . '">' . "\n  "
+        . '<link rel="apple-touch-icon" sizes="180x180" href="'
+        . htmlspecialchars(url('image/apple-touch-icon.png'), ENT_QUOTES, 'UTF-8') . '">';
+}
+
 function absoluteUrl(string $path = ''): string
 {
     $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')

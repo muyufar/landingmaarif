@@ -64,6 +64,7 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <?= siteHeadIcons() ?>
   <title><?= sanitize(JALAN_SEHAT_TITLE) ?> | LP Ma'arif NU Magelang</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>

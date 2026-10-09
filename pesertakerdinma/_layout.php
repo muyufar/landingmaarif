@@ -16,6 +16,7 @@ function adminNavClass(string $page, string $current): string
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <?= siteHeadIcons() ?>
   <title><?= sanitize($pageTitle ?? 'Admin RAKERDINMA') ?> | LP Ma'arif NU Magelang</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <?php if (!empty($extraHead)): ?><?= $extraHead ?><?php endif; ?>
