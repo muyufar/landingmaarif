@@ -5,7 +5,7 @@ declare(strict_types=1);
 /** @var array $formData @var array $errors @var bool $isEdit @var int $editId */
 $galeri = $formData['galeri'] ?? [];
 ?>
-<div class="max-w-3xl">
+<div class="max-w-4xl">
   <div class="mb-4">
     <a href="<?= url('admin/?page=berita') ?>" class="text-green-700 hover:underline text-sm">← Kembali ke daftar berita</a>
   </div>
@@ -46,9 +46,9 @@ $galeri = $formData['galeri'] ?? [];
 
       <div>
         <label for="konten" class="block text-sm font-semibold text-gray-700 mb-2">Isi Berita <span class="text-red-500">*</span></label>
-        <textarea id="konten" name="konten" required rows="12"
-                  class="w-full rounded-lg border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-green-600"
-                  placeholder="Tulis isi berita di sini..."><?= sanitize($formData['konten'] ?? '') ?></textarea>
+        <p class="text-xs text-gray-500 mb-2">Gunakan toolbar untuk tebal, miring, garis bawah, warna, font, daftar, dan lainnya.</p>
+        <textarea id="konten" name="konten" required rows="14"
+                  class="w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-600"><?= beritaEditorEscape($formData['konten'] ?? '') ?></textarea>
       </div>
 
       <div>
@@ -137,3 +137,50 @@ $galeri = $formData['galeri'] ?? [];
     </form>
   </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/tinymce@7.6.0/tinymce.min.js"></script>
+<script>
+(function () {
+  var form = document.querySelector('form[enctype="multipart/form-data"]');
+  if (!form || typeof tinymce === 'undefined') return;
+
+  tinymce.init({
+    selector: '#konten',
+    license_key: 'gpl',
+    height: 420,
+    menubar: false,
+    branding: false,
+    promotion: false,
+    plugins: 'lists link table autoresize code',
+    toolbar: [
+      'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough',
+      'forecolor backcolor | alignleft aligncenter alignright alignjustify',
+      'bullist numlist outdent indent | link table | removeformat code'
+    ].join(' | '),
+    block_formats: 'Paragraf=p; Judul 2=h2; Judul 3=h3; Judul 4=h4',
+    font_family_formats:
+      'Default=system-ui,sans-serif;' +
+      'Arial=arial,helvetica,sans-serif;' +
+      'Times New Roman=times new roman,times,serif;' +
+      'Georgia=georgia,palatino,serif;' +
+      'Tahoma=tahoma,geneva,sans-serif;' +
+      'Verdana=verdana,geneva,sans-serif;' +
+      'Courier New=courier new,courier,monospace',
+    font_size_formats: '12px 14px 16px 18px 20px 24px 28px 32px',
+    content_style: 'body { font-family: system-ui, -apple-system, sans-serif; font-size: 16px; line-height: 1.6; color: #1f2937; }',
+    link_default_target: '_blank',
+    link_rel_list: [{ title: 'Aman', value: 'noopener noreferrer' }],
+    setup: function (editor) {
+      editor.on('change input undo redo', function () {
+        editor.save();
+      });
+    }
+  });
+
+  form.addEventListener('submit', function () {
+    if (tinymce.get('konten')) {
+      tinymce.triggerSave();
+    }
+  });
+})();
+</script>

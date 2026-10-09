@@ -62,6 +62,27 @@ try {
     <meta name="twitter:card" content="summary_large_image">
   <?php endif; ?>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .berita-konten { line-height: 1.75; }
+    .berita-konten p { margin: 0.75em 0; }
+    .berita-konten h1, .berita-konten h2, .berita-konten h3, .berita-konten h4 {
+      color: #14532d; font-weight: 700; margin: 1.25em 0 0.5em; line-height: 1.3;
+    }
+    .berita-konten h2 { font-size: 1.5rem; }
+    .berita-konten h3 { font-size: 1.25rem; }
+    .berita-konten ul, .berita-konten ol { margin: 0.75em 0; padding-left: 1.5em; }
+    .berita-konten ul { list-style: disc; }
+    .berita-konten ol { list-style: decimal; }
+    .berita-konten blockquote {
+      border-left: 4px solid #16a34a; padding-left: 1rem; margin: 1em 0; color: #4b5563; font-style: italic;
+    }
+    .berita-konten a { color: #15803d; text-decoration: underline; }
+    .berita-konten a:hover { color: #166534; }
+    .berita-konten table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.95em; }
+    .berita-konten th, .berita-konten td { border: 1px solid #d1d5db; padding: 0.5rem 0.75rem; }
+    .berita-konten th { background: #f0fdf4; font-weight: 600; }
+    .berita-konten hr { border: 0; border-top: 1px solid #e5e7eb; margin: 1.5em 0; }
+  </style>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen">
 
@@ -95,7 +116,7 @@ try {
           <?php if (!empty($row['ringkasan'])): ?>
             <p class="text-lg text-gray-600 mb-6"><?= sanitize($row['ringkasan']) ?></p>
           <?php endif; ?>
-          <div class="prose max-w-none text-gray-800 leading-relaxed whitespace-pre-wrap"><?= sanitize($row['konten'] ?? '') ?></div>
+          <div class="berita-konten max-w-none text-gray-800"><?= renderBeritaKonten($row['konten'] ?? '') ?></div>
 
           <?php if (beritaHasYoutube($row)): ?>
             <?php $ytEmbed = youtubeEmbedUrl($row['youtube_url'] ?? ''); ?>

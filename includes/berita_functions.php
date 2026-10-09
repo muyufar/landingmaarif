@@ -337,10 +337,11 @@ function validateBerita(array $input): array
     $data['ringkasan'] = $ringkasan;
 
     $konten = trim($input['konten'] ?? '');
-    if ($konten === '') {
+    $kontenPlain = trim(strip_tags($konten));
+    if ($konten === '' || $kontenPlain === '') {
         $errors[] = 'Isi berita wajib diisi.';
     } else {
-        $data['konten'] = $konten;
+        $data['konten'] = sanitizeBeritaHtml($konten);
     }
 
     $youtube = trim($input['youtube_url'] ?? '');
@@ -882,6 +883,83 @@ function countBeritaByStatus(): array
         'published' => (int) ($row['published'] ?? 0),
         'draft' => (int) ($row['draft'] ?? 0),
     ];
+}
+
+function beritaEditorEscape(?string $html): string
+{
+    return htmlspecialchars($html ?? '', ENT_QUOTES, 'UTF-8');
+}
+
+function sanitizeBeritaHtml(string $html): string
+{
+    $html = trim(str_replace("\0", '', $html));
+    if ($html === '') {
+        return '';
+    }
+
+    $allowed = '<p><br><strong><b><em><i><u><s><del><sub><sup>'
+        . '<h1><h2><h3><h4><h5><h6><ul><ol><li><blockquote>'
+        . '<a><span><div><hr><table><thead><tbody><tr><th><td>';
+    $html = strip_tags($html, $allowed);
+
+    $html = preg_replace('/\s(on\w+|javascript:|data:)\s*=/i', ' ', $html) ?? $html;
+
+    $html = preg_replace_callback(
+        '/<a\s+[^>]*href\s*=\s*(["\'])(.*?)\1[^>]*>/i',
+        static function (array $m): string {
+            $url = trim($m[2]);
+            if (!preg_match('#^(https?:|mailto:)#i', $url)) {
+                return '<a>';
+            }
+
+            return '<a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener noreferrer">';
+        },
+        $html
+    ) ?? $html;
+
+    $html = preg_replace_callback(
+        '/\sstyle=(["\'])(.*?)\1/i',
+        static function (array $m): string {
+            $allowedProps = [];
+            foreach (explode(';', $m[2]) as $decl) {
+                $decl = trim($decl);
+                if ($decl === '' || !str_contains($decl, ':')) {
+                    continue;
+                }
+                [$prop, $val] = array_map('trim', explode(':', $decl, 2));
+                $prop = strtolower($prop);
+                $val = preg_replace('/\s+/', ' ', $val) ?? $val;
+                if (
+                    in_array($prop, ['font-family', 'font-size', 'text-align', 'color', 'background-color'], true)
+                    && !preg_match('/expression|javascript|url\s*\(\s*["\']?\s*data:/i', $val)
+                ) {
+                    $allowedProps[] = $prop . ': ' . $val;
+                }
+            }
+            if ($allowedProps === []) {
+                return '';
+            }
+
+            return ' style="' . htmlspecialchars(implode('; ', $allowedProps), ENT_QUOTES, 'UTF-8') . '"';
+        },
+        $html
+    ) ?? $html;
+
+    return $html;
+}
+
+function renderBeritaKonten(?string $html): string
+{
+    $html = trim((string) $html);
+    if ($html === '') {
+        return '';
+    }
+
+    if (!preg_match('/<[^>]+>/', $html)) {
+        return nl2br(htmlspecialchars($html, ENT_QUOTES, 'UTF-8'));
+    }
+
+    return sanitizeBeritaHtml($html);
 }
 
 function formatTanggalBerita(?string $datetime): string
