@@ -285,6 +285,30 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
                       Biarkan <strong>0</strong> jika tidak dipesan.
                       <?php if ($hargaKaos > 0): ?>Harga <?= sanitize(formatRupiahJalanSehat($hargaKaos)) ?> / pcs.<?php endif; ?>
                     </p>
+                    <div class="grid sm:grid-cols-2 gap-4 mb-5">
+                      <figure class="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm">
+                        <div class="bg-white px-3 py-4 flex items-center justify-center min-h-[180px]">
+                          <img src="<?= url('image/jalansehat-kaos-pendek.jpg') ?>"
+                               alt="Mockup kaos polo lengan pendek Jalan Sehat"
+                               class="w-full max-w-sm h-auto object-contain"
+                               loading="lazy" decoding="async">
+                        </div>
+                        <figcaption class="bg-green-50 border-t border-green-100 px-4 py-2.5 text-center text-sm font-semibold text-green-800">
+                          Model Lengan Pendek
+                        </figcaption>
+                      </figure>
+                      <figure class="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm">
+                        <div class="bg-white px-3 py-4 flex items-center justify-center min-h-[180px]">
+                          <img src="<?= url('image/jalansehat-kaos-panjang.png') ?>"
+                               alt="Mockup kaos polo lengan panjang Jalan Sehat"
+                               class="w-full max-w-sm h-auto object-contain"
+                               loading="lazy" decoding="async">
+                        </div>
+                        <figcaption class="bg-green-50 border-t border-green-100 px-4 py-2.5 text-center text-sm font-semibold text-green-800">
+                          Model Lengan Panjang
+                        </figcaption>
+                      </figure>
+                    </div>
                     <div class="mb-4 bg-white rounded-lg p-4">
                       <p class="text-sm font-semibold text-red-800 mb-3">Panduan ukuran kaos (cm)</p>
                       <div class="overflow-x-auto max-w-md">
