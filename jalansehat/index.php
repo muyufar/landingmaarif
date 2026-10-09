@@ -285,50 +285,36 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
                       Biarkan <strong>0</strong> jika tidak dipesan.
                       <?php if ($hargaKaos > 0): ?>Harga <?= sanitize(formatRupiahJalanSehat($hargaKaos)) ?> / pcs.<?php endif; ?>
                     </p>
-                    <div class="grid sm:grid-cols-2 gap-3 mb-4">
-                      <figure class="rounded-xl border border-gray-200 bg-white overflow-hidden">
-                        <img src="<?= url('image/jalansehat-kaos-pendek.jpg') ?>" alt="Desain kaos lengan pendek" class="w-full h-auto object-cover">
-                        <figcaption class="text-xs text-center py-2 font-semibold text-green-800 bg-green-50">Model Lengan Pendek</figcaption>
-                      </figure>
-                      <figure class="rounded-xl border border-gray-200 bg-white overflow-hidden">
-                        <img src="<?= url('image/jalansehat-kaos-panjang.jpg') ?>" alt="Desain kaos lengan panjang" class="w-full h-auto object-cover">
-                        <figcaption class="text-xs text-center py-2 font-semibold text-green-800 bg-green-50">Model Lengan Panjang</figcaption>
-                      </figure>
-                    </div>
-                    <details class="rounded-xl border border-amber-200 bg-amber-50/80 mb-4 group">
-                      <summary class="cursor-pointer px-4 py-3 text-sm font-semibold text-amber-900 list-none flex items-center justify-between">
-                        Panduan ukuran kaos (cm)
-                        <span class="text-xs font-normal text-amber-800 group-open:hidden">Klik untuk lihat</span>
-                      </summary>
-                      <div class="px-4 pb-4 overflow-x-auto">
-                        <table class="w-full min-w-[280px] text-sm border border-amber-200 bg-white rounded-lg overflow-hidden">
+                    <div class="mb-4 bg-white rounded-lg p-4">
+                      <p class="text-sm font-semibold text-red-800 mb-3">Panduan ukuran kaos (cm)</p>
+                      <div class="overflow-x-auto max-w-md">
+                        <table class="w-full min-w-[280px] text-sm bg-white border-collapse">
                           <thead>
                             <tr class="bg-red-600 text-white">
-                              <th class="px-3 py-2 text-center font-bold">SIZE</th>
-                              <th class="px-3 py-2 text-center font-bold">LEBAR</th>
-                              <th class="px-3 py-2 text-center font-bold">TINGGI</th>
+                              <th class="px-4 py-2.5 text-center font-bold uppercase tracking-wide">Size</th>
+                              <th class="px-4 py-2.5 text-center font-bold uppercase tracking-wide">Lebar</th>
+                              <th class="px-4 py-2.5 text-center font-bold uppercase tracking-wide">Tinggi</th>
                             </tr>
                           </thead>
-                          <tbody>
+                          <tbody class="text-gray-900">
                             <?php foreach (jalanSehatPanduanUkuranKaos() as $size => $uk): ?>
-                              <tr class="border-t border-amber-100">
-                                <td class="px-3 py-2 text-center font-bold"><?= sanitize($size) ?></td>
-                                <td class="px-3 py-2 text-center"><?= (int) $uk['lebar'] ?> CM</td>
-                                <td class="px-3 py-2 text-center"><?= (int) $uk['tinggi'] ?> CM</td>
+                              <tr class="bg-white">
+                                <td class="px-4 py-2.5 text-center font-bold"><?= sanitize($size) ?></td>
+                                <td class="px-4 py-2.5 text-center"><?= (int) $uk['lebar'] ?> CM</td>
+                                <td class="px-4 py-2.5 text-center"><?= (int) $uk['tinggi'] ?> CM</td>
                               </tr>
                             <?php endforeach; ?>
                           </tbody>
                         </table>
-                        <img src="<?= url('image/jalansehat-ukuran-kaos.jpg') ?>" alt="Tabel ukuran kaos" class="mt-3 rounded-lg border border-amber-200 max-w-md w-full">
                       </div>
-                    </details>
+                    </div>
                   </div>
                   <?php foreach (jalanSehatUkuranKaosByJenis() as $jenisKey => $jenisInfo): ?>
-                    <div class="rounded-xl border border-green-200 bg-white p-4">
-                      <p class="text-sm font-bold text-green-800 mb-2"><?= sanitize($jenisInfo['label']) ?></p>
+                    <div class="rounded-lg bg-white p-4 shadow-sm">
+                      <p class="text-sm font-bold text-green-800 mb-3"><?= sanitize($jenisInfo['label']) ?></p>
                       <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
                         <?php foreach ($jenisInfo['columns'] as $label => $column): ?>
-                          <label class="block rounded-lg border border-gray-300 bg-gray-50 p-2 text-center focus-within:ring-2 focus-within:ring-green-600">
+                          <label class="block rounded-lg bg-white p-2 text-center shadow-sm focus-within:ring-2 focus-within:ring-green-600">
                             <span class="block text-sm font-bold text-green-800"><?= sanitize($label) ?></span>
                             <input type="number" name="<?= sanitize($column) ?>"
                                    data-label="<?= sanitize($label) ?>"
@@ -336,7 +322,7 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
                                    min="0" step="1" inputmode="numeric"
                                    value="<?= (int) ($formData[$column] ?? 0) ?>"
                                    aria-label="Kaos <?= sanitize($jenisInfo['label']) ?> ukuran <?= sanitize($label) ?>"
-                                   class="kaos-ukuran mt-1 w-full rounded-md border border-gray-200 px-1 py-1.5 text-center text-lg font-semibold focus:outline-none bg-white">
+                                   class="kaos-ukuran mt-1 w-full rounded-md border-0 bg-white px-1 py-1.5 text-center text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-green-500/40">
                           </label>
                         <?php endforeach; ?>
                       </div>
