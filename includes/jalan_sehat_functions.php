@@ -102,27 +102,75 @@ function ensureJalanSehatSchema(): void
 }
 
 /**
- * @return array<string, string> label ukuran => nama kolom
+ * @return array<string, array{label: string, columns: array<string, string>}>
+ */
+function jalanSehatUkuranKaosByJenis(): array
+{
+    return [
+        'pendek' => [
+            'label' => 'Kaos Lengan Pendek',
+            'columns' => [
+                'S' => 'kaos_s',
+                'M' => 'kaos_m',
+                'L' => 'kaos_l',
+                'XL' => 'kaos_xl',
+                'XXL' => 'kaos_xxl',
+                'XXXL' => 'kaos_xxxl',
+            ],
+        ],
+        'panjang' => [
+            'label' => 'Kaos Lengan Panjang',
+            'columns' => [
+                'S' => 'kaos_panjang_s',
+                'M' => 'kaos_panjang_m',
+                'L' => 'kaos_panjang_l',
+                'XL' => 'kaos_panjang_xl',
+                'XXL' => 'kaos_panjang_xxl',
+                'XXXL' => 'kaos_panjang_xxxl',
+            ],
+        ],
+    ];
+}
+
+/** @return array<string, array{lebar: int, tinggi: int}> */
+function jalanSehatPanduanUkuranKaos(): array
+{
+    return [
+        'S' => ['lebar' => 43, 'tinggi' => 68],
+        'M' => ['lebar' => 47, 'tinggi' => 70],
+        'L' => ['lebar' => 51, 'tinggi' => 72],
+        'XL' => ['lebar' => 55, 'tinggi' => 74],
+        'XXL' => ['lebar' => 59, 'tinggi' => 76],
+        'XXXL' => ['lebar' => 63, 'tinggi' => 78],
+    ];
+}
+
+/**
+ * @return array<string, string> label tampilan => nama kolom
  */
 function jalanSehatUkuranKaos(): array
 {
-    return [
-        'S' => 'kaos_s',
-        'M' => 'kaos_m',
-        'L' => 'kaos_l',
-        'XL' => 'kaos_xl',
-        'XXL' => 'kaos_xxl',
-        'XXXL' => 'kaos_xxxl',
-    ];
+    $flat = [];
+    foreach (jalanSehatUkuranKaosByJenis() as $jenis => $info) {
+        $singkat = $jenis === 'pendek' ? 'Pendek' : 'Panjang';
+        foreach ($info['columns'] as $label => $column) {
+            $flat[$label . ' (' . $singkat . ')'] = $column;
+        }
+    }
+
+    return $flat;
 }
 
 function formatRincianUkuranKaos(array $row): string
 {
     $parts = [];
-    foreach (jalanSehatUkuranKaos() as $label => $column) {
-        $qty = (int) ($row[$column] ?? 0);
-        if ($qty > 0) {
-            $parts[] = $label . ': ' . $qty;
+    foreach (jalanSehatUkuranKaosByJenis() as $jenis => $info) {
+        $singkat = $jenis === 'pendek' ? 'Pendek' : 'Panjang';
+        foreach ($info['columns'] as $label => $column) {
+            $qty = (int) ($row[$column] ?? 0);
+            if ($qty > 0) {
+                $parts[] = $singkat . ' ' . $label . ': ' . $qty;
+            }
         }
     }
 

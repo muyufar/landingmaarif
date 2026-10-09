@@ -54,12 +54,21 @@ $waLink = $nomorWa !== '' ? 'https://wa.me/62' . ltrim(normalizeNomorWa($nomorWa
       <dd class="sm:col-span-2">
         <p class="font-bold text-green-800"><?= $kaos ?> pcs</p>
         <?php if ($kaos > 0): ?>
-          <div class="mt-2 flex flex-wrap gap-2">
-            <?php foreach (jalanSehatUkuranKaos() as $label => $column): ?>
-              <?php $qty = (int) ($row[$column] ?? 0); ?>
-              <span class="rounded-lg border px-3 py-1 text-xs <?= $qty > 0 ? 'border-green-300 bg-green-50 text-green-900 font-semibold' : 'border-gray-200 text-gray-400' ?>">
-                <?= sanitize($label) ?>: <?= $qty ?>
-              </span>
+          <div class="mt-2 space-y-3">
+            <?php foreach (jalanSehatUkuranKaosByJenis() as $jenisInfo): ?>
+              <div>
+                <p class="text-xs font-semibold text-gray-600 mb-1"><?= sanitize($jenisInfo['label']) ?></p>
+                <div class="flex flex-wrap gap-2">
+                  <?php foreach ($jenisInfo['columns'] as $label => $column): ?>
+                    <?php $qty = (int) ($row[$column] ?? 0); ?>
+                    <?php if ($qty > 0): ?>
+                      <span class="rounded-lg border border-green-300 bg-green-50 px-3 py-1 text-xs text-green-900 font-semibold">
+                        <?= sanitize($label) ?>: <?= $qty ?>
+                      </span>
+                    <?php endif; ?>
+                  <?php endforeach; ?>
+                </div>
+              </div>
             <?php endforeach; ?>
           </div>
         <?php endif; ?>
