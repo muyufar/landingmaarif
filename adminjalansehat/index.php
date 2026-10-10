@@ -32,12 +32,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_password']) && 
 
 syncMaarifAdminSession();
 
-if (!in_array($currentPage, ['dashboard', 'list', 'detail', 'pengaturan'], true)) {
+if (!in_array($currentPage, ['dashboard', 'list', 'detail', 'edit', 'pengaturan'], true)) {
     $currentPage = 'dashboard';
 }
 
 $paketFormErrors = [];
 $paketFormData = null;
+$pendaftaranFormErrors = [];
+$pendaftaranFormData = null;
 
 if (isJalanSehatAdminLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = (string) $_POST['action'];
@@ -71,6 +73,19 @@ if (isJalanSehatAdminLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST' && isse
             toggleJalanSehatPaket((int) ($_POST['paket_id'] ?? 0));
             header('Location: ' . url('adminjalansehat/?page=pengaturan&msg=paket'));
             exit;
+        } elseif ($action === 'save_pendaftaran') {
+            $pendaftaranId = (int) ($_POST['id'] ?? 0);
+            $settingsPost = getJalanSehatPengaturan();
+            $paketAktifPost = loadJalanSehatPaket(true);
+            $result = validateJalanSehat($_POST, $settingsPost, $paketAktifPost, $pendaftaranId);
+            if (empty($result['errors'])) {
+                updateJalanSehatPendaftaran($pendaftaranId, $result['data']);
+                header('Location: ' . url('adminjalansehat/?page=detail&id=' . $pendaftaranId . '&msg=updated'));
+                exit;
+            }
+            $pendaftaranFormErrors = $result['errors'];
+            $pendaftaranFormData = $result['data'];
+            $currentPage = 'edit';
         }
     } catch (PDOException $e) {
         $flashError = 'Gagal memproses data. Periksa koneksi database.';
@@ -82,6 +97,7 @@ $flashMessages = [
     'settings' => 'Pengaturan berhasil disimpan.',
     'paket' => 'Paket berhasil disimpan.',
     'paket_deleted' => 'Paket berhasil dihapus.',
+    'updated' => 'Data pendaftaran berhasil diperbarui.',
 ];
 if (isset($_GET['msg'], $flashMessages[$_GET['msg']])) {
     $flashMessage = $flashMessages[$_GET['msg']];
@@ -157,6 +173,43 @@ try {
         ob_start();
         require __DIR__ . '/views/detail.php';
         $content = ob_get_clean();
+    } elseif ($currentPage === 'edit') {
+        $editId = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
+        $row = getJalanSehatPendaftaranById($editId);
+        if ($row === null) {
+            header('Location: ' . url('adminjalansehat/?page=list'));
+            exit;
+        }
+        $formData = $pendaftaranFormData !== null
+            ? array_merge(jalanSehatFormDataFromRow($row), $pendaftaranFormData)
+            : jalanSehatFormDataFromRow($row);
+        $formErrors = $pendaftaranFormErrors;
+        $paketAktif = loadJalanSehatPaket(true);
+        $pageTitle = 'Edit Pendaftaran Jalan Sehat';
+        ob_start();
+        require __DIR__ . '/views/edit.php';
+        $content = ob_get_clean();
+        ob_start();
+        require dirname(__DIR__) . '/pesertakerdinma/_wilayah_registrasi_script.php';
+        ?>
+<script>
+(function () {
+  const inputs = document.querySelectorAll('.js-kaos-input');
+  const totalEl = document.getElementById('total-kaos');
+  function update() {
+    let t = 0;
+    inputs.forEach(function (el) {
+      const n = parseInt(el.value, 10);
+      if (Number.isFinite(n) && n > 0) t += n;
+    });
+    if (totalEl) totalEl.textContent = String(t);
+  }
+  inputs.forEach(function (el) { el.addEventListener('input', update); });
+  update();
+})();
+</script>
+        <?php
+        $extraScripts = ob_get_clean();
     } elseif ($currentPage === 'pengaturan') {
         $paketList = loadJalanSehatPaket();
         if ($paketFormData === null && isset($_GET['edit_paket'])) {

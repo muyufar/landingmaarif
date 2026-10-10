@@ -26,18 +26,47 @@ $hargaKupon = (int) $settings['harga_kupon'];
 $hargaKaos = (int) $settings['harga_kaos'];
 
 $lastSubmission = null;
+$editUpdated = isset($_GET['updated']);
 if (isset($_GET['success']) && isset($_SESSION['jalan_sehat_last'])) {
     $lastSubmission = $_SESSION['jalan_sehat_last'];
 }
 
-if (!$dbError && $pendaftaranDibuka && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    $result = validateJalanSehat($_POST, $settings, $paketAktif);
+$editRow = null;
+$editId = (int) ($_SESSION['jalan_sehat_editing_id'] ?? 0);
+$editMode = isset($_GET['edit']) && $editId > 0 && jalanSehatCanEditRegistration($editId);
+if (isset($_GET['edit']) && !$editMode) {
+    $errors[] = 'Sesi ubah data tidak valid atau sudah habis. Silakan verifikasi nomor HP lagi.';
+}
+
+if ($editMode) {
+    $editRow = getJalanSehatPendaftaranById($editId);
+    if ($editRow === null) {
+        jalanSehatRevokeEditAccess();
+        header('Location: ' . url('jalansehat/ubah'));
+        exit;
+    }
+    $formData = jalanSehatFormDataFromRow($editRow);
+}
+
+$canSubmitForm = !$dbError && ($pendaftaranDibuka || $editMode);
+
+if ($canSubmitForm && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $postUpdateId = (int) ($_POST['update_id'] ?? 0);
+    $isUpdatePost = $postUpdateId > 0 && jalanSehatCanEditRegistration($postUpdateId);
+    $result = validateJalanSehat($_POST, $settings, $paketAktif, $isUpdatePost ? $postUpdateId : null);
     $formData = array_merge($formData, $result['data']);
 
     if (!empty($result['errors'])) {
         $errors = $result['errors'];
     } else {
         try {
+            if ($isUpdatePost) {
+                updateJalanSehatPendaftaran($postUpdateId, $result['data']);
+                $_SESSION['jalan_sehat_last'] = $result['data'] + ['id' => $postUpdateId];
+                jalanSehatRevokeEditAccess();
+                header('Location: ' . url('jalansehat/?success=1&updated=1'));
+                exit;
+            }
             addJalanSehatPendaftaran($result['data']);
             $_SESSION['jalan_sehat_last'] = $result['data'];
             header('Location: ' . url('jalansehat/?success=1'));
@@ -101,8 +130,10 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
             $kaosOk = (int) $lastSubmission['jumlah_kaos'];
           ?>
           <div class="rounded-xl bg-green-50 border border-green-200 px-6 py-5 text-green-800">
-            <h3 class="font-semibold text-lg mb-1">Pendaftaran Berhasil Tersimpan!</h3>
-            <p class="text-sm">Terima kasih, pendaftaran Jalan Sehat untuk madrasah Anda sudah kami terima.</p>
+            <h3 class="font-semibold text-lg mb-1"><?= $editUpdated ? 'Perubahan Berhasil Disimpan!' : 'Pendaftaran Berhasil Tersimpan!' ?></h3>
+            <p class="text-sm"><?= $editUpdated
+                ? 'Data pendaftaran Jalan Sehat madrasah Anda telah diperbarui.'
+                : 'Terima kasih, pendaftaran Jalan Sehat untuk madrasah Anda sudah kami terima.' ?></p>
             <dl class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-2 text-sm bg-white rounded-lg border border-green-100 p-4">
               <dt class="text-gray-500">Madrasah</dt>
               <dd class="sm:col-span-2 font-semibold text-gray-800"><?= sanitize((string) $lastSubmission['nama_madrasah']) ?></dd>
@@ -125,23 +156,40 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
                 <dd class="sm:col-span-2 font-bold text-green-800"><?= sanitize(formatRupiahJalanSehat(hitungBiayaJalanSehat($kuponOk, $kaosOk, $settings))) ?></dd>
               <?php endif; ?>
             </dl>
-            <a href="<?= url('jalansehat/') ?>"
-               class="inline-block mt-4 bg-green-700 hover:bg-green-800 text-white font-semibold px-5 py-2.5 rounded-lg transition">
-              Daftarkan Madrasah Lain
-            </a>
+            <div class="flex flex-wrap gap-3 mt-4">
+              <a href="<?= url('jalansehat/') ?>"
+                 class="inline-block bg-green-700 hover:bg-green-800 text-white font-semibold px-5 py-2.5 rounded-lg transition">
+                Daftarkan Madrasah Lain
+              </a>
+              <a href="<?= url('jalansehat/ubah') ?>"
+                 class="inline-block border border-green-700 text-green-800 font-semibold px-5 py-2.5 rounded-lg hover:bg-green-50 transition">
+                Ubah data lagi
+              </a>
+            </div>
           </div>
-        <?php elseif (!$pendaftaranDibuka): ?>
+        <?php elseif (!$pendaftaranDibuka && !$editMode): ?>
           <div class="rounded-xl bg-amber-50 border border-amber-200 px-6 py-5 text-amber-900">
             <h3 class="font-semibold text-lg mb-1">Pendaftaran Ditutup</h3>
             <p class="text-sm">Pendaftaran Jalan Sehat Hari Santri Nasional 2026 saat ini sudah ditutup. Silakan hubungi panitia untuk informasi lebih lanjut.</p>
           </div>
         <?php else: ?>
 
-        <p class="text-sm text-gray-600 mb-6 leading-relaxed">
-          Silakan isi formulir di bawah ini untuk mendaftarkan madrasah Anda pada kegiatan
-          <strong>Jalan Sehat Hari Santri Nasional 2026 PCNU Kabupaten Magelang</strong>.
-          Satu formulir untuk satu madrasah.
-        </p>
+        <?php if ($editMode): ?>
+          <div class="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+            <p class="font-semibold">Mode ubah data — <?= sanitize((string) $editRow['nama_madrasah']) ?></p>
+            <p class="mt-1">Perbarui rincian kaos (termasuk lengan panjang) atau data lain, lalu simpan.</p>
+            <a href="<?= url('jalansehat/ubah?batal=1') ?>" class="inline-block mt-2 text-amber-800 underline text-xs">Batalkan & keluar</a>
+          </div>
+        <?php else: ?>
+          <p class="text-sm text-gray-600 mb-2 leading-relaxed">
+            Silakan isi formulir di bawah ini untuk mendaftarkan madrasah Anda pada kegiatan
+            <strong>Jalan Sehat Hari Santri Nasional 2026 PCNU Kabupaten Magelang</strong>.
+            Satu formulir untuk satu madrasah.
+          </p>
+          <p class="text-sm mb-6">
+            <a href="<?= url('jalansehat/ubah') ?>" class="text-green-700 font-semibold hover:underline">Sudah daftar? Ubah data dengan nomor HP</a>
+          </p>
+        <?php endif; ?>
 
         <?php if (!empty($errors)): ?>
           <div class="mb-8 rounded-xl bg-red-50 border border-red-200 px-6 py-5 text-red-800">
@@ -155,6 +203,9 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
         <?php endif; ?>
 
         <form method="post" action="" id="form-jalan-sehat" class="space-y-8" novalidate>
+          <?php if ($editMode): ?>
+            <input type="hidden" name="update_id" value="<?= (int) $editId ?>">
+          <?php endif; ?>
           <div class="rounded-xl border border-gray-200 bg-gray-50/80 p-5 space-y-5">
             <h3 class="text-sm font-bold text-green-900 uppercase tracking-wide">Data Madrasah</h3>
 
@@ -178,6 +229,14 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
               </label>
               <input type="text" id="nama_kepala" name="nama_kepala" required maxlength="150"
                      value="<?= jsFieldValue('nama_kepala', $formData) ?>" class="<?= $inputClass ?>">
+            </div>
+
+            <div>
+              <label for="nomor_hp_kepala" class="block text-sm font-semibold text-gray-700 mb-2">
+                Nomor HP Kepala Madrasah <span class="text-gray-400 font-normal">(opsional, untuk verifikasi ubah data)</span>
+              </label>
+              <input type="tel" id="nomor_hp_kepala" name="nomor_hp_kepala" placeholder="08xxxxxxxxxx" maxlength="20"
+                     value="<?= jsFieldValue('nomor_hp_kepala', $formData) ?>" class="<?= $inputClass ?> md:max-w-md">
             </div>
 
             <div>
@@ -210,7 +269,17 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
               </div>
             <?php endif; ?>
 
-            <?php if ($paketAktif !== []): ?>
+            <?php if ($editMode): ?>
+              <?php if (!empty($editRow['paket_nama'])): ?>
+                <div class="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm">
+                  <p class="text-gray-500">Paket saat pendaftaran</p>
+                  <p class="font-semibold text-green-800"><?= sanitize((string) $editRow['paket_nama']) ?></p>
+                  <input type="hidden" name="pilihan_paket" value="<?= !empty($editRow['paket_id']) ? (int) $editRow['paket_id'] : 'custom' ?>">
+                </div>
+              <?php else: ?>
+                <input type="hidden" name="pilihan_paket" value="custom">
+              <?php endif; ?>
+            <?php elseif ($paketAktif !== []): ?>
               <div>
                 <p class="text-sm font-semibold text-gray-700 mb-2">
                   Langkah 1 — Pilih salah satu paket <span class="text-red-500">*</span>
@@ -376,7 +445,7 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
 
           <button type="submit" id="btn-submit"
                   class="w-full bg-green-700 hover:bg-green-800 text-white font-bold px-6 py-4 rounded-xl shadow transition disabled:opacity-60">
-            Kirim Pendaftaran
+            <?= $editMode ? 'Simpan Perubahan' : 'Kirim Pendaftaran' ?>
           </button>
         </form>
         <?php endif; ?>
@@ -390,7 +459,7 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
     </div>
   </footer>
 
-  <?php if (!$dbError && $pendaftaranDibuka && $lastSubmission === null): ?>
+  <?php if (!$dbError && ($pendaftaranDibuka || $editMode) && $lastSubmission === null): ?>
   <?php require dirname(__DIR__) . '/pesertakerdinma/_wilayah_registrasi_script.php'; ?>
   <script>
     (function () {
@@ -405,6 +474,7 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
       const biaya = document.getElementById('ringkasan-biaya');
       const hargaKupon = <?= $hargaKupon ?>;
       const hargaKaos = <?= $hargaKaos ?>;
+      const isEditMode = <?= $editMode ? 'true' : 'false' ?>;
 
       // mode: 'none' (belum pilih paket), 'custom', atau 'paket'
       let mode = radios.length === 0 ? 'custom' : 'none';
@@ -481,6 +551,15 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
       }
 
       function applyPilihan() {
+        if (isEditMode) {
+          mode = 'custom';
+          kupon.readOnly = false;
+          setKaosAktif(true);
+          if (hint) hint.textContent = 'Perbarui jumlah kupon dan rincian ukuran kaos sesuai kebutuhan.';
+          updateRingkasan();
+          return;
+        }
+
         const selected = radios.find(function (r) { return r.checked; });
         document.querySelectorAll('.paket-card').forEach(function (card) {
           const check = card.querySelector('.paket-check');
@@ -537,10 +616,10 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
           const el = document.getElementById(item[0]);
           if (el && el.value.trim() === '') problems.push(item[1]);
         });
-        if (radios.length > 0 && !radios.some(function (r) { return r.checked; })) {
+        if (!isEditMode && radios.length > 0 && !radios.some(function (r) { return r.checked; })) {
           problems.push('Pilih salah satu paket pemesanan.');
         }
-        if (mode === 'paket' && targetKaos > 0 && totalUkuran() !== targetKaos) {
+        if (!isEditMode && mode === 'paket' && targetKaos > 0 && totalUkuran() !== targetKaos) {
           problems.push('Rincian ukuran kaos harus berjumlah ' + targetKaos + ' pcs sesuai paket (saat ini ' + totalUkuran() + ' pcs).');
         }
         if (mode !== 'paket' && toInt(kupon) === 0 && totalUkuran() === 0) {

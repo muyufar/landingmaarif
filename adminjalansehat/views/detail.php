@@ -35,6 +35,9 @@ $waLink = $nomorWa !== '' ? 'https://wa.me/62' . ltrim(normalizeNomorWa($nomorWa
       <dt class="text-gray-500">Nama Kepala</dt>
       <dd class="sm:col-span-2"><?= sanitize((string) $row['nama_kepala']) ?></dd>
 
+      <dt class="text-gray-500">Nomor HP Kepala</dt>
+      <dd class="sm:col-span-2"><?= sanitize((string) ($row['nomor_hp_kepala'] ?? '')) ?: '-' ?></dd>
+
       <dt class="text-gray-500">Nomor WA</dt>
       <dd class="sm:col-span-2">
         <?php if ($waLink !== ''): ?>
@@ -83,7 +86,9 @@ $waLink = $nomorWa !== '' ? 'https://wa.me/62' . ltrim(normalizeNomorWa($nomorWa
       <dd class="sm:col-span-2"><?= !empty($row['catatan']) ? nl2br(sanitize((string) $row['catatan'])) : '-' ?></dd>
     </dl>
 
-    <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+    <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 flex flex-wrap justify-end gap-3">
+      <a href="<?= url('adminjalansehat/?page=edit&id=' . (int) $row['id']) ?>"
+         class="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Edit Data</a>
       <form method="post" onsubmit="return confirm('Hapus pendaftaran ini?');">
         <input type="hidden" name="action" value="delete_pendaftaran">
         <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">

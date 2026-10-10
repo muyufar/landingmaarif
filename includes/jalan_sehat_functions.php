@@ -68,6 +68,20 @@ function ensureJalanSehatSchema(): void
         $previousColumn = $column;
     }
 
+    $phoneColumns = [
+        'nomor_wa_norm' => 'varchar(20) DEFAULT NULL',
+        'nomor_hp_kepala' => 'varchar(30) DEFAULT NULL',
+        'nomor_hp_kepala_norm' => 'varchar(20) DEFAULT NULL',
+    ];
+    $previousColumn = 'nomor_wa';
+    foreach ($phoneColumns as $column => $definition) {
+        if (!in_array($column, $existingColumns, true)) {
+            $pdo->exec("ALTER TABLE jalan_sehat_pendaftaran ADD COLUMN `{$column}` {$definition} AFTER `{$previousColumn}`");
+            $existingColumns[] = $column;
+        }
+        $previousColumn = $column;
+    }
+
     $previousColumn = 'jumlah_kaos';
     foreach (jalanSehatUkuranKaos() as $column) {
         if (!in_array($column, $existingColumns, true)) {
@@ -75,6 +89,8 @@ function ensureJalanSehatSchema(): void
         }
         $previousColumn = $column;
     }
+
+    jalanSehatBackfillPhoneNormColumns($pdo);
 
     $pdo->exec(
         "CREATE TABLE IF NOT EXISTS `jalan_sehat_paket` (
@@ -351,6 +367,7 @@ function jalanSehatFormDefaults(): array
         'alamat_detail' => '',
         'nama_kepala' => '',
         'nomor_wa' => '',
+        'nomor_hp_kepala' => '',
         'pilihan_paket' => '',
         'jumlah_kupon' => '0',
         'jumlah_kaos' => '0',
@@ -358,12 +375,209 @@ function jalanSehatFormDefaults(): array
     ] + array_fill_keys(array_values(jalanSehatUkuranKaos()), 0);
 }
 
+function jalanSehatBackfillPhoneNormColumns(PDO $pdo): void
+{
+    static $backfilled = false;
+    if ($backfilled) {
+        return;
+    }
+    $backfilled = true;
+
+    $rows = $pdo->query(
+        'SELECT id, nomor_wa, nomor_wa_norm, nomor_hp_kepala, nomor_hp_kepala_norm FROM jalan_sehat_pendaftaran'
+    )->fetchAll();
+    $stmt = $pdo->prepare(
+        'UPDATE jalan_sehat_pendaftaran SET nomor_wa_norm = :wa_norm, nomor_hp_kepala = :hp, nomor_hp_kepala_norm = :hp_norm WHERE id = :id'
+    );
+    foreach ($rows as $row) {
+        $waNorm = normalizeNomorWa((string) ($row['nomor_wa'] ?? ''));
+        $hp = trim((string) ($row['nomor_hp_kepala'] ?? ''));
+        $hpNorm = $hp !== '' ? normalizeNomorWa($hp) : null;
+        $currentWaNorm = (string) ($row['nomor_wa_norm'] ?? '');
+        $currentHpNorm = (string) ($row['nomor_hp_kepala_norm'] ?? '');
+        if ($currentWaNorm === $waNorm && ($hpNorm ?? '') === $currentHpNorm) {
+            continue;
+        }
+        $stmt->execute([
+            ':wa_norm' => $waNorm !== '' ? $waNorm : null,
+            ':hp' => $hpNorm !== null && $hpNorm !== '' ? $hpNorm : ($hp !== '' ? $hp : null),
+            ':hp_norm' => $hpNorm !== null && $hpNorm !== '' ? $hpNorm : null,
+            ':id' => (int) $row['id'],
+        ]);
+    }
+}
+
+function jalanSehatNamaMadrasahMatch(string $a, string $b): bool
+{
+    $normalize = static function (string $value): string {
+        $value = mb_strtolower(trim($value));
+        $value = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $value) ?? $value;
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+
+        return trim($value);
+    };
+
+    $na = $normalize($a);
+    $nb = $normalize($b);
+    if ($na === '' || $nb === '') {
+        return false;
+    }
+    if ($na === $nb) {
+        return true;
+    }
+
+    return str_contains($na, $nb) || str_contains($nb, $na);
+}
+
+/**
+ * @return int[] ID pendaftaran yang boleh diedit dengan nomor HP ini (WA form, HP kepala, atau HP kepsek di pengkinian data).
+ */
+function findJalanSehatPendaftaranIdsByEditPhone(string $nomor): array
+{
+    ensureJalanSehatSchema();
+    $norm = normalizeNomorWa($nomor);
+    if ($norm === '') {
+        return [];
+    }
+
+    $pdo = getDb();
+    $ids = [];
+
+    try {
+        $stmt = $pdo->prepare(
+            'SELECT id FROM jalan_sehat_pendaftaran
+             WHERE nomor_wa_norm = :norm OR nomor_hp_kepala_norm = :norm'
+        );
+        $stmt->execute([':norm' => $norm]);
+        foreach ($stmt->fetchAll() as $row) {
+            $ids[] = (int) $row['id'];
+        }
+    } catch (PDOException) {
+        // kolom norm belum ada
+    }
+
+    $fallback = $pdo->query('SELECT id, nomor_wa, nomor_hp_kepala FROM jalan_sehat_pendaftaran')->fetchAll();
+    foreach ($fallback as $row) {
+        if (normalizeNomorWa((string) ($row['nomor_wa'] ?? '')) === $norm
+            || normalizeNomorWa((string) ($row['nomor_hp_kepala'] ?? '')) === $norm) {
+            $ids[] = (int) $row['id'];
+        }
+    }
+
+    if ($pdo->query("SHOW TABLES LIKE 'pengkinian_data'")->fetch()) {
+        $stmt = $pdo->prepare(
+            'SELECT DISTINCT nama_satuan_pendidikan FROM pengkinian_data WHERE nomor_hp_kepsek_norm = :norm'
+        );
+        $stmt->execute([':norm' => $norm]);
+        $satuanNames = array_column($stmt->fetchAll(), 'nama_satuan_pendidikan');
+        if ($satuanNames !== []) {
+            $pendaftar = $pdo->query('SELECT id, nama_madrasah FROM jalan_sehat_pendaftaran')->fetchAll();
+            foreach ($pendaftar as $row) {
+                foreach ($satuanNames as $satuan) {
+                    if (jalanSehatNamaMadrasahMatch((string) $row['nama_madrasah'], (string) $satuan)) {
+                        $ids[] = (int) $row['id'];
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    $ids = array_values(array_unique(array_filter($ids, static fn (int $id): bool => $id > 0)));
+
+    return $ids;
+}
+
+function jalanSehatRegistrationMatchesEditPhone(array $row, string $norm): bool
+{
+    if ($norm === '') {
+        return false;
+    }
+    if (normalizeNomorWa((string) ($row['nomor_wa'] ?? '')) === $norm) {
+        return true;
+    }
+    if (normalizeNomorWa((string) ($row['nomor_hp_kepala'] ?? '')) === $norm) {
+        return true;
+    }
+
+    $pdo = getDb();
+    if (!$pdo->query("SHOW TABLES LIKE 'pengkinian_data'")->fetch()) {
+        return false;
+    }
+    $stmt = $pdo->prepare(
+        'SELECT nama_satuan_pendidikan FROM pengkinian_data WHERE nomor_hp_kepsek_norm = :norm'
+    );
+    $stmt->execute([':norm' => $norm]);
+    foreach ($stmt->fetchAll() as $pengkinian) {
+        if (jalanSehatNamaMadrasahMatch((string) $row['nama_madrasah'], (string) $pengkinian['nama_satuan_pendidikan'])) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function jalanSehatGrantEditAccess(string $nomor, array $ids): void
+{
+    $norm = normalizeNomorWa($nomor);
+    $_SESSION['jalan_sehat_edit_phone_norm'] = $norm;
+    $_SESSION['jalan_sehat_edit_allowed_ids'] = array_values(array_map('intval', $ids));
+    $_SESSION['jalan_sehat_edit_granted_at'] = time();
+}
+
+function jalanSehatRevokeEditAccess(): void
+{
+    unset(
+        $_SESSION['jalan_sehat_edit_phone_norm'],
+        $_SESSION['jalan_sehat_edit_allowed_ids'],
+        $_SESSION['jalan_sehat_edit_granted_at'],
+        $_SESSION['jalan_sehat_editing_id']
+    );
+}
+
+function jalanSehatCanEditRegistration(int $id): bool
+{
+    if ($id < 1) {
+        return false;
+    }
+    $grantedAt = (int) ($_SESSION['jalan_sehat_edit_granted_at'] ?? 0);
+    if ($grantedAt > 0 && (time() - $grantedAt) > 7200) {
+        jalanSehatRevokeEditAccess();
+
+        return false;
+    }
+    $allowed = $_SESSION['jalan_sehat_edit_allowed_ids'] ?? [];
+
+    return is_array($allowed) && in_array($id, array_map('intval', $allowed), true);
+}
+
+function jalanSehatFormDataFromRow(array $row): array
+{
+    $data = jalanSehatFormDefaults();
+    foreach ($data as $key => $_default) {
+        if (array_key_exists($key, $row)) {
+            $data[$key] = $row[$key];
+        }
+    }
+    $data['pilihan_paket'] = !empty($row['paket_id']) ? (string) $row['paket_id'] : 'custom';
+    $data['jumlah_kupon'] = (string) (int) ($row['jumlah_kupon'] ?? 0);
+    $data['jumlah_kaos'] = (string) (int) ($row['jumlah_kaos'] ?? 0);
+
+    return $data;
+}
+
 /**
  * Nilai kupon/kaos untuk pilihan paket selalu diambil dari database, bukan dari input browser.
  */
-function validateJalanSehat(array $input, array $settings, array $paketAktif): array
+function validateJalanSehat(array $input, array $settings, array $paketAktif, ?int $updateId = null): array
 {
     $errors = [];
+    $isUpdate = $updateId !== null && $updateId > 0;
+    $existingRow = $isUpdate ? getJalanSehatPendaftaranById($updateId) : null;
+    if ($isUpdate && $existingRow === null) {
+        return ['errors' => ['Data pendaftaran tidak ditemukan.'], 'data' => jalanSehatFormDefaults()];
+    }
+
     $data = [
         'nama_madrasah' => trim((string) ($input['nama_madrasah'] ?? '')),
         'kode_kecamatan' => trim((string) ($input['kode_kecamatan'] ?? '')),
@@ -373,12 +587,15 @@ function validateJalanSehat(array $input, array $settings, array $paketAktif): a
         'alamat_detail' => trim((string) ($input['alamat_detail'] ?? '')),
         'nama_kepala' => trim((string) ($input['nama_kepala'] ?? '')),
         'nomor_wa' => trim((string) ($input['nomor_wa'] ?? '')),
+        'nomor_hp_kepala' => trim((string) ($input['nomor_hp_kepala'] ?? '')),
         'pilihan_paket' => trim((string) ($input['pilihan_paket'] ?? '')),
         'jumlah_kupon' => max(0, (int) ($input['jumlah_kupon'] ?? 0)),
         'jumlah_kaos' => max(0, (int) ($input['jumlah_kaos'] ?? 0)),
         'catatan' => trim((string) ($input['catatan'] ?? '')),
         'paket_id' => null,
         'paket_nama' => null,
+        'nomor_wa_norm' => null,
+        'nomor_hp_kepala_norm' => null,
     ];
 
     $totalUkuran = 0;
@@ -417,10 +634,20 @@ function validateJalanSehat(array $input, array $settings, array $paketAktif): a
             $errors[] = 'Nomor WA tidak valid. Contoh: 081234567890.';
         } else {
             $data['nomor_wa'] = $normalizedWa;
+            $data['nomor_wa_norm'] = $normalizedWa;
+        }
+    }
+    if ($data['nomor_hp_kepala'] !== '') {
+        $normalizedHp = normalizeNomorWa($data['nomor_hp_kepala']);
+        if (strlen($normalizedHp) < 9 || strlen($normalizedHp) > 15) {
+            $errors[] = 'Nomor HP kepala madrasah tidak valid. Contoh: 081234567890.';
+        } else {
+            $data['nomor_hp_kepala'] = $normalizedHp;
+            $data['nomor_hp_kepala_norm'] = $normalizedHp;
         }
     }
 
-    $izinkanBebas = $settings['izinkan_jumlah_bebas'] === '1' || $paketAktif === [];
+    $izinkanBebas = $settings['izinkan_jumlah_bebas'] === '1' || $paketAktif === [] || $isUpdate;
     $pilihan = $data['pilihan_paket'];
 
     if ($paketAktif !== [] && $pilihan === '') {
@@ -433,7 +660,11 @@ function validateJalanSehat(array $input, array $settings, array $paketAktif): a
                 break;
             }
         }
-        if ($paket === null) {
+        if ($paket === null && $isUpdate && $existingRow !== null && (string) ($existingRow['paket_id'] ?? '') === $pilihan) {
+            $data['paket_id'] = (int) $existingRow['paket_id'];
+            $data['paket_nama'] = (string) ($existingRow['paket_nama'] ?? '');
+            $data['jumlah_kaos'] = $totalUkuran;
+        } elseif ($paket === null) {
             $errors[] = 'Paket yang dipilih tidak tersedia. Silakan pilih ulang.';
         } else {
             $data['paket_id'] = (int) $paket['id'];
@@ -445,12 +676,14 @@ function validateJalanSehat(array $input, array $settings, array $paketAktif): a
                 foreach (jalanSehatUkuranKaos() as $column) {
                     $data[$column] = 0;
                 }
-            } elseif ($totalUkuran !== $data['jumlah_kaos']) {
+            } elseif (!$isUpdate && $totalUkuran !== $data['jumlah_kaos']) {
                 $errors[] = sprintf(
                     'Rincian ukuran kaos harus berjumlah %d pcs sesuai paket (saat ini terisi %d pcs).',
                     $data['jumlah_kaos'],
                     $totalUkuran
                 );
+            } elseif ($isUpdate) {
+                $data['jumlah_kaos'] = $totalUkuran;
             }
         }
     } elseif ($pilihan === 'custom' && !$izinkanBebas) {
@@ -471,13 +704,26 @@ function addJalanSehatPendaftaran(array $data): int
     $stmt = getDb()->prepare(
         'INSERT INTO jalan_sehat_pendaftaran
             (nama_madrasah, alamat, kode_kecamatan, nama_kecamatan, kode_kelurahan, nama_kelurahan, alamat_detail,
-             nama_kepala, nomor_wa, paket_id, paket_nama, jumlah_kupon, jumlah_kaos, '
+             nama_kepala, nomor_wa, nomor_wa_norm, nomor_hp_kepala, nomor_hp_kepala_norm,
+             paket_id, paket_nama, jumlah_kupon, jumlah_kaos, '
             . implode(', ', $ukuranColumns) . ', catatan)
          VALUES
             (:nama_madrasah, :alamat, :kode_kecamatan, :nama_kecamatan, :kode_kelurahan, :nama_kelurahan, :alamat_detail,
-             :nama_kepala, :nomor_wa, :paket_id, :paket_nama, :jumlah_kupon, :jumlah_kaos, :'
+             :nama_kepala, :nomor_wa, :nomor_wa_norm, :nomor_hp_kepala, :nomor_hp_kepala_norm,
+             :paket_id, :paket_nama, :jumlah_kupon, :jumlah_kaos, :'
             . implode(', :', $ukuranColumns) . ', :catatan)'
     );
+    $stmt->execute(jalanSehatPendaftaranParams($data, $ukuranColumns));
+
+    return (int) getDb()->lastInsertId();
+}
+
+/**
+ * @param list<string> $ukuranColumns
+ * @return array<string, mixed>
+ */
+function jalanSehatPendaftaranParams(array $data, array $ukuranColumns): array
+{
     $params = [
         ':nama_madrasah' => $data['nama_madrasah'],
         ':alamat' => $data['alamat'],
@@ -488,6 +734,9 @@ function addJalanSehatPendaftaran(array $data): int
         ':alamat_detail' => $data['alamat_detail'],
         ':nama_kepala' => $data['nama_kepala'],
         ':nomor_wa' => $data['nomor_wa'] !== '' ? $data['nomor_wa'] : null,
+        ':nomor_wa_norm' => !empty($data['nomor_wa_norm']) ? $data['nomor_wa_norm'] : null,
+        ':nomor_hp_kepala' => $data['nomor_hp_kepala'] !== '' ? $data['nomor_hp_kepala'] : null,
+        ':nomor_hp_kepala_norm' => !empty($data['nomor_hp_kepala_norm']) ? $data['nomor_hp_kepala_norm'] : null,
         ':paket_id' => $data['paket_id'],
         ':paket_nama' => $data['paket_nama'],
         ':jumlah_kupon' => $data['jumlah_kupon'],
@@ -497,9 +746,49 @@ function addJalanSehatPendaftaran(array $data): int
     foreach ($ukuranColumns as $column) {
         $params[':' . $column] = (int) ($data[$column] ?? 0);
     }
-    $stmt->execute($params);
 
-    return (int) getDb()->lastInsertId();
+    return $params;
+}
+
+function updateJalanSehatPendaftaran(int $id, array $data): bool
+{
+    ensureJalanSehatSchema();
+    if ($id < 1) {
+        return false;
+    }
+
+    $ukuranColumns = array_values(jalanSehatUkuranKaos());
+    $setParts = [
+        'nama_madrasah = :nama_madrasah',
+        'alamat = :alamat',
+        'kode_kecamatan = :kode_kecamatan',
+        'nama_kecamatan = :nama_kecamatan',
+        'kode_kelurahan = :kode_kelurahan',
+        'nama_kelurahan = :nama_kelurahan',
+        'alamat_detail = :alamat_detail',
+        'nama_kepala = :nama_kepala',
+        'nomor_wa = :nomor_wa',
+        'nomor_wa_norm = :nomor_wa_norm',
+        'nomor_hp_kepala = :nomor_hp_kepala',
+        'nomor_hp_kepala_norm = :nomor_hp_kepala_norm',
+        'paket_id = :paket_id',
+        'paket_nama = :paket_nama',
+        'jumlah_kupon = :jumlah_kupon',
+        'jumlah_kaos = :jumlah_kaos',
+    ];
+    foreach ($ukuranColumns as $column) {
+        $setParts[] = '`' . $column . '` = :' . $column;
+    }
+    $setParts[] = 'catatan = :catatan';
+
+    $params = jalanSehatPendaftaranParams($data, $ukuranColumns);
+    $params[':id'] = $id;
+
+    $stmt = getDb()->prepare(
+        'UPDATE jalan_sehat_pendaftaran SET ' . implode(', ', $setParts) . ' WHERE id = :id'
+    );
+
+    return $stmt->execute($params);
 }
 
 function jalanSehatUrutanOptions(): array
