@@ -150,6 +150,17 @@ function ensureJalanSehatSchemaMigrations(): void
         $previousColumn = $column;
     }
 
+    $afterKonveksi = in_array('kaos_panjang_xxxl', $existingColumns, true)
+        ? 'kaos_panjang_xxxl'
+        : (in_array('kaos_xxxl', $existingColumns, true) ? 'kaos_xxxl' : 'jumlah_kaos');
+    jalanSehatAddColumnIfMissing(
+        $pdo,
+        $existingColumns,
+        'kaos_konveksi_selesai',
+        'tinyint(1) NOT NULL DEFAULT 0',
+        $afterKonveksi
+    );
+
         jalanSehatBackfillPhoneNormColumns($pdo);
     } catch (PDOException) {
         // Migrasi otomatis boleh gagal di hosting tanpa hak ALTER; operasi baca tetap jalan
@@ -1237,6 +1248,42 @@ function jalanSehatMonitorKaosEnabled(array $settings): bool
     return ($settings['monitor_kaos_aktif'] ?? '0') === '1';
 }
 
+function jalanSehatTotalKaosFromRow(array $row): int
+{
+    $total = 0;
+    foreach (jalanSehatUkuranKaos() as $column) {
+        $total += (int) ($row[$column] ?? 0);
+    }
+
+    return $total;
+}
+
+/**
+ * @return array{ok: bool, selesai?: int, message?: string}
+ */
+function setJalanSehatKaosKonveksiSelesai(int $id, bool $selesai): array
+{
+    ensureJalanSehatSchemaMigrations();
+    if (!in_array('kaos_konveksi_selesai', jalanSehatPendaftaranColumnNames(), true)) {
+        return ['ok' => false, 'message' => 'Fitur centang belum tersedia di database. Hubungi panitia.'];
+    }
+
+    $row = getJalanSehatPendaftaranById($id);
+    if ($row === null) {
+        return ['ok' => false, 'message' => 'Data madrasah tidak ditemukan.'];
+    }
+    if (jalanSehatTotalKaosFromRow($row) <= 0) {
+        return ['ok' => false, 'message' => 'Madrasah ini tidak memesan kaos.'];
+    }
+
+    $stmt = getDb()->prepare(
+        'UPDATE jalan_sehat_pendaftaran SET kaos_konveksi_selesai = :selesai WHERE id = :id'
+    );
+    $stmt->execute([':selesai' => $selesai ? 1 : 0, ':id' => $id]);
+
+    return ['ok' => true, 'selesai' => $selesai ? 1 : 0];
+}
+
 /**
  * Rekap pemesanan kaos untuk konveksi/pencetak (tanpa data kontak).
  *
@@ -1254,20 +1301,24 @@ function jalanSehatMonitorKaosEnabled(array $settings): bool
  *     pendek: int,
  *     panjang: int,
  *     ukuran_pendek: array<string, int>,
- *     ukuran_panjang: array<string, int>
- *   }>
+ *     ukuran_panjang: array<string, int>,
+ *     selesai: bool
+ *   }>,
+ *   madrasah_selesai: int
  * }
  */
 function getJalanSehatRekapKaosPencetak(array $rows): array
 {
     $byJenis = jalanSehatUkuranKaosByJenis();
     $sizes = array_keys($byJenis['pendek']['columns']);
+    $hasSelesaiCol = in_array('kaos_konveksi_selesai', jalanSehatPendaftaranColumnNames(), true);
 
     $rekap = [
         'total_pcs' => 0,
         'total_pendek' => 0,
         'total_panjang' => 0,
         'madrasah_ada_kaos' => 0,
+        'madrasah_selesai' => 0,
         'per_ukuran' => [
             'pendek' => array_fill_keys($sizes, 0),
             'panjang' => array_fill_keys($sizes, 0),
@@ -1305,6 +1356,10 @@ function getJalanSehatRekapKaosPencetak(array $rows): array
 
         if ($totalRow > 0) {
             $rekap['madrasah_ada_kaos']++;
+            $selesai = $hasSelesaiCol && !empty($row['kaos_konveksi_selesai']);
+            if ($selesai) {
+                $rekap['madrasah_selesai']++;
+            }
             $rekap['per_madrasah'][] = [
                 'id' => (int) $row['id'],
                 'nama_madrasah' => (string) $row['nama_madrasah'],
@@ -1316,13 +1371,22 @@ function getJalanSehatRekapKaosPencetak(array $rows): array
                 'panjang' => $panjang,
                 'ukuran_pendek' => $ukuranPendek,
                 'ukuran_panjang' => $ukuranPanjang,
+                'selesai' => $selesai,
             ];
         }
     }
 
     usort(
         $rekap['per_madrasah'],
-        static fn (array $a, array $b): int => strnatcasecmp($a['nama_madrasah'], $b['nama_madrasah'])
+        static function (array $a, array $b): int {
+            $doneA = !empty($a['selesai']) ? 1 : 0;
+            $doneB = !empty($b['selesai']) ? 1 : 0;
+            if ($doneA !== $doneB) {
+                return $doneA <=> $doneB;
+            }
+
+            return strnatcasecmp($a['nama_madrasah'], $b['nama_madrasah']);
+        }
     );
 
     return $rekap;
