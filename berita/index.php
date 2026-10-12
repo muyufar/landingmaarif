@@ -41,6 +41,7 @@ try {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <?= siteHeadIcons() ?>
+  <?= siteThemeHead() ?>
   <title>
     <?php if ($pageMode === 'detail'): ?>
       <?= sanitize($row['judul'] ?? 'Berita') ?> |
@@ -62,7 +63,7 @@ try {
     <?php endif; ?>
     <meta name="twitter:card" content="summary_large_image">
   <?php endif; ?>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <?= siteTailwindScript() ?>
   <style>
     .berita-konten { line-height: 1.75; }
     .berita-konten p { margin: 0.75em 0; }
@@ -356,5 +357,6 @@ try {
     <div class="max-w-5xl mx-auto px-6 text-center text-sm">© 2026 LP Ma'arif NU Kabupaten Magelang</div>
   </footer>
 
+  <?= siteThemeFooterScript() ?>
 </body>
 </html>

@@ -117,6 +117,37 @@ function siteHeadIcons(): string
         . htmlspecialchars(url('image/apple-touch-icon.png'), ENT_QUOTES, 'UTF-8') . '">';
 }
 
+/** Cegah kilat putih saat tema gelap dimuat */
+function siteThemeInitScript(): string
+{
+    return '<script>(function(){try{var k="maarif-theme",s=localStorage.getItem(k),d=s==="dark"||(!s&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(d)document.documentElement.classList.add("dark");}catch(e){}})();</script>';
+}
+
+function siteThemeHead(): string
+{
+    $css = htmlspecialchars(url('assets/css/site-theme.css'), ENT_QUOTES, 'UTF-8');
+    $fonts = 'https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap';
+
+    return siteThemeInitScript() . "\n  "
+        . '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n  "
+        . '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n  "
+        . '<link href="' . htmlspecialchars($fonts, ENT_QUOTES, 'UTF-8') . '" rel="stylesheet">' . "\n  "
+        . '<link rel="stylesheet" href="' . $css . '">';
+}
+
+function siteTailwindScript(): string
+{
+    return '<script src="https://cdn.tailwindcss.com"></script>' . "\n  "
+        . '<script>tailwind.config = { darkMode: "class" };</script>';
+}
+
+function siteThemeFooterScript(): string
+{
+    $js = htmlspecialchars(url('assets/js/site-theme.js'), ENT_QUOTES, 'UTF-8');
+
+    return '<script src="' . $js . '" defer></script>';
+}
+
 function absoluteUrl(string $path = ''): string
 {
     $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')

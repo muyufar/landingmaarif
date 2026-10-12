@@ -94,8 +94,9 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <?= siteHeadIcons() ?>
+  <?= siteThemeHead() ?>
   <title><?= sanitize(JALAN_SEHAT_TITLE) ?> | LP Ma'arif NU Magelang</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <?= siteTailwindScript() ?>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
 
@@ -638,5 +639,6 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
   </script>
   <?php endif; ?>
 
+  <?= siteThemeFooterScript() ?>
 </body>
 </html>

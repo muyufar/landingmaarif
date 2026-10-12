@@ -69,8 +69,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <?= siteHeadIcons() ?>
+  <?= siteThemeHead() ?>
   <title>Ubah Pendaftaran Jalan Sehat | LP Ma'arif NU Magelang</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <?= siteTailwindScript() ?>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
 
@@ -151,5 +152,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="max-w-3xl mx-auto px-6 text-center text-sm">© 2026 LP Ma'arif NU Kabupaten Magelang</div>
   </footer>
 
+  <?= siteThemeFooterScript() ?>
 </body>
 </html>

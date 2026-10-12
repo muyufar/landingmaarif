@@ -52,8 +52,9 @@ function fieldValue(string $key, array $formData): string
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <?= siteHeadIcons() ?>
+  <?= siteThemeHead() ?>
   <title><?= sanitize($layanan ? $layanan['title'] : 'Pemesanan Layanan') ?> | LP Ma'arif NU Magelang</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <?= siteTailwindScript() ?>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen">
 
@@ -364,5 +365,6 @@ function fieldValue(string $key, array $formData): string
       }
     })();
   </script>
+  <?= siteThemeFooterScript() ?>
 </body>
 </html>

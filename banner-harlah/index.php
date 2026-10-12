@@ -104,8 +104,9 @@ $pageTitle = 'Download Banner Harlah 97';
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <?= siteHeadIcons() ?>
+  <?= siteThemeHead() ?>
   <title><?= sanitize($pageTitle) ?> | LP Ma'arif NU Magelang</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <?= siteTailwindScript() ?>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
 
@@ -201,5 +202,6 @@ $pageTitle = 'Download Banner Harlah 97';
     </div>
   </footer>
 
+  <?= siteThemeFooterScript() ?>
 </body>
 </html>

@@ -5,8 +5,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <?= siteHeadIcons() ?>
+  <?= siteThemeHead() ?>
   <title><?= sanitize($pageTitle ?? 'Admin Distribusi') ?> | LP Ma'arif NU</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <?= siteTailwindScript() ?>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen">
   <header class="bg-green-800 text-white shadow-lg">
@@ -34,5 +35,6 @@
     <?= $content ?? '' ?>
   </main>
   <?php if (!empty($extraScripts)): ?><?= $extraScripts ?><?php endif; ?>
+  <?= siteThemeFooterScript() ?>
 </body>
 </html>

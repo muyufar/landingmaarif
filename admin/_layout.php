@@ -15,8 +15,9 @@ function adminNavClass(string $page, string $current): string
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <?= siteHeadIcons() ?>
+  <?= siteThemeHead() ?>
   <title><?= sanitize($pageTitle ?? 'Portal Admin') ?> | LP Ma'arif NU Magelang</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <?= siteTailwindScript() ?>
 </head>
 <body class="bg-gray-100 text-gray-800 min-h-screen">
 
@@ -59,5 +60,6 @@ function adminNavClass(string $page, string $current): string
     <?= $content ?? '' ?>
   </main>
 
+  <?= siteThemeFooterScript() ?>
 </body>
 </html>

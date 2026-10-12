@@ -14,8 +14,9 @@ $templateExists = is_file($templateFile);
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <?= siteHeadIcons() ?>
+  <?= siteThemeHead() ?>
   <title>Bikin Twibbon Harlah LP Ma'arif NU Ke-97 | LP Ma'arif NU Magelang</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <?= siteTailwindScript() ?>
   <style>
     #preview-wrap { touch-action: none; user-select: none; }
     #preview-canvas { max-width: 100%; height: auto; display: block; margin: 0 auto; border-radius: 0.75rem; }
@@ -136,5 +137,6 @@ $templateExists = is_file($templateFile);
   <script src="<?= url('twibbon/twibbon.js?v=3') ?>"></script>
   <?php endif; ?>
 
+  <?= siteThemeFooterScript() ?>
 </body>
 </html>
