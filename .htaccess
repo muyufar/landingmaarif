@@ -20,6 +20,7 @@ DirectoryIndex default.php index.php
   RewriteRule ^distribusi/?$ distribusi/index.php [L,QSA]
   RewriteRule ^admindistribusi/?$ admindistribusi/index.php [L,QSA]
 RewriteRule ^jalansehat/ubah/?$ jalansehat/ubah.php [L,QSA]
+RewriteRule ^jalansehat/monitor/?$ jalansehat/monitor.php [L,QSA]
 RewriteRule ^jalansehat/?$ jalansehat/index.php [L,QSA]
 RewriteRule ^adminjalansehat/?$ adminjalansehat/index.php [L,QSA]
 </IfModule>

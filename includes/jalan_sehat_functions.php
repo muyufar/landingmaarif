@@ -276,6 +276,8 @@ function jalanSehatPengaturanDefaults(): array
         'harga_kupon' => '0',
         'harga_kaos' => '0',
         'info_surat_edaran' => '',
+        'monitor_kaos_aktif' => '0',
+        'monitor_kaos_kode' => '',
     ];
 }
 
@@ -296,12 +298,24 @@ function getJalanSehatPengaturan(): array
 function saveJalanSehatPengaturan(array $input): void
 {
     ensureJalanSehatSchema();
+    $monitorAktif = !empty($input['monitor_kaos_aktif']);
+    $monitorKode = trim((string) ($input['monitor_kaos_kode'] ?? ''));
+    if ($monitorAktif && $monitorKode === '') {
+        $existing = getJalanSehatPengaturan();
+        $monitorKode = jalanSehatMonitorKaosKode($existing);
+        if ($monitorKode === '') {
+            $monitorKode = substr(bin2hex(random_bytes(12)), 0, 16);
+        }
+    }
+
     $values = [
         'pendaftaran_dibuka' => !empty($input['pendaftaran_dibuka']) ? '1' : '0',
         'izinkan_jumlah_bebas' => !empty($input['izinkan_jumlah_bebas']) ? '1' : '0',
         'harga_kupon' => (string) max(0, (int) preg_replace('/\D/', '', (string) ($input['harga_kupon'] ?? '0'))),
         'harga_kaos' => (string) max(0, (int) preg_replace('/\D/', '', (string) ($input['harga_kaos'] ?? '0'))),
         'info_surat_edaran' => trim((string) ($input['info_surat_edaran'] ?? '')),
+        'monitor_kaos_aktif' => $monitorAktif ? '1' : '0',
+        'monitor_kaos_kode' => $monitorKode,
     ];
 
     $stmt = getDb()->prepare(
@@ -1228,6 +1242,132 @@ function getJalanSehatRingkasan(array $rows, array $settings): array
     ksort($ringkasan['per_kecamatan'], SORT_NATURAL | SORT_FLAG_CASE);
 
     return $ringkasan;
+}
+
+function jalanSehatMonitorKaosEnabled(array $settings): bool
+{
+    return ($settings['monitor_kaos_aktif'] ?? '0') === '1';
+}
+
+function jalanSehatMonitorKaosKode(array $settings): string
+{
+    return trim((string) ($settings['monitor_kaos_kode'] ?? ''));
+}
+
+function jalanSehatGrantMonitorKaosAccess(): void
+{
+    $_SESSION['jalan_sehat_monitor_kaos_ok'] = true;
+}
+
+function jalanSehatRevokeMonitorKaosAccess(): void
+{
+    unset($_SESSION['jalan_sehat_monitor_kaos_ok']);
+}
+
+function jalanSehatHasMonitorKaosAccess(): bool
+{
+    return !empty($_SESSION['jalan_sehat_monitor_kaos_ok']);
+}
+
+function jalanSehatVerifyMonitorKaosKode(array $settings, string $input): bool
+{
+    $expected = jalanSehatMonitorKaosKode($settings);
+    if ($expected === '') {
+        return false;
+    }
+
+    return hash_equals($expected, trim($input));
+}
+
+/**
+ * Rekap pemesanan kaos untuk konveksi/pencetak (tanpa data kontak).
+ *
+ * @return array{
+ *   total_pcs: int,
+ *   total_pendek: int,
+ *   total_panjang: int,
+ *   madrasah_ada_kaos: int,
+ *   per_ukuran: array{pendek: array<string, int>, panjang: array<string, int>},
+ *   per_madrasah: list<array{
+ *     id: int,
+ *     nama_madrasah: string,
+ *     kecamatan: string,
+ *     total: int,
+ *     pendek: int,
+ *     panjang: int,
+ *     ukuran_pendek: array<string, int>,
+ *     ukuran_panjang: array<string, int>
+ *   }>
+ * }
+ */
+function getJalanSehatRekapKaosPencetak(array $rows): array
+{
+    $byJenis = jalanSehatUkuranKaosByJenis();
+    $sizes = array_keys($byJenis['pendek']['columns']);
+
+    $rekap = [
+        'total_pcs' => 0,
+        'total_pendek' => 0,
+        'total_panjang' => 0,
+        'madrasah_ada_kaos' => 0,
+        'per_ukuran' => [
+            'pendek' => array_fill_keys($sizes, 0),
+            'panjang' => array_fill_keys($sizes, 0),
+        ],
+        'per_madrasah' => [],
+    ];
+
+    foreach ($rows as $row) {
+        $pendek = 0;
+        $panjang = 0;
+        $ukuranPendek = [];
+        $ukuranPanjang = [];
+
+        foreach ($byJenis['pendek']['columns'] as $label => $col) {
+            $q = (int) ($row[$col] ?? 0);
+            $rekap['per_ukuran']['pendek'][$label] += $q;
+            $pendek += $q;
+            if ($q > 0) {
+                $ukuranPendek[$label] = $q;
+            }
+        }
+        foreach ($byJenis['panjang']['columns'] as $label => $col) {
+            $q = (int) ($row[$col] ?? 0);
+            $rekap['per_ukuran']['panjang'][$label] += $q;
+            $panjang += $q;
+            if ($q > 0) {
+                $ukuranPanjang[$label] = $q;
+            }
+        }
+
+        $totalRow = $pendek + $panjang;
+        $rekap['total_pendek'] += $pendek;
+        $rekap['total_panjang'] += $panjang;
+        $rekap['total_pcs'] += $totalRow;
+
+        if ($totalRow > 0) {
+            $rekap['madrasah_ada_kaos']++;
+            $rekap['per_madrasah'][] = [
+                'id' => (int) $row['id'],
+                'nama_madrasah' => (string) $row['nama_madrasah'],
+                'kecamatan' => trim((string) ($row['nama_kecamatan'] ?? '')) !== ''
+                    ? trim((string) $row['nama_kecamatan'])
+                    : '—',
+                'total' => $totalRow,
+                'pendek' => $pendek,
+                'panjang' => $panjang,
+                'ukuran_pendek' => $ukuranPendek,
+                'ukuran_panjang' => $ukuranPanjang,
+            ];
+        }
+    }
+
+    usort(
+        $rekap['per_madrasah'],
+        static fn (array $a, array $b): int => strnatcasecmp($a['nama_madrasah'], $b['nama_madrasah'])
+    );
+
+    return $rekap;
 }
 
 function alamatDetailJalanSehat(array $row): string
