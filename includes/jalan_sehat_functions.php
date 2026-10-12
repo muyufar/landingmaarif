@@ -529,9 +529,9 @@ function findJalanSehatPendaftaranIdsByEditPhone(string $nomor): array
     try {
         $stmt = $pdo->prepare(
             'SELECT id FROM jalan_sehat_pendaftaran
-             WHERE nomor_wa_norm = :norm OR nomor_hp_kepala_norm = :norm'
+             WHERE nomor_wa_norm = :norm1 OR nomor_hp_kepala_norm = :norm2'
         );
-        $stmt->execute([':norm' => $norm]);
+        $stmt->execute([':norm1' => $norm, ':norm2' => $norm]);
         foreach ($stmt->fetchAll() as $row) {
             $ids[] = (int) $row['id'];
         }
@@ -964,8 +964,12 @@ function loadJalanSehatPendaftaran(string $search = '', array $filters = []): ar
     $params = [];
 
     if ($search !== '') {
-        $sql .= ' AND (nama_madrasah LIKE :q OR nama_kepala LIKE :q OR alamat LIKE :q OR nomor_wa LIKE :q)';
-        $params[':q'] = '%' . $search . '%';
+        $sql .= ' AND (nama_madrasah LIKE :q1 OR nama_kepala LIKE :q2 OR alamat LIKE :q3 OR nomor_wa LIKE :q4)';
+        $like = '%' . $search . '%';
+        $params[':q1'] = $like;
+        $params[':q2'] = $like;
+        $params[':q3'] = $like;
+        $params[':q4'] = $like;
     }
 
     $paketFilter = (string) ($filters['paket'] ?? '');
