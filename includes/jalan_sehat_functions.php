@@ -800,8 +800,75 @@ function jalanSehatUrutanOptions(): array
     ];
 }
 
+/** @return list<string> */
+function jalanSehatJenjangOptions(): array
+{
+    return ['MI', 'SD', 'MTS', 'MA', 'SMA', 'SMK'];
+}
+
+function jalanSehatNormalizeJenjangFilter(string $jenjang): string
+{
+    $raw = trim($jenjang);
+    if ($raw === '') {
+        return '';
+    }
+    if (strcasecmp($raw, 'MTs') === 0) {
+        return 'MTS';
+    }
+
+    $upper = strtoupper($raw);
+    if (in_array($upper, jalanSehatJenjangOptions(), true)) {
+        return $upper;
+    }
+
+    return '';
+}
+
+function jalanSehatJenjangFromNamaMadrasah(string $nama): string
+{
+    $nama = trim($nama);
+    if ($nama === '') {
+        return 'Lainnya';
+    }
+    if (preg_match('/^SMA[\s.]/iu', $nama)) {
+        return 'SMA';
+    }
+    if (preg_match('/^SMK[\s.]/iu', $nama)) {
+        return 'SMK';
+    }
+    if (preg_match('/^MA[\s.]/iu', $nama)) {
+        return 'MA';
+    }
+    if (preg_match('/^(MTS|MTs)[\s.]/iu', $nama)) {
+        return 'MTS';
+    }
+    if (preg_match('/^SD[\s.]/iu', $nama)) {
+        return 'SD';
+    }
+    if (preg_match('/^MI[\s.]/iu', $nama)) {
+        return 'MI';
+    }
+
+    return 'Lainnya';
+}
+
+function jalanSehatJenjangSqlCondition(string $jenjang): string
+{
+    $jenjang = jalanSehatNormalizeJenjangFilter($jenjang);
+
+    return match ($jenjang) {
+        'MI' => "(nama_madrasah LIKE 'MI %' OR nama_madrasah LIKE 'MI.%')",
+        'SD' => "(nama_madrasah LIKE 'SD %' OR nama_madrasah LIKE 'SD.%')",
+        'MTS' => "(nama_madrasah LIKE 'MTs %' OR nama_madrasah LIKE 'MTs.%' OR nama_madrasah LIKE 'MTS %' OR nama_madrasah LIKE 'MTS.%')",
+        'MA' => "(nama_madrasah LIKE 'MA %' OR nama_madrasah LIKE 'MA.%')",
+        'SMA' => "(nama_madrasah LIKE 'SMA %' OR nama_madrasah LIKE 'SMA.%')",
+        'SMK' => "(nama_madrasah LIKE 'SMK %' OR nama_madrasah LIKE 'SMK.%')",
+        default => '',
+    };
+}
+
 /**
- * @param array{paket?: string, kecamatan?: string, kelurahan?: string, urut?: string} $filters
+ * @param array{paket?: string, kecamatan?: string, kelurahan?: string, urut?: string, jenjang?: string} $filters
  */
 function loadJalanSehatPendaftaran(string $search = '', array $filters = []): array
 {
@@ -832,6 +899,14 @@ function loadJalanSehatPendaftaran(string $search = '', array $filters = []): ar
     if ($kelurahan !== '') {
         $sql .= ' AND nama_kelurahan = :kelurahan';
         $params[':kelurahan'] = $kelurahan;
+    }
+
+    $jenjang = jalanSehatNormalizeJenjangFilter((string) ($filters['jenjang'] ?? ''));
+    if ($jenjang !== '' && in_array($jenjang, jalanSehatJenjangOptions(), true)) {
+        $jenjangSql = jalanSehatJenjangSqlCondition($jenjang);
+        if ($jenjangSql !== '') {
+            $sql .= ' AND ' . $jenjangSql;
+        }
     }
 
     $sql .= match ($filters['urut'] ?? 'terbaru') {

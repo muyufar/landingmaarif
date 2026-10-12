@@ -131,11 +131,16 @@ try {
     $settings = getJalanSehatPengaturan();
 
     $search = trim($_GET['q'] ?? '');
+    $jenjangFilter = jalanSehatNormalizeJenjangFilter(trim($_GET['jenjang'] ?? ''));
+    if ($jenjangFilter !== '' && !in_array($jenjangFilter, jalanSehatJenjangOptions(), true)) {
+        $jenjangFilter = '';
+    }
     $filters = [
         'paket' => trim($_GET['paket'] ?? ''),
         'kecamatan' => trim($_GET['kecamatan'] ?? ''),
         'kelurahan' => trim($_GET['kelurahan'] ?? ''),
         'urut' => array_key_exists($_GET['urut'] ?? '', jalanSehatUrutanOptions()) ? (string) $_GET['urut'] : 'terbaru',
+        'jenjang' => $jenjangFilter,
     ];
 
     if (isset($_GET['export']) && $_GET['export'] === 'xls') {

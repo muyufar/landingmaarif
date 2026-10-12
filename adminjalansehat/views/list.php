@@ -21,10 +21,18 @@ $selectClass = 'rounded-lg border border-gray-300 px-3 py-2 text-sm';
       </div>
     </div>
 
-    <form method="get" id="filter-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+    <form method="get" id="filter-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3">
       <input type="hidden" name="page" value="list">
       <input type="text" name="q" value="<?= sanitize($search) ?>" placeholder="Cari madrasah, kepala, alamat, WA..."
-             class="rounded-lg border border-gray-300 px-3 py-2 text-sm sm:col-span-2 focus:ring-2 focus:ring-green-600">
+             class="rounded-lg border border-gray-300 px-3 py-2 text-sm sm:col-span-2 xl:col-span-2 focus:ring-2 focus:ring-green-600">
+      <select name="jenjang" class="<?= $selectClass ?>">
+        <option value="">Semua Jenjang</option>
+        <?php foreach (jalanSehatJenjangOptions() as $jenjangOpt): ?>
+          <option value="<?= sanitize($jenjangOpt) ?>" <?= ($filters['jenjang'] ?? '') === $jenjangOpt ? 'selected' : '' ?>>
+            <?= sanitize($jenjangOpt) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
       <select name="kecamatan" class="<?= $selectClass ?>"
               onchange="this.form.elements.kelurahan.value=''; this.form.submit();">
         <option value="">Semua Kecamatan</option>
