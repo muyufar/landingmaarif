@@ -59,10 +59,14 @@ function ensureJalanSehatSchema(): void
     ];
     $previousColumn = 'alamat';
     foreach ($wilayahColumns as $column => $definition) {
-        if (!in_array($column, $existingColumns, true)) {
-            $pdo->exec("ALTER TABLE jalan_sehat_pendaftaran ADD COLUMN `{$column}` {$definition} AFTER `{$previousColumn}`");
-            if ($column === 'nama_kecamatan') {
+        jalanSehatAddColumnIfMissing($pdo, $existingColumns, $column, $definition, $previousColumn);
+        if ($column === 'nama_kecamatan' && in_array('nama_kecamatan', $existingColumns, true)) {
+            try {
                 $pdo->exec('ALTER TABLE jalan_sehat_pendaftaran ADD KEY `idx_js_kecamatan` (`nama_kecamatan`)');
+            } catch (PDOException $e) {
+                if (!str_contains($e->getMessage(), 'Duplicate key')) {
+                    throw $e;
+                }
             }
         }
         $previousColumn = $column;
@@ -75,22 +79,21 @@ function ensureJalanSehatSchema(): void
     ];
     $previousColumn = 'nomor_wa';
     foreach ($phoneColumns as $column => $definition) {
-        if (!in_array($column, $existingColumns, true)) {
-            $pdo->exec("ALTER TABLE jalan_sehat_pendaftaran ADD COLUMN `{$column}` {$definition} AFTER `{$previousColumn}`");
-            $existingColumns[] = $column;
-        }
+        jalanSehatAddColumnIfMissing($pdo, $existingColumns, $column, $definition, $previousColumn);
         $previousColumn = $column;
     }
 
     $previousColumn = 'jumlah_kaos';
     foreach (jalanSehatUkuranKaos() as $column) {
-        if (!in_array($column, $existingColumns, true)) {
-            $pdo->exec("ALTER TABLE jalan_sehat_pendaftaran ADD COLUMN `{$column}` int(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `{$previousColumn}`");
-        }
+        jalanSehatAddColumnIfMissing(
+            $pdo,
+            $existingColumns,
+            $column,
+            'int(10) UNSIGNED NOT NULL DEFAULT 0',
+            $previousColumn
+        );
         $previousColumn = $column;
     }
-
-    jalanSehatBackfillPhoneNormColumns($pdo);
 
     $pdo->exec(
         "CREATE TABLE IF NOT EXISTS `jalan_sehat_paket` (
@@ -115,6 +118,39 @@ function ensureJalanSehatSchema(): void
     );
 
     $done = true;
+
+    try {
+        jalanSehatBackfillPhoneNormColumns($pdo);
+    } catch (PDOException) {
+        // Backfill opsional; jangan blokir halaman jika gagal
+    }
+}
+
+function jalanSehatAddColumnIfMissing(
+    PDO $pdo,
+    array &$existingColumns,
+    string $column,
+    string $definition,
+    string $afterColumn
+): void {
+    if (in_array($column, $existingColumns, true)) {
+        return;
+    }
+
+    try {
+        $pdo->exec(
+            "ALTER TABLE jalan_sehat_pendaftaran ADD COLUMN `{$column}` {$definition} AFTER `{$afterColumn}`"
+        );
+        $existingColumns[] = $column;
+    } catch (PDOException $e) {
+        $msg = $e->getMessage();
+        if (str_contains($msg, 'Duplicate column') || $e->getCode() === '42S21') {
+            $existingColumns[] = $column;
+
+            return;
+        }
+        throw $e;
+    }
 }
 
 /**
@@ -382,6 +418,14 @@ function jalanSehatBackfillPhoneNormColumns(PDO $pdo): void
         return;
     }
     $backfilled = true;
+
+    $columnNames = array_column(
+        $pdo->query('SHOW COLUMNS FROM jalan_sehat_pendaftaran')->fetchAll(),
+        'Field'
+    );
+    if (!in_array('nomor_wa_norm', $columnNames, true)) {
+        return;
+    }
 
     $rows = $pdo->query(
         'SELECT id, nomor_wa, nomor_wa_norm, nomor_hp_kepala, nomor_hp_kepala_norm FROM jalan_sehat_pendaftaran'

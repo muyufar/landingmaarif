@@ -226,7 +226,11 @@ try {
         $content = ob_get_clean();
     }
 } catch (PDOException $e) {
-    $content = '<div class="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-red-800">Koneksi database gagal.</div>';
+    $dbMessage = 'Koneksi atau query database gagal. Silakan muat ulang halaman.';
+    if (is_file(dirname(__DIR__) . '/includes/config.local.php')) {
+        $dbMessage .= ' Detail: ' . sanitize($e->getMessage());
+    }
+    $content = '<div class="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-red-800">' . $dbMessage . '</div>';
 }
 
 require __DIR__ . '/_layout.php';
