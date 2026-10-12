@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-/** @var array $formData @var array $formErrors @var array $paketAktif */
+/** @var array $formData @var array $formErrors @var array $paketAktif @var array|null $pendaftaranDuplicateRow */
 $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-green-600 bg-white';
 $showPaketPicker = true;
 ?>
@@ -23,6 +23,12 @@ $showPaketPicker = true;
               <li><?= sanitize($error) ?></li>
             <?php endforeach; ?>
           </ul>
+          <?php if (!empty($pendaftaranDuplicateRow['id'])): ?>
+            <a href="<?= url('adminjalansehat/?page=edit&id=' . (int) $pendaftaranDuplicateRow['id']) ?>"
+               class="inline-block mt-3 bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2 rounded-lg text-sm">
+              Edit pendaftaran yang sudah ada
+            </a>
+          <?php endif; ?>
         </div>
       <?php endif; ?>
 

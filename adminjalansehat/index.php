@@ -40,6 +40,7 @@ $paketFormErrors = [];
 $paketFormData = null;
 $pendaftaranFormErrors = [];
 $pendaftaranFormData = null;
+$pendaftaranDuplicateRow = null;
 
 if (isJalanSehatAdminLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = (string) $_POST['action'];
@@ -77,7 +78,7 @@ if (isJalanSehatAdminLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST' && isse
             $pendaftaranId = (int) ($_POST['id'] ?? 0);
             $settingsPost = getJalanSehatPengaturan();
             $paketAktifPost = loadJalanSehatPaket(true);
-            $result = validateJalanSehat($_POST, $settingsPost, $paketAktifPost, $pendaftaranId);
+            $result = validateJalanSehat($_POST, $settingsPost, $paketAktifPost, $pendaftaranId, true);
             if (empty($result['errors'])) {
                 updateJalanSehatPendaftaran($pendaftaranId, $result['data']);
                 header('Location: ' . url('adminjalansehat/?page=detail&id=' . $pendaftaranId . '&msg=updated'));
@@ -85,11 +86,12 @@ if (isJalanSehatAdminLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST' && isse
             }
             $pendaftaranFormErrors = $result['errors'];
             $pendaftaranFormData = $result['data'];
+            $pendaftaranDuplicateRow = $result['duplicate_row'] ?? null;
             $currentPage = 'edit';
         } elseif ($action === 'create_pendaftaran') {
             $settingsPost = getJalanSehatPengaturan();
             $paketAktifPost = loadJalanSehatPaket(true);
-            $result = validateJalanSehat($_POST, $settingsPost, $paketAktifPost, null);
+            $result = validateJalanSehat($_POST, $settingsPost, $paketAktifPost, null, true);
             if (empty($result['errors'])) {
                 $newId = addJalanSehatPendaftaran($result['data']);
                 header('Location: ' . url('adminjalansehat/?page=detail&id=' . $newId . '&msg=created'));
@@ -97,6 +99,7 @@ if (isJalanSehatAdminLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST' && isse
             }
             $pendaftaranFormErrors = $result['errors'];
             $pendaftaranFormData = $result['data'];
+            $pendaftaranDuplicateRow = $result['duplicate_row'] ?? null;
             $currentPage = 'tambah';
         }
     } catch (PDOException $e) {
@@ -215,6 +218,7 @@ try {
         }
         $formErrors = $pendaftaranFormErrors;
         $paketAktif = loadJalanSehatPaket(true);
+        $pendaftaranDuplicateRow = $pendaftaranDuplicateRow ?? null;
         $pageTitle = 'Input Pendaftaran Manual';
         ob_start();
         require __DIR__ . '/views/tambah.php';

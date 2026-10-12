@@ -512,6 +512,96 @@ function jalanSehatNamaMadrasahMatch(string $a, string $b): bool
     return str_contains($na, $nb) || str_contains($nb, $na);
 }
 
+function jalanSehatNormalizeNamaMadrasah(string $nama): string
+{
+    $value = mb_strtolower(trim($nama));
+    $value = preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $value) ?? $value;
+    $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+
+    return trim($value);
+}
+
+function getJalanSehatPendaftaranByNamaMadrasah(string $nama, ?int $excludeId = null): ?array
+{
+    $target = jalanSehatNormalizeNamaMadrasah($nama);
+    if ($target === '') {
+        return null;
+    }
+
+    ensureJalanSehatTables();
+    $sql = 'SELECT * FROM jalan_sehat_pendaftaran';
+    $params = [];
+    if ($excludeId !== null && $excludeId > 0) {
+        $sql .= ' WHERE id != :exclude_id';
+        $params[':exclude_id'] = $excludeId;
+    }
+    $stmt = getDb()->prepare($sql);
+    $stmt->execute($params);
+    foreach ($stmt->fetchAll() as $row) {
+        if (jalanSehatNormalizeNamaMadrasah((string) $row['nama_madrasah']) === $target) {
+            return $row;
+        }
+    }
+
+    return null;
+}
+
+function jalanSehatRowHasNomorHp(array $row, string $norm): bool
+{
+    if ($norm === '') {
+        return false;
+    }
+    if (normalizeNomorWa((string) ($row['nomor_wa'] ?? '')) === $norm) {
+        return true;
+    }
+    if (normalizeNomorWa((string) ($row['nomor_hp_kepala'] ?? '')) === $norm) {
+        return true;
+    }
+
+    return false;
+}
+
+function getJalanSehatPendaftaranByNomorHp(string $nomor, ?int $excludeId = null): ?array
+{
+    $norm = normalizeNomorWa($nomor);
+    if ($norm === '') {
+        return null;
+    }
+
+    ensureJalanSehatTables();
+    $sql = 'SELECT * FROM jalan_sehat_pendaftaran';
+    $params = [];
+    if ($excludeId !== null && $excludeId > 0) {
+        $sql .= ' WHERE id != :exclude_id';
+        $params[':exclude_id'] = $excludeId;
+    }
+    $stmt = getDb()->prepare($sql);
+    $stmt->execute($params);
+    foreach ($stmt->fetchAll() as $row) {
+        if (jalanSehatRowHasNomorHp($row, $norm)) {
+            return $row;
+        }
+    }
+
+    return null;
+}
+
+function jalanSehatDuplicateBlockMessage(array $existing, bool $forAdmin, string $jenis): string
+{
+    $nama = (string) ($existing['nama_madrasah'] ?? '');
+    $label = $jenis === 'nama'
+        ? 'Nama madrasah sudah terdaftar (' . $nama . ').'
+        : 'Nomor HP sudah dipakai pada pendaftaran madrasah "' . $nama . '".';
+
+    if ($forAdmin) {
+        return $label . ' Tidak bisa menambah duplikat. Silakan ubah data yang ada melalui menu Edit (ID #'
+            . (int) ($existing['id'] ?? 0) . ').';
+    }
+
+    return $label . ' Jika ini madrasah Anda, jangan mendaftar ulang — perbarui data di halaman ubah pendaftaran: '
+        . absoluteUrl('jalansehat/ubah') . ' (masukkan nomor HP/WA atau HP kepala yang sama).';
+}
+
 /**
  * @return int[] ID pendaftaran yang boleh diedit dengan nomor HP ini (WA form, HP kepala, atau HP kepsek di pengkinian data).
  */
@@ -652,13 +742,14 @@ function jalanSehatFormDataFromRow(array $row): array
 /**
  * Nilai kupon/kaos untuk pilihan paket selalu diambil dari database, bukan dari input browser.
  */
-function validateJalanSehat(array $input, array $settings, array $paketAktif, ?int $updateId = null): array
+function validateJalanSehat(array $input, array $settings, array $paketAktif, ?int $updateId = null, bool $fromAdmin = false): array
 {
     $errors = [];
+    $duplicateRow = null;
     $isUpdate = $updateId !== null && $updateId > 0;
     $existingRow = $isUpdate ? getJalanSehatPendaftaranById($updateId) : null;
     if ($isUpdate && $existingRow === null) {
-        return ['errors' => ['Data pendaftaran tidak ditemukan.'], 'data' => jalanSehatFormDefaults()];
+        return ['errors' => ['Data pendaftaran tidak ditemukan.'], 'data' => jalanSehatFormDefaults(), 'duplicate_row' => null];
     }
 
     $data = [
@@ -777,7 +868,51 @@ function validateJalanSehat(array $input, array $settings, array $paketAktif, ?i
         $errors[] = 'Isi jumlah kupon door prize atau jumlah kaos per ukuran (minimal salah satu lebih dari 0).';
     }
 
-    return ['errors' => $errors, 'data' => $data];
+    if (!$isUpdate && $errors === []) {
+        $dupNama = getJalanSehatPendaftaranByNamaMadrasah($data['nama_madrasah'], null);
+        if ($dupNama !== null) {
+            $duplicateRow = $dupNama;
+            $errors[] = jalanSehatDuplicateBlockMessage($dupNama, $fromAdmin, 'nama');
+        } else {
+            $phonesChecked = [];
+            foreach ([$data['nomor_wa'], $data['nomor_hp_kepala']] as $phone) {
+                $phone = trim((string) $phone);
+                if ($phone === '') {
+                    continue;
+                }
+                $norm = normalizeNomorWa($phone);
+                if ($norm === '' || isset($phonesChecked[$norm])) {
+                    continue;
+                }
+                $phonesChecked[$norm] = true;
+                $dupPhone = getJalanSehatPendaftaranByNomorHp($phone, null);
+                if ($dupPhone !== null) {
+                    $duplicateRow = $dupPhone;
+                    $errors[] = jalanSehatDuplicateBlockMessage($dupPhone, $fromAdmin, 'hp');
+                    break;
+                }
+            }
+        }
+    }
+
+    if ($isUpdate && $errors === []) {
+        $dupNama = getJalanSehatPendaftaranByNamaMadrasah($data['nama_madrasah'], $updateId);
+        if ($dupNama !== null) {
+            $errors[] = 'Nama madrasah sudah dipakai pendaftaran lain (ID #' . (int) $dupNama['id'] . ').';
+        }
+        foreach ([$data['nomor_wa'], $data['nomor_hp_kepala']] as $phone) {
+            if (trim((string) $phone) === '') {
+                continue;
+            }
+            $dupPhone = getJalanSehatPendaftaranByNomorHp($phone, $updateId);
+            if ($dupPhone !== null) {
+                $errors[] = 'Nomor HP sudah dipakai pendaftaran lain (' . (string) $dupPhone['nama_madrasah'] . ').';
+                break;
+            }
+        }
+    }
+
+    return ['errors' => $errors, 'data' => $data, 'duplicate_row' => $duplicateRow];
 }
 
 function addJalanSehatPendaftaran(array $data): int

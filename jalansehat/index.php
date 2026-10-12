@@ -7,6 +7,7 @@ session_start();
 require_once dirname(__DIR__) . '/includes/jalan_sehat_functions.php';
 
 $errors = [];
+$duplicateRow = null;
 $formData = jalanSehatFormDefaults();
 $settings = jalanSehatPengaturanDefaults();
 $paketAktif = [];
@@ -58,6 +59,7 @@ if ($canSubmitForm && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!empty($result['errors'])) {
         $errors = $result['errors'];
+        $duplicateRow = $result['duplicate_row'] ?? null;
     } else {
         try {
             if ($isUpdatePost) {
@@ -195,11 +197,17 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
         <?php if (!empty($errors)): ?>
           <div class="mb-8 rounded-xl bg-red-50 border border-red-200 px-6 py-5 text-red-800">
             <h3 class="font-semibold mb-2">Periksa kembali formulir:</h3>
-            <ul class="list-disc list-inside space-y-1">
+            <ul class="list-disc list-inside space-y-1 text-sm">
               <?php foreach ($errors as $error): ?>
                 <li><?= sanitize($error) ?></li>
               <?php endforeach; ?>
             </ul>
+            <?php if ($duplicateRow !== null && !$editMode): ?>
+              <a href="<?= url('jalansehat/ubah') ?>"
+                 class="inline-block mt-4 bg-green-700 hover:bg-green-800 text-white font-semibold px-5 py-2.5 rounded-lg transition">
+                Ubah data pendaftaran (verifikasi nomor HP)
+              </a>
+            <?php endif; ?>
           </div>
         <?php endif; ?>
 
