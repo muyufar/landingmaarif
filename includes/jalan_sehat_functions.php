@@ -1302,7 +1302,8 @@ function setJalanSehatKaosKonveksiSelesai(int $id, bool $selesai): array
  *     panjang: int,
  *     ukuran_pendek: array<string, int>,
  *     ukuran_panjang: array<string, int>,
- *     selesai: bool
+ *     selesai: bool,
+ *     jenjang: string
  *   }>,
  *   madrasah_selesai: int
  * }
@@ -1372,6 +1373,7 @@ function getJalanSehatRekapKaosPencetak(array $rows): array
                 'ukuran_pendek' => $ukuranPendek,
                 'ukuran_panjang' => $ukuranPanjang,
                 'selesai' => $selesai,
+                'jenjang' => jalanSehatJenjangFromNamaMadrasah((string) $row['nama_madrasah']),
             ];
         }
     }

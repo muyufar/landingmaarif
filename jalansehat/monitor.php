@@ -115,6 +115,23 @@ if ($showRekap) {
       $progTotal = (int) $rekap['madrasah_ada_kaos'];
       $progDone = (int) $rekap['madrasah_selesai'];
       $progPct = $progTotal > 0 ? (int) round(100 * $progDone / $progTotal) : 0;
+      $kecamatanList = [];
+      $jenjangPresent = [];
+      foreach ($rekap['per_madrasah'] as $mRow) {
+          $kc = (string) $mRow['kecamatan'];
+          if ($kc !== '' && $kc !== '—') {
+              $kecamatanList[$kc] = true;
+          }
+          $jenjangPresent[(string) $mRow['jenjang']] = true;
+      }
+      $kecamatanList = array_keys($kecamatanList);
+      sort($kecamatanList, SORT_NATURAL | SORT_FLAG_CASE);
+      $jenjangFilterOpts = [];
+      foreach (array_merge(jalanSehatJenjangOptions(), ['Lainnya']) as $jenjangOpt) {
+          if (!empty($jenjangPresent[$jenjangOpt])) {
+              $jenjangFilterOpts[] = $jenjangOpt;
+          }
+      }
       ?>
       <div class="print-sheet bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-green-100 dark:border-gray-700 overflow-hidden">
         <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex flex-wrap justify-between gap-2 items-baseline">
@@ -128,23 +145,61 @@ if ($showRekap) {
         </div>
 
         <div class="px-6 py-6 space-y-8">
+          <div class="no-print rounded-xl border border-gray-200 bg-gray-50 px-4 py-4 space-y-3">
+            <p class="text-sm font-semibold text-gray-800">Filter tampilan</p>
+            <div class="flex flex-wrap gap-2">
+              <label class="text-sm flex-1 min-w-[10rem] sm:max-w-[14rem]">
+                <span class="block text-xs font-medium text-gray-600 mb-1">Kecamatan</span>
+                <select id="filter-kecamatan" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm">
+                  <option value="">Semua kecamatan</option>
+                  <?php foreach ($kecamatanList as $kec): ?>
+                    <option value="<?= sanitize($kec) ?>"><?= sanitize($kec) ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
+              <label class="text-sm flex-1 min-w-[8rem] sm:max-w-[11rem]">
+                <span class="block text-xs font-medium text-gray-600 mb-1">Jenjang</span>
+                <select id="filter-jenjang" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm">
+                  <option value="">Semua jenjang</option>
+                  <?php foreach ($jenjangFilterOpts as $jenjangOpt): ?>
+                    <option value="<?= sanitize($jenjangOpt) ?>"><?= sanitize($jenjangOpt) ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
+              <label class="text-sm flex-1 min-w-[8rem] sm:max-w-[11rem]">
+                <span class="block text-xs font-medium text-gray-600 mb-1">Status kerja</span>
+                <select id="filter-status" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm">
+                  <option value="all">Semua status</option>
+                  <option value="pending">Belum dikerjakan</option>
+                  <option value="done">Sudah selesai</option>
+                </select>
+              </label>
+              <label class="text-sm flex-1 min-w-[12rem] sm:max-w-[16rem]">
+                <span class="block text-xs font-medium text-gray-600 mb-1">Cari nama</span>
+                <input type="search" id="filter-madrasah" placeholder="Nama madrasah…"
+                       class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm">
+              </label>
+            </div>
+            <p id="filter-active-hint" class="text-xs text-gray-600 hidden"></p>
+          </div>
+
           <section>
             <h3 class="text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Ringkasan cetak</h3>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div class="rounded-xl bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 p-4 text-center">
-                <p class="text-3xl font-bold text-green-800 dark:text-green-300"><?= number_format($rekap['total_pcs'], 0, ',', '.') ?></p>
+                <p id="stat-total-pcs" class="text-3xl font-bold text-green-800 dark:text-green-300"><?= number_format($rekap['total_pcs'], 0, ',', '.') ?></p>
                 <p class="text-xs font-semibold text-green-900 dark:text-green-200 mt-1">Total kaos (pcs)</p>
               </div>
               <div class="rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 p-4 text-center">
-                <p class="text-3xl font-bold text-sky-800 dark:text-sky-300"><?= number_format($rekap['total_pendek'], 0, ',', '.') ?></p>
+                <p id="stat-total-pendek" class="text-3xl font-bold text-sky-800 dark:text-sky-300"><?= number_format($rekap['total_pendek'], 0, ',', '.') ?></p>
                 <p class="text-xs font-semibold text-sky-900 dark:text-sky-200 mt-1">Lengan pendek</p>
               </div>
               <div class="rounded-xl bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800 p-4 text-center">
-                <p class="text-3xl font-bold text-violet-800 dark:text-violet-300"><?= number_format($rekap['total_panjang'], 0, ',', '.') ?></p>
+                <p id="stat-total-panjang" class="text-3xl font-bold text-violet-800 dark:text-violet-300"><?= number_format($rekap['total_panjang'], 0, ',', '.') ?></p>
                 <p class="text-xs font-semibold text-violet-900 dark:text-violet-200 mt-1">Lengan panjang</p>
               </div>
               <div class="rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-600 p-4 text-center">
-                <p class="text-3xl font-bold text-gray-800 dark:text-gray-200"><?= number_format($rekap['madrasah_ada_kaos'], 0, ',', '.') ?></p>
+                <p id="stat-madrasah-count" class="text-3xl font-bold text-gray-800 dark:text-gray-200"><?= number_format($rekap['madrasah_ada_kaos'], 0, ',', '.') ?></p>
                 <p class="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-1">Madrasah pesan kaos</p>
               </div>
             </div>
@@ -180,16 +235,16 @@ if ($showRekap) {
                   <tr>
                     <td class="border border-gray-300 dark:border-gray-600 px-3 py-2 font-medium">Lengan pendek</td>
                     <?php foreach ($sizes as $sz): ?>
-                      <td class="border border-gray-300 dark:border-gray-600 cell-qty font-semibold"><?= (int) $pu[$sz] ?></td>
+                      <td id="stat-pendek-<?= sanitize($sz) ?>" class="border border-gray-300 dark:border-gray-600 cell-qty font-semibold"><?= (int) $pu[$sz] ?></td>
                     <?php endforeach; ?>
-                    <td class="border border-gray-300 dark:border-gray-600 cell-qty font-bold bg-green-50 dark:bg-green-950/30"><?= (int) $rekap['total_pendek'] ?></td>
+                    <td id="stat-pendek-jumlah" class="border border-gray-300 dark:border-gray-600 cell-qty font-bold bg-green-50 dark:bg-green-950/30"><?= (int) $rekap['total_pendek'] ?></td>
                   </tr>
                   <tr>
                     <td class="border border-gray-300 dark:border-gray-600 px-3 py-2 font-medium">Lengan panjang</td>
                     <?php foreach ($sizes as $sz): ?>
-                      <td class="border border-gray-300 dark:border-gray-600 cell-qty font-semibold"><?= (int) $pj[$sz] ?></td>
+                      <td id="stat-panjang-<?= sanitize($sz) ?>" class="border border-gray-300 dark:border-gray-600 cell-qty font-semibold"><?= (int) $pj[$sz] ?></td>
                     <?php endforeach; ?>
-                    <td class="border border-gray-300 dark:border-gray-600 cell-qty font-bold bg-green-50 dark:bg-green-950/30"><?= (int) $rekap['total_panjang'] ?></td>
+                    <td id="stat-panjang-jumlah" class="border border-gray-300 dark:border-gray-600 cell-qty font-bold bg-green-50 dark:bg-green-950/30"><?= (int) $rekap['total_panjang'] ?></td>
                   </tr>
                 </tbody>
               </table>
@@ -198,25 +253,7 @@ if ($showRekap) {
           </section>
 
           <section>
-            <div class="flex flex-wrap items-end justify-between gap-3 mb-3 no-print">
-              <h3 class="text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Rincian per madrasah</h3>
-              <div class="flex flex-wrap gap-2 w-full sm:w-auto">
-                <label class="text-sm flex-1 sm:flex-none min-w-[9rem]">
-                  <span class="sr-only">Filter status</span>
-                  <select id="filter-status" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-900 px-3 py-2 text-sm">
-                    <option value="all">Semua status</option>
-                    <option value="pending">Belum dikerjakan</option>
-                    <option value="done">Sudah selesai</option>
-                  </select>
-                </label>
-                <label class="text-sm flex-1 sm:flex-none sm:min-w-[14rem]">
-                  <span class="sr-only">Cari madrasah</span>
-                  <input type="search" id="filter-madrasah" placeholder="Cari madrasah / kecamatan…"
-                         class="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-900 px-3 py-2 text-sm">
-                </label>
-              </div>
-            </div>
-            <h3 class="text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3 hidden print:block">Rincian per madrasah</h3>
+            <h3 class="text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Rincian per madrasah</h3>
             <div class="overflow-x-auto">
               <table class="monitor-table w-full text-xs sm:text-sm border-collapse border border-gray-300 dark:border-gray-600" id="tabel-madrasah">
                 <thead>
@@ -250,6 +287,8 @@ if ($showRekap) {
                       <tr class="madrasah-row hover:bg-gray-50 dark:hover:bg-gray-900/50 <?= $isSelesai ? 'row-selesai' : '' ?>"
                           data-search="<?= sanitize($searchBlob) ?>"
                           data-selesai="<?= $isSelesai ? '1' : '0' ?>"
+                          data-kecamatan="<?= sanitize((string) $m['kecamatan']) ?>"
+                          data-jenjang="<?= sanitize((string) $m['jenjang']) ?>"
                           data-id="<?= (int) $m['id'] ?>">
                         <td class="border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-center align-middle">
                           <label class="inline-flex items-center justify-center cursor-pointer print:hidden" title="Tandai sudah dikerjakan">
@@ -258,7 +297,7 @@ if ($showRekap) {
                           </label>
                           <span class="hidden print:inline font-bold"><?= $isSelesai ? '✓' : '—' ?></span>
                         </td>
-                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-1.5"><?= $i + 1 ?></td>
+                        <td class="border border-gray-300 dark:border-gray-600 px-2 py-1.5 row-no"><?= $i + 1 ?></td>
                         <td class="border border-gray-300 dark:border-gray-600 px-2 py-1.5 font-medium nama-madrasah-cell"><?= sanitize($m['nama_madrasah']) ?></td>
                         <td class="border border-gray-300 dark:border-gray-600 px-2 py-1.5"><?= sanitize($m['kecamatan']) ?></td>
                         <?php foreach ($sizes as $sz): ?>
@@ -288,37 +327,121 @@ if ($showRekap) {
   </footer>
 
   <?= siteThemeFooterScript() ?>
-  <?php if ($showRekap): ?>
+  <?php if ($showRekap && $rekap !== null): ?>
   <script>
     (function () {
       var monitorUrl = <?= json_encode(url('jalansehat/monitor'), JSON_UNESCAPED_UNICODE) ?>;
       var searchInput = document.getElementById('filter-madrasah');
       var statusSelect = document.getElementById('filter-status');
+      var kecamatanSelect = document.getElementById('filter-kecamatan');
+      var jenjangSelect = document.getElementById('filter-jenjang');
       var progressLabel = document.getElementById('progress-label');
       var progressBar = document.getElementById('progress-bar');
-      var progTotal = <?= (int) ($progTotal ?? 0) ?>;
+      var filterHint = document.getElementById('filter-active-hint');
+      var sizeLabels = <?= json_encode($sizes, JSON_UNESCAPED_UNICODE) ?>;
+      var monitorRows = <?= json_encode($rekap['per_madrasah'], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
+      function filterState() {
+        return {
+          q: searchInput ? searchInput.value.trim().toLowerCase() : '',
+          status: statusSelect ? statusSelect.value : 'all',
+          kecamatan: kecamatanSelect ? kecamatanSelect.value : '',
+          jenjang: jenjangSelect ? jenjangSelect.value : '',
+        };
+      }
+
+      function rowMatches(row, state) {
+        var blob = (row.nama_madrasah + ' ' + row.kecamatan).toLowerCase();
+        if (state.q !== '' && blob.indexOf(state.q) === -1) return false;
+        if (state.kecamatan !== '' && row.kecamatan !== state.kecamatan) return false;
+        if (state.jenjang !== '' && row.jenjang !== state.jenjang) return false;
+        var selesai = !!row.selesai;
+        if (state.status === 'done' && !selesai) return false;
+        if (state.status === 'pending' && selesai) return false;
+        return true;
+      }
+
+      function trMatches(tr, state) {
+        var blob = tr.getAttribute('data-search') || '';
+        if (state.q !== '' && blob.indexOf(state.q) === -1) return false;
+        if (state.kecamatan !== '' && tr.getAttribute('data-kecamatan') !== state.kecamatan) return false;
+        if (state.jenjang !== '' && tr.getAttribute('data-jenjang') !== state.jenjang) return false;
+        var selesai = tr.getAttribute('data-selesai') === '1';
+        if (state.status === 'done' && !selesai) return false;
+        if (state.status === 'pending' && selesai) return false;
+        return true;
+      }
+
+      function setText(id, n) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = Number(n).toLocaleString('id-ID');
+      }
+
+      function updateSummaryFromFilter(state) {
+        var totals = { pcs: 0, pendek: 0, panjang: 0, count: 0, done: 0 };
+        var perPendek = {};
+        var perPanjang = {};
+        sizeLabels.forEach(function (sz) {
+          perPendek[sz] = 0;
+          perPanjang[sz] = 0;
+        });
+        monitorRows.forEach(function (row) {
+          if (!rowMatches(row, state)) return;
+          totals.count++;
+          totals.pcs += row.total;
+          totals.pendek += row.pendek;
+          totals.panjang += row.panjang;
+          if (row.selesai) totals.done++;
+          sizeLabels.forEach(function (sz) {
+            perPendek[sz] += (row.ukuran_pendek && row.ukuran_pendek[sz]) ? row.ukuran_pendek[sz] : 0;
+            perPanjang[sz] += (row.ukuran_panjang && row.ukuran_panjang[sz]) ? row.ukuran_panjang[sz] : 0;
+          });
+        });
+        setText('stat-total-pcs', totals.pcs);
+        setText('stat-total-pendek', totals.pendek);
+        setText('stat-total-panjang', totals.panjang);
+        setText('stat-madrasah-count', totals.count);
+        sizeLabels.forEach(function (sz) {
+          setText('stat-pendek-' + sz, perPendek[sz]);
+          setText('stat-panjang-' + sz, perPanjang[sz]);
+        });
+        setText('stat-pendek-jumlah', totals.pendek);
+        setText('stat-panjang-jumlah', totals.panjang);
+        if (progressLabel) {
+          var pct = totals.count > 0 ? Math.round(100 * totals.done / totals.count) : 0;
+          progressLabel.textContent = totals.done.toLocaleString('id-ID') + ' / ' + totals.count.toLocaleString('id-ID') + ' madrasah selesai (' + pct + '%)';
+          if (progressBar) progressBar.style.width = pct + '%';
+        }
+        if (filterHint) {
+          var parts = [];
+          if (state.kecamatan) parts.push('Kecamatan: ' + state.kecamatan);
+          if (state.jenjang) parts.push('Jenjang: ' + state.jenjang);
+          if (parts.length) {
+            filterHint.textContent = 'Ringkasan angka mengikuti filter — ' + parts.join(' · ');
+            filterHint.classList.remove('hidden');
+          } else {
+            filterHint.classList.add('hidden');
+          }
+        }
+      }
 
       function applyFilters() {
-        var q = searchInput ? searchInput.value.trim().toLowerCase() : '';
-        var status = statusSelect ? statusSelect.value : 'all';
+        var state = filterState();
+        var no = 0;
         document.querySelectorAll('#tabel-madrasah .madrasah-row').forEach(function (tr) {
-          var blob = tr.getAttribute('data-search') || '';
-          var matchSearch = q === '' || blob.indexOf(q) !== -1;
-          var selesai = tr.getAttribute('data-selesai') === '1';
-          var matchStatus = status === 'all' || (status === 'done' && selesai) || (status === 'pending' && !selesai);
-          tr.style.display = matchSearch && matchStatus ? '' : 'none';
+          var show = trMatches(tr, state);
+          tr.style.display = show ? '' : 'none';
+          if (show) {
+            no++;
+            var cell = tr.querySelector('.row-no');
+            if (cell) cell.textContent = String(no);
+          }
         });
+        updateSummaryFromFilter(state);
       }
 
       function refreshProgress() {
-        if (!progressLabel || progTotal <= 0) return;
-        var done = 0;
-        document.querySelectorAll('#tabel-madrasah .madrasah-row').forEach(function (tr) {
-          if (tr.getAttribute('data-selesai') === '1') done++;
-        });
-        var pct = Math.round(100 * done / progTotal);
-        progressLabel.textContent = done.toLocaleString('id-ID') + ' / ' + progTotal.toLocaleString('id-ID') + ' madrasah selesai (' + pct + '%)';
-        if (progressBar) progressBar.style.width = pct + '%';
+        applyFilters();
       }
 
       function setRowSelesai(tr, selesai) {
@@ -330,6 +453,8 @@ if ($showRekap) {
 
       if (searchInput) searchInput.addEventListener('input', applyFilters);
       if (statusSelect) statusSelect.addEventListener('change', applyFilters);
+      if (kecamatanSelect) kecamatanSelect.addEventListener('change', applyFilters);
+      if (jenjangSelect) jenjangSelect.addEventListener('change', applyFilters);
 
       document.querySelectorAll('.kaos-selesai-cb').forEach(function (cb) {
         cb.addEventListener('change', function () {
@@ -350,8 +475,11 @@ if ($showRekap) {
                 return;
               }
               setRowSelesai(tr, selesai);
+              var id = parseInt(tr.getAttribute('data-id') || '0', 10);
+              monitorRows.forEach(function (row) {
+                if (row.id === id) row.selesai = selesai;
+              });
               refreshProgress();
-              applyFilters();
             })
             .catch(function () {
               cb.checked = !selesai;
