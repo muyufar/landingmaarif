@@ -2,11 +2,8 @@
 
 declare(strict_types=1);
 
-session_start();
-
 require_once dirname(__DIR__) . '/includes/jalan_sehat_functions.php';
 
-$errors = [];
 $settings = jalanSehatPengaturanDefaults();
 $dbError = false;
 $rekap = null;
@@ -21,42 +18,16 @@ try {
 }
 
 $monitorEnabled = jalanSehatMonitorKaosEnabled($settings);
+$showRekap = $monitorEnabled && !$dbError;
 
-if (isset($_GET['keluar'])) {
-    jalanSehatRevokeMonitorKaosAccess();
-    header('Location: ' . url('jalansehat/monitor'));
-    exit;
-}
-
-if ($monitorEnabled && !$dbError) {
-    $kFromQuery = trim((string) ($_GET['k'] ?? ''));
-    if ($kFromQuery !== '' && jalanSehatVerifyMonitorKaosKode($settings, $kFromQuery)) {
-        jalanSehatGrantMonitorKaosAccess();
-        header('Location: ' . url('jalansehat/monitor'));
-        exit;
-    }
-
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $inputKode = trim((string) ($_POST['kode_akses'] ?? ''));
-        if (jalanSehatVerifyMonitorKaosKode($settings, $inputKode)) {
-            jalanSehatGrantMonitorKaosAccess();
-            header('Location: ' . url('jalansehat/monitor'));
-            exit;
-        }
-        $errors[] = 'Kode akses salah. Minta kode terbaru ke panitia LP Ma\'arif NU.';
-    }
-}
-
-$hasAccess = $monitorEnabled && !$dbError && jalanSehatHasMonitorKaosAccess();
-
-if ($hasAccess) {
+if ($showRekap) {
     try {
         $rows = loadJalanSehatPendaftaran();
         $rekap = getJalanSehatRekapKaosPencetak($rows);
         $updatedAt = date('d/m/Y H:i');
     } catch (PDOException $e) {
         $dbError = true;
-        $hasAccess = false;
+        $showRekap = false;
     }
 }
 
@@ -96,11 +67,8 @@ if ($hasAccess) {
           <p class="text-xs sm:text-sm text-green-100">Untuk konveksi / pencetak kaos</p>
         </div>
       </div>
-      <?php if ($hasAccess): ?>
-        <div class="flex flex-wrap gap-2">
-          <button type="button" onclick="window.print()" class="text-sm bg-white text-green-900 hover:bg-green-50 font-semibold px-4 py-2 rounded-lg">Cetak / PDF</button>
-          <a href="<?= url('jalansehat/monitor?keluar=1') ?>" class="text-sm bg-green-950 hover:bg-black px-4 py-2 rounded-lg">Keluar</a>
-        </div>
+      <?php if ($showRekap): ?>
+        <button type="button" onclick="window.print()" class="text-sm bg-white text-green-900 hover:bg-green-50 font-semibold px-4 py-2 rounded-lg">Cetak / PDF</button>
       <?php endif; ?>
     </div>
   </header>
@@ -115,31 +83,7 @@ if ($hasAccess) {
         <p class="text-lg font-semibold text-green-800 dark:text-green-300">Monitor kaos belum dibuka</p>
         <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Panitia belum mengaktifkan halaman ini. Hubungi LP Ma'arif NU Kab. Magelang untuk akses konveksi.</p>
       </div>
-    <?php elseif (!$hasAccess): ?>
-      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-green-100 dark:border-gray-700 overflow-hidden max-w-md mx-auto">
-        <div class="bg-green-700 text-white px-6 py-5">
-          <h2 class="text-xl font-bold">Masuk dengan kode akses</h2>
-          <p class="text-green-100 text-sm mt-1">Kode diberikan panitia kepada konveksi. Jangan dibagikan ke umum.</p>
-        </div>
-        <div class="px-6 py-6">
-          <?php if (!empty($errors)): ?>
-            <ul class="mb-4 text-sm text-red-700 dark:text-red-300 list-disc list-inside">
-              <?php foreach ($errors as $error): ?>
-                <li><?= sanitize($error) ?></li>
-              <?php endforeach; ?>
-            </ul>
-          <?php endif; ?>
-          <form method="post" class="space-y-4">
-            <div>
-              <label for="kode_akses" class="block text-sm font-semibold mb-2">Kode akses konveksi</label>
-              <input type="password" id="kode_akses" name="kode_akses" required autocomplete="off"
-                     class="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-900 px-4 py-3 font-mono focus:ring-2 focus:ring-green-600">
-            </div>
-            <button type="submit" class="w-full bg-green-700 hover:bg-green-800 text-white font-semibold py-3 rounded-lg">Lihat rekap kaos</button>
-          </form>
-        </div>
-      </div>
-    <?php else: ?>
+    <?php elseif ($showRekap && $rekap !== null): ?>
       <?php
       $pu = $rekap['per_ukuran']['pendek'];
       $pj = $rekap['per_ukuran']['panjang'];
@@ -281,7 +225,7 @@ if ($hasAccess) {
   </footer>
 
   <?= siteThemeFooterScript() ?>
-  <?php if ($hasAccess): ?>
+  <?php if ($showRekap): ?>
   <script>
     (function () {
       var input = document.getElementById('filter-madrasah');

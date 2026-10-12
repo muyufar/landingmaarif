@@ -277,7 +277,6 @@ function jalanSehatPengaturanDefaults(): array
         'harga_kaos' => '0',
         'info_surat_edaran' => '',
         'monitor_kaos_aktif' => '0',
-        'monitor_kaos_kode' => '',
     ];
 }
 
@@ -298,24 +297,13 @@ function getJalanSehatPengaturan(): array
 function saveJalanSehatPengaturan(array $input): void
 {
     ensureJalanSehatSchema();
-    $monitorAktif = !empty($input['monitor_kaos_aktif']);
-    $monitorKode = trim((string) ($input['monitor_kaos_kode'] ?? ''));
-    if ($monitorAktif && $monitorKode === '') {
-        $existing = getJalanSehatPengaturan();
-        $monitorKode = jalanSehatMonitorKaosKode($existing);
-        if ($monitorKode === '') {
-            $monitorKode = substr(bin2hex(random_bytes(12)), 0, 16);
-        }
-    }
-
     $values = [
         'pendaftaran_dibuka' => !empty($input['pendaftaran_dibuka']) ? '1' : '0',
         'izinkan_jumlah_bebas' => !empty($input['izinkan_jumlah_bebas']) ? '1' : '0',
         'harga_kupon' => (string) max(0, (int) preg_replace('/\D/', '', (string) ($input['harga_kupon'] ?? '0'))),
         'harga_kaos' => (string) max(0, (int) preg_replace('/\D/', '', (string) ($input['harga_kaos'] ?? '0'))),
         'info_surat_edaran' => trim((string) ($input['info_surat_edaran'] ?? '')),
-        'monitor_kaos_aktif' => $monitorAktif ? '1' : '0',
-        'monitor_kaos_kode' => $monitorKode,
+        'monitor_kaos_aktif' => !empty($input['monitor_kaos_aktif']) ? '1' : '0',
     ];
 
     $stmt = getDb()->prepare(
@@ -1247,36 +1235,6 @@ function getJalanSehatRingkasan(array $rows, array $settings): array
 function jalanSehatMonitorKaosEnabled(array $settings): bool
 {
     return ($settings['monitor_kaos_aktif'] ?? '0') === '1';
-}
-
-function jalanSehatMonitorKaosKode(array $settings): string
-{
-    return trim((string) ($settings['monitor_kaos_kode'] ?? ''));
-}
-
-function jalanSehatGrantMonitorKaosAccess(): void
-{
-    $_SESSION['jalan_sehat_monitor_kaos_ok'] = true;
-}
-
-function jalanSehatRevokeMonitorKaosAccess(): void
-{
-    unset($_SESSION['jalan_sehat_monitor_kaos_ok']);
-}
-
-function jalanSehatHasMonitorKaosAccess(): bool
-{
-    return !empty($_SESSION['jalan_sehat_monitor_kaos_ok']);
-}
-
-function jalanSehatVerifyMonitorKaosKode(array $settings, string $input): bool
-{
-    $expected = jalanSehatMonitorKaosKode($settings);
-    if ($expected === '') {
-        return false;
-    }
-
-    return hash_equals($expected, trim($input));
 }
 
 /**

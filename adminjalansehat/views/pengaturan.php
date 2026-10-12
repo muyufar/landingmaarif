@@ -54,31 +54,18 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:
           <p class="text-xs text-gray-500 mt-1">Tampil di atas isian Jumlah Pemesanan pada form publik.</p>
         </div>
 
-        <div class="rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-4 space-y-3">
+        <div class="rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-4 space-y-2">
           <label class="flex items-start gap-3">
             <input type="checkbox" name="monitor_kaos_aktif" value="1" class="mt-1 h-4 w-4 text-green-700"
                    <?= ($settings['monitor_kaos_aktif'] ?? '0') === '1' ? 'checked' : '' ?>>
             <span>
               <span class="block text-sm font-semibold text-gray-800">Halaman monitor kaos untuk konveksi</span>
-              <span class="block text-xs text-gray-600 mt-0.5">Rekap ukuran lengan pendek &amp; panjang tanpa nomor HP/WA. Bagikan kode akses ke pencetak kaos.</span>
+              <span class="block text-xs text-gray-600 mt-0.5">Rekap ukuran lengan pendek &amp; panjang (tanpa nomor HP/WA). Siapa pun dengan link bisa membuka — bagikan URL ke pencetak kaos.</span>
             </span>
           </label>
-          <div>
-            <label for="monitor_kaos_kode" class="block text-sm font-semibold text-gray-700 mb-1">Kode akses konveksi</label>
-            <input type="text" id="monitor_kaos_kode" name="monitor_kaos_kode" autocomplete="off"
-                   value="<?= sanitize((string) ($settings['monitor_kaos_kode'] ?? '')) ?>"
-                   placeholder="Kosongkan lalu simpan — kode otomatis dibuat jika monitor aktif"
-                   class="<?= $inputClass ?> font-mono">
-          </div>
-          <?php
-          $monitorUrl = absoluteUrl('jalansehat/monitor');
-          $kodeTampil = trim((string) ($settings['monitor_kaos_kode'] ?? ''));
-          ?>
-          <p class="text-xs text-gray-600 break-all">
+          <?php $monitorUrl = absoluteUrl('jalansehat/monitor'); ?>
+          <p class="text-xs text-gray-600 break-all pl-7">
             URL: <a href="<?= sanitize($monitorUrl) ?>" target="_blank" rel="noopener" class="text-green-800 underline font-medium"><?= sanitize($monitorUrl) ?></a>
-            <?php if (($settings['monitor_kaos_aktif'] ?? '0') === '1' && $kodeTampil !== ''): ?>
-              <br>Tautan langsung (rahasia): <span class="font-mono text-gray-800"><?= sanitize($monitorUrl . '?k=' . rawurlencode($kodeTampil)) ?></span>
-            <?php endif; ?>
           </p>
         </div>
 
