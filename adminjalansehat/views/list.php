@@ -16,6 +16,8 @@ $selectClass = 'rounded-lg border border-gray-300 px-3 py-2 text-sm';
         <p class="text-sm text-gray-500 mt-1">Total: <strong><?= count($rows) ?></strong> madrasah</p>
       </div>
       <div class="flex flex-wrap gap-2">
+        <a href="<?= url('adminjalansehat/?page=tambah') ?>"
+           class="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg text-sm font-medium">+ Input Manual</a>
         <a href="<?= url('adminjalansehat/?' . $exportQuery) ?>"
            class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Export XLS</a>
       </div>

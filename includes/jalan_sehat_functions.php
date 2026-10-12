@@ -1060,6 +1060,32 @@ function isJalanSehatAdminLoggedIn(): bool
     return isMaarifAdminLoggedIn();
 }
 
+function jalanSehatAdminFormScripts(): string
+{
+    ob_start();
+    require dirname(__DIR__) . '/pesertakerdinma/_wilayah_registrasi_script.php';
+    ?>
+<script>
+(function () {
+  const inputs = document.querySelectorAll('.js-kaos-input');
+  const totalEl = document.getElementById('total-kaos');
+  function update() {
+    let t = 0;
+    inputs.forEach(function (el) {
+      const n = parseInt(el.value, 10);
+      if (Number.isFinite(n) && n > 0) t += n;
+    });
+    if (totalEl) totalEl.textContent = String(t);
+  }
+  inputs.forEach(function (el) { el.addEventListener('input', update); });
+  update();
+})();
+</script>
+    <?php
+
+    return ob_get_clean();
+}
+
 function exportJalanSehatXls(array $rows, array $settings): void
 {
     $filename = 'pendaftaran_jalan_sehat_hsn2026_' . date('Y-m-d_His') . '.xls';
