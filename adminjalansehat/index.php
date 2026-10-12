@@ -232,7 +232,7 @@ try {
     }
 } catch (PDOException $e) {
     $dbMessage = 'Koneksi atau query database gagal. Silakan muat ulang halaman.';
-    if (is_file(dirname(__DIR__) . '/includes/config.local.php')) {
+    if (isJalanSehatAdminLoggedIn()) {
         $dbMessage .= ' Detail: ' . sanitize($e->getMessage());
     }
     $content = '<div class="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-red-800">' . $dbMessage . '</div>';

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/functions.php';
 
-function ensureJalanSehatSchema(): void
+function ensureJalanSehatTables(): void
 {
     static $done = false;
     if ($done) {
@@ -45,10 +45,67 @@ function ensureJalanSehatSchema(): void
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
 
-    $existingColumns = array_column(
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS `jalan_sehat_paket` (
+          `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+          `nama` varchar(150) NOT NULL,
+          `jumlah_kupon` int(10) UNSIGNED NOT NULL DEFAULT 0,
+          `jumlah_kaos` int(10) UNSIGNED NOT NULL DEFAULT 0,
+          `keterangan` varchar(255) DEFAULT NULL,
+          `aktif` tinyint(1) NOT NULL DEFAULT 1,
+          `urutan` int(10) UNSIGNED NOT NULL DEFAULT 0,
+          `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS `jalan_sehat_pengaturan` (
+          `kunci` varchar(50) NOT NULL,
+          `nilai` text DEFAULT NULL,
+          PRIMARY KEY (`kunci`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+
+    $done = true;
+}
+
+/** @return list<string> */
+function jalanSehatPendaftaranColumnNames(?PDO $pdo = null, bool $refresh = false): array
+{
+    static $columns = null;
+    if ($refresh) {
+        $columns = null;
+    }
+    if ($columns !== null) {
+        return $columns;
+    }
+
+    $pdo ??= getDb();
+    ensureJalanSehatTables();
+    $columns = array_column(
         $pdo->query('SHOW COLUMNS FROM jalan_sehat_pendaftaran')->fetchAll(),
         'Field'
     );
+
+    return $columns;
+}
+
+function ensureJalanSehatSchemaMigrations(): void
+{
+    static $done = false;
+    if ($done) {
+        return;
+    }
+
+    ensureJalanSehatTables();
+    $pdo = getDb();
+
+    try {
+        $existingColumns = array_column(
+            $pdo->query('SHOW COLUMNS FROM jalan_sehat_pendaftaran')->fetchAll(),
+            'Field'
+        );
 
     $wilayahColumns = [
         'kode_kecamatan' => 'varchar(20) DEFAULT NULL',
@@ -63,10 +120,8 @@ function ensureJalanSehatSchema(): void
         if ($column === 'nama_kecamatan' && in_array('nama_kecamatan', $existingColumns, true)) {
             try {
                 $pdo->exec('ALTER TABLE jalan_sehat_pendaftaran ADD KEY `idx_js_kecamatan` (`nama_kecamatan`)');
-            } catch (PDOException $e) {
-                if (!str_contains($e->getMessage(), 'Duplicate key')) {
-                    throw $e;
-                }
+            } catch (PDOException) {
+                // indeks sudah ada atau tidak bisa ditambah
             }
         }
         $previousColumn = $column;
@@ -95,35 +150,19 @@ function ensureJalanSehatSchema(): void
         $previousColumn = $column;
     }
 
-    $pdo->exec(
-        "CREATE TABLE IF NOT EXISTS `jalan_sehat_paket` (
-          `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-          `nama` varchar(150) NOT NULL,
-          `jumlah_kupon` int(10) UNSIGNED NOT NULL DEFAULT 0,
-          `jumlah_kaos` int(10) UNSIGNED NOT NULL DEFAULT 0,
-          `keterangan` varchar(255) DEFAULT NULL,
-          `aktif` tinyint(1) NOT NULL DEFAULT 1,
-          `urutan` int(10) UNSIGNED NOT NULL DEFAULT 0,
-          `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          PRIMARY KEY (`id`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
-    );
-
-    $pdo->exec(
-        "CREATE TABLE IF NOT EXISTS `jalan_sehat_pengaturan` (
-          `kunci` varchar(50) NOT NULL,
-          `nilai` text DEFAULT NULL,
-          PRIMARY KEY (`kunci`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
-    );
-
-    $done = true;
-
-    try {
         jalanSehatBackfillPhoneNormColumns($pdo);
     } catch (PDOException) {
-        // Backfill opsional; jangan blokir halaman jika gagal
+        // Migrasi otomatis boleh gagal di hosting tanpa hak ALTER; operasi baca tetap jalan
     }
+
+    $done = true;
+    jalanSehatPendaftaranColumnNames($pdo, true);
+}
+
+function ensureJalanSehatSchema(): void
+{
+    ensureJalanSehatTables();
+    ensureJalanSehatSchemaMigrations();
 }
 
 function jalanSehatAddColumnIfMissing(
@@ -144,12 +183,12 @@ function jalanSehatAddColumnIfMissing(
         $existingColumns[] = $column;
     } catch (PDOException $e) {
         $msg = $e->getMessage();
-        if (str_contains($msg, 'Duplicate column') || $e->getCode() === '42S21') {
+        if (str_contains($msg, 'Duplicate column') || (string) $e->getCode() === '42S21') {
             $existingColumns[] = $column;
 
             return;
         }
-        throw $e;
+        // Kolom tidak bisa ditambah (mis. AFTER invalid / hak ALTER) — lewati
     }
 }
 
@@ -242,7 +281,7 @@ function jalanSehatPengaturanDefaults(): array
 
 function getJalanSehatPengaturan(): array
 {
-    ensureJalanSehatSchema();
+    ensureJalanSehatTables();
     $settings = jalanSehatPengaturanDefaults();
     $rows = getDb()->query('SELECT kunci, nilai FROM jalan_sehat_pengaturan')->fetchAll();
     foreach ($rows as $row) {
@@ -276,7 +315,7 @@ function saveJalanSehatPengaturan(array $input): void
 
 function loadJalanSehatPaket(bool $hanyaAktif = false): array
 {
-    ensureJalanSehatSchema();
+    ensureJalanSehatTables();
     $sql = 'SELECT * FROM jalan_sehat_paket';
     if ($hanyaAktif) {
         $sql .= ' WHERE aktif = 1';
@@ -288,7 +327,7 @@ function loadJalanSehatPaket(bool $hanyaAktif = false): array
 
 function getJalanSehatPaketById(int $id): ?array
 {
-    ensureJalanSehatSchema();
+    ensureJalanSehatTables();
     $stmt = getDb()->prepare('SELECT * FROM jalan_sehat_paket WHERE id = :id LIMIT 1');
     $stmt->execute([':id' => $id]);
     $row = $stmt->fetch();
@@ -744,20 +783,13 @@ function validateJalanSehat(array $input, array $settings, array $paketAktif, ?i
 function addJalanSehatPendaftaran(array $data): int
 {
     ensureJalanSehatSchema();
-    $ukuranColumns = array_values(jalanSehatUkuranKaos());
+    [$writeColumns, $params] = jalanSehatPendaftaranWritePayload($data);
+    $placeholders = array_map(static fn (string $col): string => ':' . $col, $writeColumns);
     $stmt = getDb()->prepare(
-        'INSERT INTO jalan_sehat_pendaftaran
-            (nama_madrasah, alamat, kode_kecamatan, nama_kecamatan, kode_kelurahan, nama_kelurahan, alamat_detail,
-             nama_kepala, nomor_wa, nomor_wa_norm, nomor_hp_kepala, nomor_hp_kepala_norm,
-             paket_id, paket_nama, jumlah_kupon, jumlah_kaos, '
-            . implode(', ', $ukuranColumns) . ', catatan)
-         VALUES
-            (:nama_madrasah, :alamat, :kode_kecamatan, :nama_kecamatan, :kode_kelurahan, :nama_kelurahan, :alamat_detail,
-             :nama_kepala, :nomor_wa, :nomor_wa_norm, :nomor_hp_kepala, :nomor_hp_kepala_norm,
-             :paket_id, :paket_nama, :jumlah_kupon, :jumlah_kaos, :'
-            . implode(', :', $ukuranColumns) . ', :catatan)'
+        'INSERT INTO jalan_sehat_pendaftaran (`' . implode('`, `', $writeColumns) . '`) VALUES ('
+        . implode(', ', $placeholders) . ')'
     );
-    $stmt->execute(jalanSehatPendaftaranParams($data, $ukuranColumns));
+    $stmt->execute($params);
 
     return (int) getDb()->lastInsertId();
 }
@@ -801,31 +833,11 @@ function updateJalanSehatPendaftaran(int $id, array $data): bool
         return false;
     }
 
-    $ukuranColumns = array_values(jalanSehatUkuranKaos());
-    $setParts = [
-        'nama_madrasah = :nama_madrasah',
-        'alamat = :alamat',
-        'kode_kecamatan = :kode_kecamatan',
-        'nama_kecamatan = :nama_kecamatan',
-        'kode_kelurahan = :kode_kelurahan',
-        'nama_kelurahan = :nama_kelurahan',
-        'alamat_detail = :alamat_detail',
-        'nama_kepala = :nama_kepala',
-        'nomor_wa = :nomor_wa',
-        'nomor_wa_norm = :nomor_wa_norm',
-        'nomor_hp_kepala = :nomor_hp_kepala',
-        'nomor_hp_kepala_norm = :nomor_hp_kepala_norm',
-        'paket_id = :paket_id',
-        'paket_nama = :paket_nama',
-        'jumlah_kupon = :jumlah_kupon',
-        'jumlah_kaos = :jumlah_kaos',
-    ];
-    foreach ($ukuranColumns as $column) {
-        $setParts[] = '`' . $column . '` = :' . $column;
-    }
-    $setParts[] = 'catatan = :catatan';
-
-    $params = jalanSehatPendaftaranParams($data, $ukuranColumns);
+    [$writeColumns, $params] = jalanSehatPendaftaranWritePayload($data);
+    $setParts = array_map(
+        static fn (string $col): string => '`' . $col . '` = :' . $col,
+        $writeColumns
+    );
     $params[':id'] = $id;
 
     $stmt = getDb()->prepare(
@@ -833,6 +845,37 @@ function updateJalanSehatPendaftaran(int $id, array $data): bool
     );
 
     return $stmt->execute($params);
+}
+
+/**
+ * @return array{0: list<string>, 1: array<string, mixed>}
+ */
+function jalanSehatPendaftaranWritePayload(array $data): array
+{
+    $ukuranAll = array_values(jalanSehatUkuranKaos());
+    $paramsAll = jalanSehatPendaftaranParams($data, $ukuranAll);
+    $available = array_flip(jalanSehatPendaftaranColumnNames(null, true));
+    $ordered = [
+        'nama_madrasah', 'alamat', 'kode_kecamatan', 'nama_kecamatan', 'kode_kelurahan', 'nama_kelurahan',
+        'alamat_detail', 'nama_kepala', 'nomor_wa', 'nomor_wa_norm', 'nomor_hp_kepala', 'nomor_hp_kepala_norm',
+        'paket_id', 'paket_nama', 'jumlah_kupon', 'jumlah_kaos',
+    ];
+    foreach ($ukuranAll as $column) {
+        $ordered[] = $column;
+    }
+    $ordered[] = 'catatan';
+
+    $writeColumns = [];
+    $params = [];
+    foreach ($ordered as $column) {
+        if (!isset($available[$column])) {
+            continue;
+        }
+        $writeColumns[] = $column;
+        $params[':' . $column] = $paramsAll[':' . $column];
+    }
+
+    return [$writeColumns, $params];
 }
 
 function jalanSehatUrutanOptions(): array
@@ -916,7 +959,7 @@ function jalanSehatJenjangSqlCondition(string $jenjang): string
  */
 function loadJalanSehatPendaftaran(string $search = '', array $filters = []): array
 {
-    ensureJalanSehatSchema();
+    ensureJalanSehatTables();
     $sql = 'SELECT * FROM jalan_sehat_pendaftaran WHERE 1=1';
     $params = [];
 
@@ -970,7 +1013,7 @@ function loadJalanSehatPendaftaran(string $search = '', array $filters = []): ar
  */
 function getJalanSehatWilayahOptions(): array
 {
-    ensureJalanSehatSchema();
+    ensureJalanSehatTables();
     $rows = getDb()->query(
         "SELECT DISTINCT nama_kecamatan, nama_kelurahan FROM jalan_sehat_pendaftaran
          WHERE nama_kecamatan IS NOT NULL AND nama_kecamatan <> ''
@@ -991,7 +1034,7 @@ function getJalanSehatWilayahOptions(): array
 
 function getJalanSehatPendaftaranById(int $id): ?array
 {
-    ensureJalanSehatSchema();
+    ensureJalanSehatTables();
     $stmt = getDb()->prepare('SELECT * FROM jalan_sehat_pendaftaran WHERE id = :id LIMIT 1');
     $stmt->execute([':id' => $id]);
     $row = $stmt->fetch();
@@ -1001,7 +1044,7 @@ function getJalanSehatPendaftaranById(int $id): ?array
 
 function deleteJalanSehatPendaftaran(int $id): bool
 {
-    ensureJalanSehatSchema();
+    ensureJalanSehatTables();
     $stmt = getDb()->prepare('DELETE FROM jalan_sehat_pendaftaran WHERE id = :id');
     $stmt->execute([':id' => $id]);
 
