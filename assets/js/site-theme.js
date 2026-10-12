@@ -3,10 +3,10 @@
 
   function getPreferredTheme() {
     var saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === 'dark' || saved === 'light') {
-      return saved;
+    if (saved === 'dark') {
+      return 'dark';
     }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return 'light';
   }
 
   function applyTheme(theme) {

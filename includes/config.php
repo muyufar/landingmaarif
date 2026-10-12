@@ -117,10 +117,10 @@ function siteHeadIcons(): string
         . htmlspecialchars(url('image/apple-touch-icon.png'), ENT_QUOTES, 'UTF-8') . '">';
 }
 
-/** Cegah kilat putih saat tema gelap dimuat */
+/** Tema default terang; gelap hanya jika pengguna pernah memilih dark di localStorage */
 function siteThemeInitScript(): string
 {
-    return '<script>(function(){try{var k="maarif-theme",s=localStorage.getItem(k),d=s==="dark"||(!s&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(d)document.documentElement.classList.add("dark");}catch(e){}})();</script>';
+    return '<script>(function(){try{var s=localStorage.getItem("maarif-theme");if(s==="dark")document.documentElement.classList.add("dark");else document.documentElement.classList.remove("dark");}catch(e){}})();</script>';
 }
 
 function siteThemeHead(): string
