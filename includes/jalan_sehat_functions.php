@@ -1374,6 +1374,7 @@ function getJalanSehatRekapKaosPencetak(array $rows): array
                 'ukuran_panjang' => $ukuranPanjang,
                 'selesai' => $selesai,
                 'jenjang' => jalanSehatJenjangFromNamaMadrasah((string) $row['nama_madrasah']),
+                'created_at' => (string) ($row['created_at'] ?? ''),
             ];
         }
     }
@@ -1381,13 +1382,13 @@ function getJalanSehatRekapKaosPencetak(array $rows): array
     usort(
         $rekap['per_madrasah'],
         static function (array $a, array $b): int {
-            $doneA = !empty($a['selesai']) ? 1 : 0;
-            $doneB = !empty($b['selesai']) ? 1 : 0;
-            if ($doneA !== $doneB) {
-                return $doneA <=> $doneB;
+            $ta = strtotime($a['created_at'] ?? '') ?: 0;
+            $tb = strtotime($b['created_at'] ?? '') ?: 0;
+            if ($ta !== $tb) {
+                return $tb <=> $ta;
             }
 
-            return strnatcasecmp($a['nama_madrasah'], $b['nama_madrasah']);
+            return ((int) ($b['id'] ?? 0)) <=> ((int) ($a['id'] ?? 0));
         }
     );
 
