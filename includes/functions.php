@@ -218,12 +218,15 @@ function loadPeserta(string $search = '', array $filters = []): array
     $params = [];
 
     if ($search !== '') {
-        $sql .= ' AND (nama LIKE :q OR nip LIKE :q OR nomor_wa LIKE :q
-                  OR asal_lembaga LIKE :q OR jabatan LIKE :q
-                  OR nama_provinsi LIKE :q OR nama_kabupaten LIKE :q
-                  OR nama_kecamatan LIKE :q OR nama_kelurahan LIKE :q
-                  OR alamat_detail LIKE :q OR alamat_lembaga LIKE :q)';
-        $params[':q'] = '%' . $search . '%';
+        $sql .= ' AND (nama LIKE :q1 OR nip LIKE :q2 OR nomor_wa LIKE :q3
+                  OR asal_lembaga LIKE :q4 OR jabatan LIKE :q5
+                  OR nama_provinsi LIKE :q6 OR nama_kabupaten LIKE :q7
+                  OR nama_kecamatan LIKE :q8 OR nama_kelurahan LIKE :q9
+                  OR alamat_detail LIKE :q10 OR alamat_lembaga LIKE :q11)';
+        $like = '%' . $search . '%';
+        for ($i = 1; $i <= 11; $i++) {
+            $params[':q' . $i] = $like;
+        }
     }
 
     if (!empty($filters['kecamatan'])) {

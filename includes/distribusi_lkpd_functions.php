@@ -565,8 +565,11 @@ function loadDistribusiSatuan(string $search = '', string|array|null $status = n
     $params = [];
 
     if ($search !== '') {
-        $sql .= ' AND (npsn LIKE :q OR nama_lembaga LIKE :q OR alamat LIKE :q)';
-        $params[':q'] = '%' . $search . '%';
+        $sql .= ' AND (npsn LIKE :q1 OR nama_lembaga LIKE :q2 OR alamat LIKE :q3)';
+        $like = '%' . $search . '%';
+        $params[':q1'] = $like;
+        $params[':q2'] = $like;
+        $params[':q3'] = $like;
     }
     if ($status !== null && $status !== '') {
         if (is_array($status)) {

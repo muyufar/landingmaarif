@@ -542,11 +542,14 @@ function loadPengkinianData(string $search = '', array $filters = []): array
     $params = [];
 
     if ($search !== '') {
-        $sql .= ' AND (npsn LIKE :q OR nama_satuan_pendidikan LIKE :q OR nama_kepala_sekolah LIKE :q
-                  OR niy_nip LIKE :q OR nama_operator LIKE :q OR nomor_hp_kepsek LIKE :q OR nomor_hp_operator LIKE :q
-                  OR alamat_lengkap LIKE :q OR nama_kecamatan LIKE :q OR jenjang LIKE :q
-                  OR status_sk_kepala LIKE :q)';
-        $params[':q'] = '%' . $search . '%';
+        $sql .= ' AND (npsn LIKE :q1 OR nama_satuan_pendidikan LIKE :q2 OR nama_kepala_sekolah LIKE :q3
+                  OR niy_nip LIKE :q4 OR nama_operator LIKE :q5 OR nomor_hp_kepsek LIKE :q6 OR nomor_hp_operator LIKE :q7
+                  OR alamat_lengkap LIKE :q8 OR nama_kecamatan LIKE :q9 OR jenjang LIKE :q10
+                  OR status_sk_kepala LIKE :q11)';
+        $like = '%' . $search . '%';
+        for ($i = 1; $i <= 11; $i++) {
+            $params[':q' . $i] = $like;
+        }
     }
 
     if (!empty($filters['kecamatan'])) {

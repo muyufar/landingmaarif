@@ -649,8 +649,11 @@ function loadBerita(string $search = '', string $status = ''): array
     $params = [];
 
     if ($search !== '') {
-        $sql .= ' AND (judul LIKE :q OR ringkasan LIKE :q OR konten LIKE :q)';
-        $params[':q'] = '%' . $search . '%';
+        $sql .= ' AND (judul LIKE :q1 OR ringkasan LIKE :q2 OR konten LIKE :q3)';
+        $like = '%' . $search . '%';
+        $params[':q1'] = $like;
+        $params[':q2'] = $like;
+        $params[':q3'] = $like;
     }
 
     if ($status !== '' && in_array($status, ['draft', 'published'], true)) {

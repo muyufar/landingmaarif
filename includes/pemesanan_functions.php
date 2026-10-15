@@ -566,8 +566,12 @@ function loadPemesanan(string $search = '', array $filters = []): array
     $params = [];
 
     if ($search !== '') {
-        $sql .= ' AND (nama_madrasah LIKE :q OR nama_kepala LIKE :q OR nomor_wa LIKE :q OR catatan LIKE :q)';
-        $params[':q'] = '%' . $search . '%';
+        $sql .= ' AND (nama_madrasah LIKE :q1 OR nama_kepala LIKE :q2 OR nomor_wa LIKE :q3 OR catatan LIKE :q4)';
+        $like = '%' . $search . '%';
+        $params[':q1'] = $like;
+        $params[':q2'] = $like;
+        $params[':q3'] = $like;
+        $params[':q4'] = $like;
     }
 
     if (!empty($filters['jenjang'])) {
