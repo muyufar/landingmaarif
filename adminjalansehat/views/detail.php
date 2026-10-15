@@ -5,6 +5,8 @@ declare(strict_types=1);
 /** @var array $row @var array $settings */
 $kupon = (int) $row['jumlah_kupon'];
 $kaos = (int) $row['jumlah_kaos'];
+$rincianBiaya = jalanSehatAdaHarga($settings) ? jalanSehatRincianBiaya($kupon, $kaos, $settings) : null;
+$sudahLunas = !empty($row['pembayaran_lunas']);
 $nomorWa = (string) ($row['nomor_wa'] ?? '');
 $waLink = $nomorWa !== '' ? 'https://wa.me/62' . ltrim(normalizeNomorWa($nomorWa), '0') : '';
 ?>
@@ -77,9 +79,29 @@ $waLink = $nomorWa !== '' ? 'https://wa.me/62' . ltrim(normalizeNomorWa($nomorWa
         <?php endif; ?>
       </dd>
 
-      <?php if (jalanSehatAdaHarga($settings)): ?>
-        <dt class="text-gray-500">Estimasi Biaya</dt>
-        <dd class="sm:col-span-2 font-bold text-green-800"><?= sanitize(formatRupiahJalanSehat(hitungBiayaJalanSehat($kupon, $kaos, $settings))) ?></dd>
+      <?php if ($rincianBiaya !== null): ?>
+        <dt class="text-gray-500">Tagihan kupon</dt>
+        <dd class="sm:col-span-2">
+          <?= $kupon ?> kupon × <?= sanitize(formatRupiahJalanSehat($rincianBiaya['harga_kupon'])) ?>
+          = <strong><?= sanitize(formatRupiahJalanSehat($rincianBiaya['subtotal_kupon'])) ?></strong>
+        </dd>
+        <dt class="text-gray-500">Tagihan kaos</dt>
+        <dd class="sm:col-span-2">
+          <?= $kaos ?> pcs × <?= sanitize(formatRupiahJalanSehat($rincianBiaya['harga_kaos'])) ?>
+          = <strong><?= sanitize(formatRupiahJalanSehat($rincianBiaya['subtotal_kaos'])) ?></strong>
+        </dd>
+        <dt class="text-gray-500">Total tagihan</dt>
+        <dd class="sm:col-span-2 text-lg font-bold text-green-800"><?= sanitize(formatRupiahJalanSehat($rincianBiaya['total'])) ?></dd>
+        <dt class="text-gray-500">Status pembayaran</dt>
+        <dd class="sm:col-span-2">
+          <label class="inline-flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" class="js-pembayaran-lunas h-5 w-5 accent-emerald-600" data-id="<?= (int) $row['id'] ?>"
+                   <?= $sudahLunas ? 'checked' : '' ?>>
+            <span class="font-semibold <?= $sudahLunas ? 'text-emerald-800' : 'text-amber-800' ?>">
+              <?= $sudahLunas ? 'Sudah lunas / diterima' : 'Belum lunas' ?>
+            </span>
+          </label>
+        </dd>
       <?php endif; ?>
 
       <dt class="text-gray-500">Catatan</dt>

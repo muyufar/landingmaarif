@@ -47,6 +47,15 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:
           <p class="col-span-2 text-xs text-gray-500">Isi 0 jika tidak ada harga; estimasi biaya tidak akan ditampilkan.</p>
         </div>
 
+        <label class="flex items-start gap-3 rounded-lg border border-green-100 bg-green-50/60 px-4 py-3">
+          <input type="checkbox" name="kupon_mengikuti_kaos" value="1" class="mt-1 h-4 w-4 text-green-700"
+                 <?= ($settings['kupon_mengikuti_kaos'] ?? '1') === '1' ? 'checked' : '' ?>>
+          <span>
+            <span class="block text-sm font-semibold text-gray-800">Kupon mengikuti kaos (jumlah sendiri)</span>
+            <span class="block text-xs text-gray-600 mt-0.5">Sesuai surat edaran: memesan kaos otomatis mendapat kupon door prize. Jika aktif, saat madrasah mengisi jumlah sendiri, sistem menyamakan jumlah kupon dengan total kaos (hindari double input). Paket tetap memakai jumlah kupon/kaos masing-masing paket.</span>
+          </span>
+        </label>
+
         <div>
           <label for="info_surat_edaran" class="block text-sm font-semibold text-gray-700 mb-1">Ketentuan / kutipan surat edaran</label>
           <textarea id="info_surat_edaran" name="info_surat_edaran" rows="5" class="<?= $inputClass ?>"

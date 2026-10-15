@@ -88,6 +88,12 @@ if (isJalanSehatAdminLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST' && isse
             $pendaftaranFormData = $result['data'];
             $pendaftaranDuplicateRow = $result['duplicate_row'] ?? null;
             $currentPage = 'edit';
+        } elseif ($action === 'toggle_pembayaran_lunas') {
+            header('Content-Type: application/json; charset=utf-8');
+            $id = (int) ($_POST['id'] ?? 0);
+            $lunas = ($_POST['lunas'] ?? '') === '1';
+            echo json_encode(setJalanSehatPembayaranLunas($id, $lunas), JSON_UNESCAPED_UNICODE);
+            exit;
         } elseif ($action === 'create_pendaftaran') {
             $settingsPost = getJalanSehatPengaturan();
             $paketAktifPost = loadJalanSehatPaket(true);
@@ -181,6 +187,7 @@ try {
             static fn ($v) => $v !== ''
         ));
         $pageTitle = 'Data Pendaftar Jalan Sehat';
+        $extraScripts = jalanSehatAdminListScripts();
         ob_start();
         require __DIR__ . '/views/list.php';
         $content = ob_get_clean();
@@ -191,6 +198,7 @@ try {
             exit;
         }
         $pageTitle = 'Detail Pendaftar Jalan Sehat';
+        $extraScripts = jalanSehatAdminListScripts();
         ob_start();
         require __DIR__ . '/views/detail.php';
         $content = ob_get_clean();

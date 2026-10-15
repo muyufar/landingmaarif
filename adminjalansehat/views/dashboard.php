@@ -17,7 +17,7 @@ $adaHarga = jalanSehatAdaHarga($settings);
   </div>
 <?php endif; ?>
 
-<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
   <div class="bg-white rounded-2xl shadow-lg border border-green-100 p-6">
     <p class="text-sm text-gray-500">Madrasah Terdaftar</p>
     <p class="text-3xl font-bold text-green-800 mt-2"><?= (int) $ringkasan['total_madrasah'] ?></p>
@@ -30,20 +30,34 @@ $adaHarga = jalanSehatAdaHarga($settings);
     <p class="text-sm text-gray-500">Total Kaos</p>
     <p class="text-3xl font-bold text-green-800 mt-2"><?= number_format((int) $ringkasan['total_kaos'], 0, ',', '.') ?> <span class="text-base font-medium text-gray-500">pcs</span></p>
   </div>
-  <div class="bg-white rounded-2xl shadow-lg border border-green-100 p-6">
-    <?php if ($adaHarga): ?>
-      <p class="text-sm text-gray-500">Total Estimasi Biaya</p>
+  <?php if ($adaHarga): ?>
+    <div class="bg-white rounded-2xl shadow-lg border border-green-100 p-6">
+      <p class="text-sm text-gray-500">Total Tagihan</p>
       <p class="text-2xl font-bold text-green-800 mt-2"><?= sanitize(formatRupiahJalanSehat((int) $ringkasan['total_biaya'])) ?></p>
-    <?php else: ?>
+    </div>
+    <div class="bg-white rounded-2xl shadow-lg border border-emerald-100 p-6">
+      <p class="text-sm text-gray-500">Sudah Dibayar</p>
+      <p class="text-2xl font-bold text-emerald-800 mt-2"><?= sanitize(formatRupiahJalanSehat((int) $ringkasan['total_biaya_lunas'])) ?></p>
+      <p class="text-xs text-gray-500 mt-1"><?= (int) $ringkasan['madrasah_lunas'] ?> madrasah lunas</p>
+    </div>
+    <div class="bg-white rounded-2xl shadow-lg border border-amber-100 p-6">
+      <p class="text-sm text-gray-500">Belum Dibayar</p>
+      <p class="text-2xl font-bold text-amber-800 mt-2"><?= sanitize(formatRupiahJalanSehat((int) $ringkasan['total_biaya_belum_lunas'])) ?></p>
+      <a href="<?= url('adminjalansehat/?page=list') ?>" class="text-xs text-green-700 hover:underline mt-1 inline-block">Kelola di daftar →</a>
+    </div>
+  <?php else: ?>
+    <div class="bg-white rounded-2xl shadow-lg border border-green-100 p-6 sm:col-span-2 lg:col-span-3">
       <p class="text-sm text-gray-500 mb-3">Aksi Cepat</p>
       <div class="flex flex-wrap gap-2">
         <a href="<?= url('adminjalansehat/?page=list') ?>"
            class="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Lihat Data</a>
         <a href="<?= url('adminjalansehat/?export=xls') ?>"
            class="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Export XLS</a>
+        <a href="<?= url('adminjalansehat/?page=pengaturan') ?>"
+           class="border border-green-700 text-green-800 px-4 py-2 rounded-lg text-sm font-medium">Atur harga →</a>
       </div>
-    <?php endif; ?>
-  </div>
+    </div>
+  <?php endif; ?>
 </div>
 
 <div class="bg-white rounded-2xl shadow-lg border border-green-100 overflow-hidden mb-8">

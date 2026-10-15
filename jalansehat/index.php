@@ -25,6 +25,7 @@ $izinkanBebas = $settings['izinkan_jumlah_bebas'] === '1' || $paketAktif === [];
 $adaHarga = jalanSehatAdaHarga($settings);
 $hargaKupon = (int) $settings['harga_kupon'];
 $hargaKaos = (int) $settings['harga_kaos'];
+$kuponMengikutiKaos = jalanSehatKuponMengikutiKaos($settings);
 
 $lastSubmission = null;
 $editUpdated = isset($_GET['updated']);
@@ -339,7 +340,13 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
                 <p class="text-sm font-semibold text-gray-700 mb-1">Langkah 2 — Periksa jumlah pesanan</p>
                 <p id="jumlah-hint" class="text-xs text-gray-500 mb-3">Pilih paket terlebih dahulu. Jumlah akan terisi otomatis sesuai paket.</p>
               <?php else: ?>
-                <p class="text-xs text-gray-500 mb-3">Isi angka saja. Tulis <strong>0</strong> jika tidak memesan salah satunya.</p>
+                <p class="text-xs text-gray-500 mb-3">
+                  <?php if ($kuponMengikutiKaos): ?>
+                    Isi jumlah kaos per ukuran. Kupon door prize otomatis sama dengan total kaos. Hanya isi kupon manual jika memesan kupon saja tanpa kaos.
+                  <?php else: ?>
+                    Isi angka saja. Tulis <strong>0</strong> jika tidak memesan salah satunya.
+                  <?php endif; ?>
+                </p>
               <?php endif; ?>
 
               <div class="space-y-5">
@@ -353,6 +360,12 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
                   </div>
                   <?php if ($hargaKupon > 0): ?>
                     <p class="text-xs text-gray-500 mt-1"><?= sanitize(formatRupiahJalanSehat($hargaKupon)) ?> / kupon</p>
+                  <?php endif; ?>
+                  <?php if ($kuponMengikutiKaos): ?>
+                    <p id="kupon-se-hint" class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2 hidden">
+                      Sesuai surat edaran: <strong>setiap kaos</strong> yang dipesan otomatis mendapat kupon door prize.
+                      Isi ukuran kaos saja — jumlah kupon akan mengikuti total kaos (tidak perlu diisi terpisah).
+                    </p>
                   <?php endif; ?>
                 </div>
                 <div id="kaos-block" class="transition space-y-5">
@@ -483,7 +496,9 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
       const biaya = document.getElementById('ringkasan-biaya');
       const hargaKupon = <?= $hargaKupon ?>;
       const hargaKaos = <?= $hargaKaos ?>;
+      const kuponMengikutiKaos = <?= $kuponMengikutiKaos ? 'true' : 'false' ?>;
       const isEditMode = <?= $editMode ? 'true' : 'false' ?>;
+      const kuponSeHint = document.getElementById('kupon-se-hint');
 
       // mode: 'none' (belum pilih paket), 'custom', atau 'paket'
       let mode = radios.length === 0 ? 'custom' : 'none';
@@ -544,7 +559,23 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
         }
       }
 
+      function syncKuponDariKaos() {
+        if (!kuponMengikutiKaos || mode !== 'custom') {
+          return;
+        }
+        const total = totalUkuran();
+        if (total > 0) {
+          kupon.value = String(total);
+          kupon.readOnly = true;
+          if (kuponSeHint) kuponSeHint.classList.remove('hidden');
+        } else {
+          kupon.readOnly = false;
+          if (kuponSeHint) kuponSeHint.classList.add('hidden');
+        }
+      }
+
       function updateRingkasan() {
+        syncKuponDariKaos();
         updateKaosStatus();
         const k = toInt(kupon);
         const s = jumlahKaos();
@@ -589,9 +620,13 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
           if (hint) hint.textContent = 'Pilih paket terlebih dahulu. Jumlah akan terisi otomatis sesuai paket.';
         } else if (selected.value === 'custom') {
           mode = 'custom';
-          kupon.readOnly = false;
           setKaosAktif(true);
-          if (hint) hint.textContent = 'Isi jumlah kupon dan jumlah kaos per ukuran sesuai kebutuhan.';
+          if (hint) {
+            hint.textContent = kuponMengikutiKaos
+              ? 'Isi jumlah kaos per ukuran. Kupon door prize otomatis sama dengan total kaos (sesuai surat edaran).'
+              : 'Isi jumlah kupon dan jumlah kaos per ukuran sesuai kebutuhan.';
+          }
+          if (!kuponMengikutiKaos) kupon.readOnly = false;
         } else {
           mode = 'paket';
           targetKaos = parseInt(selected.dataset.kaos, 10) || 0;

@@ -160,6 +160,13 @@ function ensureJalanSehatSchemaMigrations(): void
         'tinyint(1) NOT NULL DEFAULT 0',
         $afterKonveksi
     );
+    jalanSehatAddColumnIfMissing(
+        $pdo,
+        $existingColumns,
+        'pembayaran_lunas',
+        'tinyint(1) NOT NULL DEFAULT 0',
+        in_array('kaos_konveksi_selesai', $existingColumns, true) ? 'kaos_konveksi_selesai' : $afterKonveksi
+    );
 
         jalanSehatBackfillPhoneNormColumns($pdo);
     } catch (PDOException) {
@@ -288,6 +295,7 @@ function jalanSehatPengaturanDefaults(): array
         'harga_kaos' => '0',
         'info_surat_edaran' => '',
         'monitor_kaos_aktif' => '0',
+        'kupon_mengikuti_kaos' => '1',
     ];
 }
 
@@ -315,6 +323,7 @@ function saveJalanSehatPengaturan(array $input): void
         'harga_kaos' => (string) max(0, (int) preg_replace('/\D/', '', (string) ($input['harga_kaos'] ?? '0'))),
         'info_surat_edaran' => trim((string) ($input['info_surat_edaran'] ?? '')),
         'monitor_kaos_aktif' => !empty($input['monitor_kaos_aktif']) ? '1' : '0',
+        'kupon_mengikuti_kaos' => !empty($input['kupon_mengikuti_kaos']) ? '1' : '0',
     ];
 
     $stmt = getDb()->prepare(
@@ -426,9 +435,60 @@ function hitungBiayaJalanSehat(int $kupon, int $kaos, array $settings): int
     return $kupon * (int) $settings['harga_kupon'] + $kaos * (int) $settings['harga_kaos'];
 }
 
+/**
+ * @return array{subtotal_kupon: int, subtotal_kaos: int, total: int, harga_kupon: int, harga_kaos: int}
+ */
+function jalanSehatRincianBiaya(int $kupon, int $kaos, array $settings): array
+{
+    $hargaKupon = (int) ($settings['harga_kupon'] ?? 0);
+    $hargaKaos = (int) ($settings['harga_kaos'] ?? 0);
+
+    return [
+        'harga_kupon' => $hargaKupon,
+        'harga_kaos' => $hargaKaos,
+        'subtotal_kupon' => $kupon * $hargaKupon,
+        'subtotal_kaos' => $kaos * $hargaKaos,
+        'total' => $kupon * $hargaKupon + $kaos * $hargaKaos,
+    ];
+}
+
 function jalanSehatAdaHarga(array $settings): bool
 {
     return (int) $settings['harga_kupon'] > 0 || (int) $settings['harga_kaos'] > 0;
+}
+
+function jalanSehatKuponMengikutiKaos(array $settings): bool
+{
+    return ($settings['kupon_mengikuti_kaos'] ?? '1') === '1';
+}
+
+/** Isian jumlah sendiri: kupon door prize = jumlah kaos (sesuai SE, hindari double input). */
+function jalanSehatApplyKuponMengikutiKaos(array &$data, array $settings): void
+{
+    if (!jalanSehatKuponMengikutiKaos($settings)) {
+        return;
+    }
+    if ($data['paket_id'] !== null) {
+        return;
+    }
+    if ((int) ($data['jumlah_kaos'] ?? 0) > 0) {
+        $data['jumlah_kupon'] = (int) $data['jumlah_kaos'];
+    }
+}
+
+function setJalanSehatPembayaranLunas(int $id, bool $lunas): array
+{
+    ensureJalanSehatSchemaMigrations();
+    if (!in_array('pembayaran_lunas', jalanSehatPendaftaranColumnNames(), true)) {
+        return ['ok' => false, 'message' => 'Kolom pembayaran belum tersedia di database.'];
+    }
+    if (getJalanSehatPendaftaranById($id) === null) {
+        return ['ok' => false, 'message' => 'Pendaftaran tidak ditemukan.'];
+    }
+    $stmt = getDb()->prepare('UPDATE jalan_sehat_pendaftaran SET pembayaran_lunas = :v WHERE id = :id');
+    $stmt->execute([':v' => $lunas ? 1 : 0, ':id' => $id]);
+
+    return ['ok' => true, 'lunas' => $lunas ? 1 : 0];
 }
 
 function formatPaketJalanSehat(int $kupon, int $kaos): string
@@ -881,6 +941,8 @@ function validateJalanSehat(array $input, array $settings, array $paketAktif, ?i
         $errors[] = 'Isi jumlah kupon door prize atau jumlah kaos per ukuran (minimal salah satu lebih dari 0).';
     }
 
+    jalanSehatApplyKuponMengikutiKaos($data, $settings);
+
     if (!$isUpdate && $errors === []) {
         $dupNama = getJalanSehatPendaftaranByNamaMadrasah($data['nama_madrasah'], null);
         if ($dupNama !== null) {
@@ -1210,14 +1272,23 @@ function getJalanSehatRingkasan(array $rows, array $settings): array
         'total_kupon' => 0,
         'total_kaos' => 0,
         'total_biaya' => 0,
+        'total_biaya_lunas' => 0,
+        'total_biaya_belum_lunas' => 0,
+        'madrasah_lunas' => 0,
+        'subtotal_kupon' => 0,
+        'subtotal_kaos' => 0,
         'per_paket' => [],
         'per_ukuran' => array_fill_keys(array_keys(jalanSehatUkuranKaos()), 0),
         'per_kecamatan' => [],
     ];
+    $hasLunasCol = in_array('pembayaran_lunas', jalanSehatPendaftaranColumnNames(), true);
 
     foreach ($rows as $row) {
         $kupon = (int) ($row['jumlah_kupon'] ?? 0);
         $kaos = (int) ($row['jumlah_kaos'] ?? 0);
+        $biaya = hitungBiayaJalanSehat($kupon, $kaos, $settings);
+        $rincian = jalanSehatRincianBiaya($kupon, $kaos, $settings);
+        $lunas = $hasLunasCol && !empty($row['pembayaran_lunas']);
 
         $kec = trim((string) ($row['nama_kecamatan'] ?? ''));
         $kec = $kec !== '' ? $kec : 'Belum ada kecamatan';
@@ -1231,7 +1302,15 @@ function getJalanSehatRingkasan(array $rows, array $settings): array
         }
         $ringkasan['total_kupon'] += $kupon;
         $ringkasan['total_kaos'] += $kaos;
-        $ringkasan['total_biaya'] += hitungBiayaJalanSehat($kupon, $kaos, $settings);
+        $ringkasan['total_biaya'] += $biaya;
+        $ringkasan['subtotal_kupon'] += $rincian['subtotal_kupon'];
+        $ringkasan['subtotal_kaos'] += $rincian['subtotal_kaos'];
+        if ($lunas) {
+            $ringkasan['total_biaya_lunas'] += $biaya;
+            $ringkasan['madrasah_lunas']++;
+        } else {
+            $ringkasan['total_biaya_belum_lunas'] += $biaya;
+        }
 
         $label = !empty($row['paket_nama']) ? (string) $row['paket_nama'] : 'Jumlah sendiri';
         $ringkasan['per_paket'][$label] = ($ringkasan['per_paket'][$label] ?? 0) + 1;
@@ -1407,6 +1486,45 @@ function isJalanSehatAdminLoggedIn(): bool
     return isMaarifAdminLoggedIn();
 }
 
+function jalanSehatAdminListScripts(): string
+{
+    $url = json_encode(url('adminjalansehat/'), JSON_UNESCAPED_UNICODE);
+
+    return <<<HTML
+<script>
+(function () {
+  var adminUrl = {$url};
+  document.querySelectorAll('.js-pembayaran-lunas').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      var id = cb.getAttribute('data-id');
+      var lunas = cb.checked;
+      var fd = new FormData();
+      fd.append('action', 'toggle_pembayaran_lunas');
+      fd.append('id', id || '');
+      fd.append('lunas', lunas ? '1' : '0');
+      cb.disabled = true;
+      fetch(adminUrl, { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+          if (!res || !res.ok) {
+            cb.checked = !lunas;
+            alert((res && res.message) ? res.message : 'Gagal menyimpan status pembayaran.');
+            return;
+          }
+          cb.closest('tr')?.classList.toggle('bg-emerald-50/80', lunas);
+        })
+        .catch(function () {
+          cb.checked = !lunas;
+          alert('Koneksi gagal.');
+        })
+        .finally(function () { cb.disabled = false; });
+    });
+  });
+})();
+</script>
+HTML;
+}
+
 function jalanSehatAdminFormScripts(): string
 {
     ob_start();
@@ -1453,8 +1571,11 @@ function exportJalanSehatXls(array $rows, array $settings): void
     }
     $headers[] = 'Total Kaos (pcs)';
     if ($adaHarga) {
-        $headers[] = 'Estimasi Biaya';
+        $headers[] = 'Biaya Kupon';
+        $headers[] = 'Biaya Kaos';
+        $headers[] = 'Total Tagihan';
     }
+    $headers[] = 'Pembayaran Lunas';
     $headers[] = 'Catatan';
     foreach ($headers as $header) {
         echo '<th>' . $escape($header) . '</th>';
@@ -1480,8 +1601,12 @@ function exportJalanSehatXls(array $rows, array $settings): void
         }
         echo '<td>' . $kaos . '</td>';
         if ($adaHarga) {
-            echo '<td>' . hitungBiayaJalanSehat($kupon, $kaos, $settings) . '</td>';
+            $rincian = jalanSehatRincianBiaya($kupon, $kaos, $settings);
+            echo '<td>' . $rincian['subtotal_kupon'] . '</td>';
+            echo '<td>' . $rincian['subtotal_kaos'] . '</td>';
+            echo '<td>' . $rincian['total'] . '</td>';
         }
+        echo '<td>' . (!empty($row['pembayaran_lunas']) ? 'Ya' : 'Belum') . '</td>';
         echo '<td>' . $escape((string) ($row['catatan'] ?? '')) . '</td>';
         echo '</tr>';
     }
@@ -1496,7 +1621,11 @@ function exportJalanSehatXls(array $rows, array $settings): void
         echo '<tr><td>' . $escape('Kaos ukuran ' . $label) . '</td><td>' . (int) $qty . '</td></tr>';
     }
     if ($adaHarga) {
-        echo '<tr><td>Total Estimasi Biaya</td><td>' . $ringkasan['total_biaya'] . '</td></tr>';
+        echo '<tr><td>Subtotal Kupon</td><td>' . (int) $ringkasan['subtotal_kupon'] . '</td></tr>';
+        echo '<tr><td>Subtotal Kaos</td><td>' . (int) $ringkasan['subtotal_kaos'] . '</td></tr>';
+        echo '<tr><td>Total Tagihan</td><td>' . (int) $ringkasan['total_biaya'] . '</td></tr>';
+        echo '<tr><td>Sudah Dibayar (lunas)</td><td>' . (int) $ringkasan['total_biaya_lunas'] . '</td></tr>';
+        echo '<tr><td>Belum Dibayar</td><td>' . (int) $ringkasan['total_biaya_belum_lunas'] . '</td></tr>';
     }
     echo '</table>';
 

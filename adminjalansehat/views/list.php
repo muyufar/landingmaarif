@@ -69,12 +69,14 @@ $selectClass = 'rounded-lg border border-gray-300 px-3 py-2 text-sm';
     </form>
   </div>
 
-  <div class="px-6 py-4 bg-green-50/60 border-b border-gray-100 grid grid-cols-2 <?= $adaHarga ? 'lg:grid-cols-4' : 'lg:grid-cols-3' ?> gap-3 text-sm">
+  <div class="px-6 py-4 bg-green-50/60 border-b border-gray-100 grid grid-cols-2 <?= $adaHarga ? 'lg:grid-cols-3 xl:grid-cols-6' : 'lg:grid-cols-3' ?> gap-3 text-sm">
     <div><span class="text-gray-500">Madrasah:</span> <strong class="text-green-800"><?= (int) $ringkasan['total_madrasah'] ?></strong></div>
     <div><span class="text-gray-500">Total kupon door prize:</span> <strong class="text-green-800"><?= number_format((int) $ringkasan['total_kupon'], 0, ',', '.') ?></strong></div>
     <div><span class="text-gray-500">Total kaos:</span> <strong class="text-green-800"><?= number_format((int) $ringkasan['total_kaos'], 0, ',', '.') ?> pcs</strong></div>
     <?php if ($adaHarga): ?>
-      <div><span class="text-gray-500">Estimasi biaya:</span> <strong class="text-green-800"><?= sanitize(formatRupiahJalanSehat((int) $ringkasan['total_biaya'])) ?></strong></div>
+      <div><span class="text-gray-500">Total tagihan:</span> <strong class="text-green-800"><?= sanitize(formatRupiahJalanSehat((int) $ringkasan['total_biaya'])) ?></strong></div>
+      <div><span class="text-gray-500">Sudah dibayar:</span> <strong class="text-emerald-800"><?= sanitize(formatRupiahJalanSehat((int) $ringkasan['total_biaya_lunas'])) ?></strong> <span class="text-xs text-gray-500">(<?= (int) $ringkasan['madrasah_lunas'] ?> madrasah)</span></div>
+      <div><span class="text-gray-500">Belum dibayar:</span> <strong class="text-amber-800"><?= sanitize(formatRupiahJalanSehat((int) $ringkasan['total_biaya_belum_lunas'])) ?></strong></div>
     <?php endif; ?>
     <div class="col-span-full flex flex-wrap items-center gap-2">
       <span class="text-gray-500">Rekap ukuran kaos:</span>
@@ -99,15 +101,24 @@ $selectClass = 'rounded-lg border border-gray-300 px-3 py-2 text-sm';
             <th class="px-4 py-3 text-left">Paket</th>
             <th class="px-4 py-3 text-right">Kupon</th>
             <th class="px-4 py-3 text-right">Kaos</th>
-            <?php if ($adaHarga): ?><th class="px-4 py-3 text-right">Estimasi</th><?php endif; ?>
+            <?php if ($adaHarga): ?>
+              <th class="px-4 py-3 text-right">Rincian tagihan</th>
+              <th class="px-4 py-3 text-right">Total</th>
+            <?php endif; ?>
+            <th class="px-4 py-3 text-center">Lunas</th>
             <th class="px-4 py-3 text-left">Tanggal</th>
             <th class="px-4 py-3 text-center">Aksi</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
           <?php foreach ($rows as $index => $row): ?>
-            <?php $kupon = (int) $row['jumlah_kupon']; $kaos = (int) $row['jumlah_kaos']; ?>
-            <tr class="hover:bg-gray-50 align-top">
+            <?php
+            $kupon = (int) $row['jumlah_kupon'];
+            $kaos = (int) $row['jumlah_kaos'];
+            $rincianBiaya = $adaHarga ? jalanSehatRincianBiaya($kupon, $kaos, $settings) : null;
+            $sudahLunas = !empty($row['pembayaran_lunas']);
+            ?>
+            <tr class="hover:bg-gray-50 align-top <?= $sudahLunas ? 'bg-emerald-50/80' : '' ?>">
               <td class="px-4 py-3 text-gray-500"><?= $index + 1 ?></td>
               <td class="px-4 py-3 font-semibold max-w-[14rem]"><?= sanitize((string) $row['nama_madrasah']) ?></td>
               <td class="px-4 py-3 max-w-[16rem]">
@@ -126,9 +137,23 @@ $selectClass = 'rounded-lg border border-gray-300 px-3 py-2 text-sm';
                 <?php $rincian = formatRincianUkuranKaos($row); ?>
                 <?php if ($rincian !== ''): ?><span class="block text-xs text-gray-500 whitespace-nowrap"><?= sanitize($rincian) ?></span><?php endif; ?>
               </td>
-              <?php if ($adaHarga): ?>
-                <td class="px-4 py-3 text-right whitespace-nowrap"><?= sanitize(formatRupiahJalanSehat(hitungBiayaJalanSehat($kupon, $kaos, $settings))) ?></td>
+              <?php if ($adaHarga && $rincianBiaya !== null): ?>
+                <td class="px-4 py-3 text-right text-xs leading-relaxed whitespace-nowrap">
+                  <?php if ($rincianBiaya['subtotal_kupon'] > 0): ?>
+                    <span class="block"><?= $kupon ?>× <?= sanitize(formatRupiahJalanSehat($rincianBiaya['harga_kupon'])) ?> = <?= sanitize(formatRupiahJalanSehat($rincianBiaya['subtotal_kupon'])) ?></span>
+                  <?php endif; ?>
+                  <?php if ($rincianBiaya['subtotal_kaos'] > 0): ?>
+                    <span class="block"><?= $kaos ?>× <?= sanitize(formatRupiahJalanSehat($rincianBiaya['harga_kaos'])) ?> = <?= sanitize(formatRupiahJalanSehat($rincianBiaya['subtotal_kaos'])) ?></span>
+                  <?php endif; ?>
+                  <?php if ($rincianBiaya['total'] === 0): ?><span class="text-gray-400">—</span><?php endif; ?>
+                </td>
+                <td class="px-4 py-3 text-right font-bold text-green-800 whitespace-nowrap"><?= sanitize(formatRupiahJalanSehat($rincianBiaya['total'])) ?></td>
               <?php endif; ?>
+              <td class="px-4 py-3 text-center">
+                <input type="checkbox" class="js-pembayaran-lunas h-4 w-4 accent-emerald-600 cursor-pointer"
+                       data-id="<?= (int) $row['id'] ?>" <?= $sudahLunas ? 'checked' : '' ?>
+                       title="Centang jika pembayaran sudah diterima">
+              </td>
               <td class="px-4 py-3 whitespace-nowrap text-gray-500"><?= sanitize((string) $row['created_at']) ?></td>
               <td class="px-4 py-3 text-center whitespace-nowrap">
                 <a href="<?= url('adminjalansehat/?page=detail&id=' . (int) $row['id']) ?>"
