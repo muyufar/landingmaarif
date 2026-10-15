@@ -491,8 +491,7 @@ function jalanSehatApplyKuponMengikutiKaos(array &$data, array $settings): void
         return;
     }
     $kaos = (int) ($data['jumlah_kaos'] ?? 0);
-    $kupon = (int) ($data['jumlah_kupon'] ?? 0);
-    if ($kaos > 0 && $kupon === 0) {
+    if ($kaos > 0) {
         $data['jumlah_kupon'] = jalanSehatHitungKuponDariKaos($kaos, $settings);
     }
 }
@@ -1546,8 +1545,10 @@ function jalanSehatAdminListScripts(): string
 HTML;
 }
 
-function jalanSehatAdminFormScripts(): string
+function jalanSehatAdminFormScripts(array $settings): string
 {
+    $kuponMengikuti = jalanSehatKuponMengikutiKaos($settings);
+    $kuponPerKaos = jalanSehatKuponPerKaos($settings);
     ob_start();
     require dirname(__DIR__) . '/pesertakerdinma/_wilayah_registrasi_script.php';
     ?>
@@ -1555,15 +1556,39 @@ function jalanSehatAdminFormScripts(): string
 (function () {
   const inputs = document.querySelectorAll('.js-kaos-input');
   const totalEl = document.getElementById('total-kaos');
-  function update() {
+  const kuponEl = document.getElementById('jumlah_kupon');
+  const paketSelect = document.querySelector('select[name="pilihan_paket"]');
+  const kuponMengikutiKaos = <?= $kuponMengikuti ? 'true' : 'false' ?>;
+  const kuponPerKaos = <?= (int) $kuponPerKaos ?>;
+
+  function totalKaos() {
     let t = 0;
     inputs.forEach(function (el) {
       const n = parseInt(el.value, 10);
       if (Number.isFinite(n) && n > 0) t += n;
     });
+    return t;
+  }
+
+  function isJumlahSendiri() {
+    return !paketSelect || paketSelect.value === 'custom';
+  }
+
+  function syncKuponDariKaos() {
+    if (!kuponMengikutiKaos || !kuponEl || !isJumlahSendiri()) return;
+    const t = totalKaos();
+    if (t > 0) {
+      kuponEl.value = String(t * kuponPerKaos);
+    }
+  }
+
+  function update() {
+    const t = totalKaos();
     if (totalEl) totalEl.textContent = String(t);
+    syncKuponDariKaos();
   }
   inputs.forEach(function (el) { el.addEventListener('input', update); });
+  if (paketSelect) paketSelect.addEventListener('change', update);
   update();
 })();
 </script>

@@ -504,7 +504,6 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
       const kuponPerKaos = <?= (int) $kuponPerKaos ?>;
       const isEditMode = <?= $editMode ? 'true' : 'false' ?>;
       const btnKuponDariKaos = document.getElementById('btn-kupon-dari-kaos');
-      let kuponDiubahManual = false;
 
       // mode: 'none' (belum pilih paket), 'custom', atau 'paket'
       let mode = radios.length === 0 ? 'custom' : 'none';
@@ -566,24 +565,20 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
       }
 
       function hitungKuponBonusDariKaos() {
-        const total = totalUkuran();
-        if (total <= 0) {
+        syncKuponIkutKaos();
+        if (totalUkuran() <= 0) {
           alert('Isi jumlah kaos per ukuran terlebih dahulu, atau isi kupon manual jika pesanan kupon saja.');
-          return;
         }
-        kupon.value = String(total * kuponPerKaos);
-        kuponDiubahManual = true;
         updateRingkasan();
       }
 
-      function suggestKuponDariKaosJikaKosong() {
-        if (!kuponMengikutiKaos || mode !== 'custom' || kuponDiubahManual) {
+      /** Selama ada kaos: kupon bonus selalu = total kaos × kuponPerKaos. Kaos 0: kupon bebas (pesanan kupon saja). */
+      function syncKuponIkutKaos() {
+        if (!kuponMengikutiKaos || mode !== 'custom') {
           return;
         }
         const total = totalUkuran();
-        const k = parseInt(kupon.value, 10);
-        const kuponAngka = Number.isFinite(k) && k > 0 ? k : 0;
-        if (total > 0 && kuponAngka === 0) {
+        if (total > 0) {
           kupon.value = String(total * kuponPerKaos);
         }
       }
@@ -608,7 +603,12 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
           mode = 'custom';
           kupon.readOnly = false;
           setKaosAktif(true);
-          if (hint) hint.textContent = 'Perbarui jumlah kupon dan rincian ukuran kaos sesuai kebutuhan.';
+          if (hint) {
+            hint.textContent = kuponMengikutiKaos
+              ? 'Ubah ukuran kaos — kupon bonus otomatis mengikuti (' + kuponPerKaos + '× total kaos). Kupon saja: kosongkan semua kaos lalu isi kupon.'
+              : 'Perbarui jumlah kupon dan rincian ukuran kaos sesuai kebutuhan.';
+          }
+          syncKuponIkutKaos();
           updateRingkasan();
           return;
         }
@@ -635,7 +635,6 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
         } else if (selected.value === 'custom') {
           mode = 'custom';
           kupon.readOnly = false;
-          kuponDiubahManual = false;
           setKaosAktif(true);
           if (hint) {
             hint.textContent = kuponMengikutiKaos
@@ -656,17 +655,17 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
             if (hint) hint.textContent = 'Jumlah terisi otomatis sesuai paket yang dipilih.';
           }
         }
+        syncKuponIkutKaos();
         updateRingkasan();
       }
 
       radios.forEach(function (r) { r.addEventListener('change', applyPilihan); });
       kupon.addEventListener('input', function () {
-        kuponDiubahManual = true;
         updateRingkasan();
       });
       ukuranInputs.forEach(function (el) {
         el.addEventListener('input', function () {
-          suggestKuponDariKaosJikaKosong();
+          syncKuponIkutKaos();
           updateRingkasan();
         });
       });

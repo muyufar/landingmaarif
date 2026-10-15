@@ -218,7 +218,7 @@ try {
         ob_start();
         require __DIR__ . '/views/edit.php';
         $content = ob_get_clean();
-        $extraScripts = jalanSehatAdminFormScripts();
+        $extraScripts = jalanSehatAdminFormScripts($settings);
     } elseif ($currentPage === 'tambah') {
         $formData = $pendaftaranFormData ?? jalanSehatFormDefaults();
         if (trim((string) ($formData['pilihan_paket'] ?? '')) === '') {
@@ -231,7 +231,7 @@ try {
         ob_start();
         require __DIR__ . '/views/tambah.php';
         $content = ob_get_clean();
-        $extraScripts = jalanSehatAdminFormScripts();
+        $extraScripts = jalanSehatAdminFormScripts($settings);
     } elseif ($currentPage === 'pengaturan') {
         $paketList = loadJalanSehatPaket();
         if ($paketFormData === null && isset($_GET['edit_paket'])) {
