@@ -24,7 +24,8 @@ $pendaftaranDibuka = $settings['pendaftaran_dibuka'] === '1';
 $izinkanBebas = $settings['izinkan_jumlah_bebas'] === '1' || $paketAktif === [];
 $adaHarga = jalanSehatAdaHarga($settings);
 $hargaKupon = (int) $settings['harga_kupon'];
-$hargaKaos = (int) $settings['harga_kaos'];
+$hargaKaosPendek = jalanSehatHargaKaosPendek($settings);
+$hargaKaosPanjang = jalanSehatHargaKaosPanjang($settings);
 $kuponMengikutiKaos = jalanSehatKuponMengikutiKaos($settings);
 $kuponPerKaos = jalanSehatKuponPerKaos($settings);
 
@@ -273,8 +274,9 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
                 <?php endif; ?>
                 <?php if ($adaHarga): ?>
                   <ul class="mt-2 space-y-0.5">
-                    <?php if ($hargaKupon > 0): ?><li>• Kupon door prize: <strong><?= sanitize(formatRupiahJalanSehat($hargaKupon)) ?></strong> / kupon</li><?php endif; ?>
-                    <?php if ($hargaKaos > 0): ?><li>• Kaos: <strong><?= sanitize(formatRupiahJalanSehat($hargaKaos)) ?></strong> / pcs</li><?php endif; ?>
+                    <?php if ($hargaKupon > 0): ?><li>• Pendaftaran / kupon saja: <strong><?= sanitize(formatRupiahJalanSehat($hargaKupon)) ?></strong> / kupon (1 kupon)</li><?php endif; ?>
+                    <?php if ($hargaKaosPendek > 0): ?><li>• Kaos lengan pendek: <strong><?= sanitize(formatRupiahJalanSehat($hargaKaosPendek)) ?></strong> / pcs (termasuk daftar + 2 kupon)</li><?php endif; ?>
+                    <?php if ($hargaKaosPanjang > 0): ?><li>• Kaos lengan panjang: <strong><?= sanitize(formatRupiahJalanSehat($hargaKaosPanjang)) ?></strong> / pcs (termasuk daftar + 2 kupon)</li><?php endif; ?>
                   </ul>
                 <?php endif; ?>
               </div>
@@ -379,7 +381,9 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
                     <p id="kaos-hint" class="text-xs text-gray-500 mb-3">
                       Isi jumlah per ukuran untuk <strong>lengan pendek</strong> dan/atau <strong>lengan panjang</strong>.
                       Biarkan <strong>0</strong> jika tidak dipesan.
-                      <?php if ($hargaKaos > 0): ?>Harga <?= sanitize(formatRupiahJalanSehat($hargaKaos)) ?> / pcs.<?php endif; ?>
+                      <?php if ($hargaKaosPendek > 0 || $hargaKaosPanjang > 0): ?>
+                        Harga pendek <?= sanitize(formatRupiahJalanSehat($hargaKaosPendek)) ?> / panjang <?= sanitize(formatRupiahJalanSehat($hargaKaosPanjang)) ?> per pcs.
+                      <?php endif; ?>
                     </p>
                     <div class="grid sm:grid-cols-2 gap-4 mb-5">
                       <figure class="rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm">
@@ -500,7 +504,9 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
       const teks = document.getElementById('ringkasan-teks');
       const biaya = document.getElementById('ringkasan-biaya');
       const hargaKupon = <?= $hargaKupon ?>;
-      const hargaKaos = <?= $hargaKaos ?>;
+      const hargaKaosPendek = <?= $hargaKaosPendek ?>;
+      const hargaKaosPanjang = <?= $hargaKaosPanjang ?>;
+      const kuponPerKaosJs = <?= (int) $kuponPerKaos ?>;
       const kuponMengikutiKaos = <?= $kuponMengikutiKaos ? 'true' : 'false' ?>;
       const kuponPerKaos = <?= (int) $kuponPerKaos ?>;
       const isEditMode = <?= $editMode ? 'true' : 'false' ?>;
@@ -527,6 +533,25 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
 
       function totalUkuran() {
         return ukuranInputs.reduce(function (sum, el) { return sum + toInt(el); }, 0);
+      }
+
+      function totalKaosByJenis() {
+        var pendek = 0;
+        var panjang = 0;
+        ukuranInputs.forEach(function (el) {
+          var q = toInt(el);
+          if (el.dataset.jenis === 'Pendek') pendek += q;
+          else if (el.dataset.jenis === 'Panjang') panjang += q;
+        });
+        return { pendek: pendek, panjang: panjang, total: pendek + panjang };
+      }
+
+      function hitungEstimasiBiaya() {
+        var j = totalKaosByJenis();
+        var k = readKuponField();
+        var bonus = j.total * kuponPerKaosJs;
+        var kuponBayar = Math.max(0, k - bonus);
+        return kuponBayar * hargaKupon + j.pendek * hargaKaosPendek + j.panjang * hargaKaosPanjang;
       }
 
       function rincianUkuran() {
@@ -603,7 +628,7 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
         }
         teks.textContent = parts.length ? parts.join(' + ') : 'Belum ada pesanan';
         teks.className = parts.length ? 'font-bold text-green-800 text-base mt-1' : 'font-semibold text-red-600 text-base mt-1';
-        if (biaya) biaya.textContent = rupiah(k * hargaKupon + s * hargaKaos);
+        if (biaya) biaya.textContent = rupiah(hitungEstimasiBiaya());
         if (kuponLiveDariKaos && kuponMengikutiKaos) {
           const totalKaos = totalUkuran();
           if (totalKaos > 0 && mode !== 'none') {

@@ -55,6 +55,10 @@ if (isJalanSehatAdminLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST' && isse
             saveJalanSehatPengaturan($_POST);
             header('Location: ' . url('adminjalansehat/?page=pengaturan&msg=settings'));
             exit;
+        } elseif ($action === 'sync_tarif_se') {
+            applyJalanSehatTarifSuratEdaran(true);
+            header('Location: ' . url('adminjalansehat/?page=pengaturan&msg=tarif_se'));
+            exit;
         } elseif ($action === 'save_paket') {
             $paketId = (int) ($_POST['paket_id'] ?? 0);
             $result = validateJalanSehatPaket($_POST);
@@ -116,6 +120,7 @@ if (isJalanSehatAdminLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST' && isse
 $flashMessages = [
     'deleted' => 'Data pendaftaran berhasil dihapus.',
     'settings' => 'Pengaturan berhasil disimpan.',
+    'tarif_se' => 'Tarif surat edaran (kupon & kaos) diterapkan otomatis.',
     'paket' => 'Paket berhasil disimpan.',
     'paket_deleted' => 'Paket berhasil dihapus.',
     'updated' => 'Data pendaftaran berhasil diperbarui.',

@@ -291,8 +291,10 @@ function jalanSehatPengaturanDefaults(): array
     return [
         'pendaftaran_dibuka' => '1',
         'izinkan_jumlah_bebas' => '1',
-        'harga_kupon' => '0',
+        'harga_kupon' => '5000',
         'harga_kaos' => '0',
+        'harga_kaos_pendek' => '80000',
+        'harga_kaos_panjang' => '90000',
         'info_surat_edaran' => '',
         'monitor_kaos_aktif' => '0',
         'kupon_mengikuti_kaos' => '1',
@@ -300,14 +302,59 @@ function jalanSehatPengaturanDefaults(): array
     ];
 }
 
+/** Tarif resmi SE Revisi 0629/PC.1/LPM/E.21/X/2026 (Jalan Santai HSN – Harlah LPMNU 97). */
+function jalanSehatTarifSuratEdaranDefaults(): array
+{
+    return [
+        'harga_kupon' => '5000',
+        'harga_kaos_pendek' => '80000',
+        'harga_kaos_panjang' => '90000',
+    ];
+}
+
+function ensureJalanSehatTarifSuratEdaran(): void
+{
+    ensureJalanSehatTables();
+    $pdo = getDb();
+    $insert = $pdo->prepare(
+        'INSERT INTO jalan_sehat_pengaturan (kunci, nilai) VALUES (:kunci, :nilai)
+         ON DUPLICATE KEY UPDATE nilai = IF(nilai IS NULL OR TRIM(nilai) = \'\' OR nilai = \'0\', VALUES(nilai), nilai)'
+    );
+    foreach (jalanSehatTarifSuratEdaranDefaults() as $kunci => $nilai) {
+        $insert->execute([':kunci' => $kunci, ':nilai' => $nilai]);
+    }
+}
+
+function applyJalanSehatTarifSuratEdaran(bool $paksa = false): void
+{
+    ensureJalanSehatTables();
+    if (!$paksa) {
+        ensureJalanSehatTarifSuratEdaran();
+
+        return;
+    }
+    $pdo = getDb();
+    $stmt = $pdo->prepare(
+        'INSERT INTO jalan_sehat_pengaturan (kunci, nilai) VALUES (:kunci, :nilai)
+         ON DUPLICATE KEY UPDATE nilai = VALUES(nilai)'
+    );
+    foreach (jalanSehatTarifSuratEdaranDefaults() as $kunci => $nilai) {
+        $stmt->execute([':kunci' => $kunci, ':nilai' => $nilai]);
+    }
+}
+
 function getJalanSehatPengaturan(): array
 {
     ensureJalanSehatTables();
+    ensureJalanSehatTarifSuratEdaran();
     $settings = jalanSehatPengaturanDefaults();
     $rows = getDb()->query('SELECT kunci, nilai FROM jalan_sehat_pengaturan')->fetchAll();
     foreach ($rows as $row) {
-        if (array_key_exists($row['kunci'], $settings)) {
-            $settings[$row['kunci']] = (string) ($row['nilai'] ?? '');
+        $kunci = (string) $row['kunci'];
+        if (array_key_exists($kunci, $settings)) {
+            $settings[$kunci] = (string) ($row['nilai'] ?? '');
+        } else {
+            $settings[$kunci] = (string) ($row['nilai'] ?? '');
         }
     }
 
@@ -322,6 +369,8 @@ function saveJalanSehatPengaturan(array $input): void
         'izinkan_jumlah_bebas' => !empty($input['izinkan_jumlah_bebas']) ? '1' : '0',
         'harga_kupon' => (string) max(0, (int) preg_replace('/\D/', '', (string) ($input['harga_kupon'] ?? '0'))),
         'harga_kaos' => (string) max(0, (int) preg_replace('/\D/', '', (string) ($input['harga_kaos'] ?? '0'))),
+        'harga_kaos_pendek' => (string) max(0, (int) preg_replace('/\D/', '', (string) ($input['harga_kaos_pendek'] ?? '0'))),
+        'harga_kaos_panjang' => (string) max(0, (int) preg_replace('/\D/', '', (string) ($input['harga_kaos_panjang'] ?? '0'))),
         'info_surat_edaran' => trim((string) ($input['info_surat_edaran'] ?? '')),
         'monitor_kaos_aktif' => !empty($input['monitor_kaos_aktif']) ? '1' : '0',
         'kupon_mengikuti_kaos' => !empty($input['kupon_mengikuti_kaos']) ? '1' : '0',
@@ -432,31 +481,153 @@ function formatRupiahJalanSehat(int $nominal): string
     return 'Rp ' . number_format($nominal, 0, ',', '.');
 }
 
-function hitungBiayaJalanSehat(int $kupon, int $kaos, array $settings): int
+function jalanSehatHargaKaosPendek(array $settings): int
 {
-    return $kupon * (int) $settings['harga_kupon'] + $kaos * (int) $settings['harga_kaos'];
+    $h = (int) ($settings['harga_kaos_pendek'] ?? 0);
+
+    return $h > 0 ? $h : (int) ($settings['harga_kaos'] ?? 0);
+}
+
+function jalanSehatHargaKaosPanjang(array $settings): int
+{
+    $h = (int) ($settings['harga_kaos_panjang'] ?? 0);
+
+    return $h > 0 ? $h : (int) ($settings['harga_kaos'] ?? 0);
 }
 
 /**
- * @return array{subtotal_kupon: int, subtotal_kaos: int, total: int, harga_kupon: int, harga_kaos: int}
+ * @return array{pendek: int, panjang: int, total: int}
  */
-function jalanSehatRincianBiaya(int $kupon, int $kaos, array $settings): array
+function jalanSehatTotalKaosByJenis(array $row): array
+{
+    $pendek = 0;
+    $panjang = 0;
+    foreach (jalanSehatUkuranKaosByJenis()['pendek']['columns'] as $column) {
+        $pendek += (int) ($row[$column] ?? 0);
+    }
+    foreach (jalanSehatUkuranKaosByJenis()['panjang']['columns'] as $column) {
+        $panjang += (int) ($row[$column] ?? 0);
+    }
+
+    return [
+        'pendek' => $pendek,
+        'panjang' => $panjang,
+        'total' => $pendek + $panjang,
+    ];
+}
+
+/** Kupon di luar bonus kaos (2 kupon/kaos sudah termasuk harga kaos). */
+function jalanSehatJumlahKuponDitagih(int $jumlahKupon, int $totalKaos, array $settings): int
+{
+    if ($totalKaos <= 0) {
+        return max(0, $jumlahKupon);
+    }
+
+    return max(0, $jumlahKupon - jalanSehatHitungKuponDariKaos($totalKaos, $settings));
+}
+
+function hitungBiayaJalanSehatFromRow(array $row, array $settings): int
+{
+    return jalanSehatRincianBiayaFromRow($row, $settings)['total'];
+}
+
+function hitungBiayaJalanSehat(int $kupon, int $kaos, array $settings): int
+{
+    $row = ['jumlah_kupon' => $kupon, 'jumlah_kaos' => $kaos];
+    foreach (jalanSehatUkuranKaosByJenis()['pendek']['columns'] as $column) {
+        $row[$column] = 0;
+    }
+    foreach (jalanSehatUkuranKaosByJenis()['panjang']['columns'] as $column) {
+        $row[$column] = 0;
+    }
+    if ($kaos > 0) {
+        $firstPendek = array_values(jalanSehatUkuranKaosByJenis()['pendek']['columns'])[0];
+        $row[$firstPendek] = $kaos;
+    }
+
+    return hitungBiayaJalanSehatFromRow($row, $settings);
+}
+
+/**
+ * @return array{
+ *   harga_kupon: int,
+ *   harga_kaos: int,
+ *   harga_kaos_pendek: int,
+ *   harga_kaos_panjang: int,
+ *   qty_pendek: int,
+ *   qty_panjang: int,
+ *   qty_kupon_bayar: int,
+ *   bonus_kupon_kaos: int,
+ *   subtotal_kupon: int,
+ *   subtotal_kaos_pendek: int,
+ *   subtotal_kaos_panjang: int,
+ *   subtotal_kaos: int,
+ *   total: int
+ * }
+ */
+function jalanSehatRincianBiayaFromRow(array $row, array $settings): array
 {
     $hargaKupon = (int) ($settings['harga_kupon'] ?? 0);
-    $hargaKaos = (int) ($settings['harga_kaos'] ?? 0);
+    $hargaPendek = jalanSehatHargaKaosPendek($settings);
+    $hargaPanjang = jalanSehatHargaKaosPanjang($settings);
+    $qty = jalanSehatTotalKaosByJenis($row);
+    $jumlahKupon = (int) ($row['jumlah_kupon'] ?? 0);
+    $bonusKupon = jalanSehatHitungKuponDariKaos($qty['total'], $settings);
+    $kuponBayar = jalanSehatJumlahKuponDitagih($jumlahKupon, $qty['total'], $settings);
+    $subKupon = $kuponBayar * $hargaKupon;
+    $subPendek = $qty['pendek'] * $hargaPendek;
+    $subPanjang = $qty['panjang'] * $hargaPanjang;
+    $subKaos = $subPendek + $subPanjang;
 
     return [
         'harga_kupon' => $hargaKupon,
-        'harga_kaos' => $hargaKaos,
-        'subtotal_kupon' => $kupon * $hargaKupon,
-        'subtotal_kaos' => $kaos * $hargaKaos,
-        'total' => $kupon * $hargaKupon + $kaos * $hargaKaos,
+        'harga_kaos' => $hargaPendek > 0 ? $hargaPendek : $hargaPanjang,
+        'harga_kaos_pendek' => $hargaPendek,
+        'harga_kaos_panjang' => $hargaPanjang,
+        'qty_pendek' => $qty['pendek'],
+        'qty_panjang' => $qty['panjang'],
+        'qty_kupon_bayar' => $kuponBayar,
+        'bonus_kupon_kaos' => $bonusKupon,
+        'subtotal_kupon' => $subKupon,
+        'subtotal_kaos_pendek' => $subPendek,
+        'subtotal_kaos_panjang' => $subPanjang,
+        'subtotal_kaos' => $subKaos,
+        'total' => $subKupon + $subKaos,
     ];
+}
+
+function jalanSehatRincianBiaya(int $kupon, int $kaos, array $settings): array
+{
+    return jalanSehatRincianBiayaFromRow(
+        ['jumlah_kupon' => $kupon, 'jumlah_kaos' => $kaos] + jalanSehatSyntheticRowKaos($kaos),
+        $settings
+    );
+}
+
+/** @return array<string, int> */
+function jalanSehatSyntheticRowKaos(int $kaos): array
+{
+    $row = [];
+    foreach (jalanSehatUkuranKaosByJenis()['pendek']['columns'] as $column) {
+        $row[$column] = 0;
+    }
+    foreach (jalanSehatUkuranKaosByJenis()['panjang']['columns'] as $column) {
+        $row[$column] = 0;
+    }
+    if ($kaos > 0) {
+        $firstPendek = array_values(jalanSehatUkuranKaosByJenis()['pendek']['columns'])[0];
+        $row[$firstPendek] = $kaos;
+    }
+
+    return $row;
 }
 
 function jalanSehatAdaHarga(array $settings): bool
 {
-    return (int) $settings['harga_kupon'] > 0 || (int) $settings['harga_kaos'] > 0;
+    return (int) ($settings['harga_kupon'] ?? 0) > 0
+        || jalanSehatHargaKaosPendek($settings) > 0
+        || jalanSehatHargaKaosPanjang($settings) > 0
+        || (int) ($settings['harga_kaos'] ?? 0) > 0;
 }
 
 function jalanSehatKuponMengikutiKaos(array $settings): bool
@@ -1306,8 +1477,8 @@ function getJalanSehatRingkasan(array $rows, array $settings): array
     foreach ($rows as $row) {
         $kupon = (int) ($row['jumlah_kupon'] ?? 0);
         $kaos = (int) ($row['jumlah_kaos'] ?? 0);
-        $biaya = hitungBiayaJalanSehat($kupon, $kaos, $settings);
-        $rincian = jalanSehatRincianBiaya($kupon, $kaos, $settings);
+        $biaya = hitungBiayaJalanSehatFromRow($row, $settings);
+        $rincian = jalanSehatRincianBiayaFromRow($row, $settings);
         $lunas = $hasLunasCol && !empty($row['pembayaran_lunas']);
 
         $kec = trim((string) ($row['nama_kecamatan'] ?? ''));
@@ -1647,7 +1818,7 @@ function exportJalanSehatXls(array $rows, array $settings): void
         }
         echo '<td>' . $kaos . '</td>';
         if ($adaHarga) {
-            $rincian = jalanSehatRincianBiaya($kupon, $kaos, $settings);
+            $rincian = jalanSehatRincianBiayaFromRow($row, $settings);
             echo '<td>' . $rincian['subtotal_kupon'] . '</td>';
             echo '<td>' . $rincian['subtotal_kaos'] . '</td>';
             echo '<td>' . $rincian['total'] . '</td>';

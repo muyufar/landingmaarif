@@ -115,7 +115,7 @@ $selectClass = 'rounded-lg border border-gray-300 px-3 py-2 text-sm';
             <?php
             $kupon = (int) $row['jumlah_kupon'];
             $kaos = (int) $row['jumlah_kaos'];
-            $rincianBiaya = $adaHarga ? jalanSehatRincianBiaya($kupon, $kaos, $settings) : null;
+            $rincianBiaya = $adaHarga ? jalanSehatRincianBiayaFromRow($row, $settings) : null;
             $sudahLunas = !empty($row['pembayaran_lunas']);
             ?>
             <tr class="hover:bg-gray-50 align-top <?= $sudahLunas ? 'bg-emerald-50/80' : '' ?>">
@@ -140,10 +140,16 @@ $selectClass = 'rounded-lg border border-gray-300 px-3 py-2 text-sm';
               <?php if ($adaHarga && $rincianBiaya !== null): ?>
                 <td class="px-4 py-3 text-right text-xs leading-relaxed whitespace-nowrap">
                   <?php if ($rincianBiaya['subtotal_kupon'] > 0): ?>
-                    <span class="block"><?= $kupon ?>× <?= sanitize(formatRupiahJalanSehat($rincianBiaya['harga_kupon'])) ?> = <?= sanitize(formatRupiahJalanSehat($rincianBiaya['subtotal_kupon'])) ?></span>
+                    <span class="block"><?= (int) $rincianBiaya['qty_kupon_bayar'] ?> kupon × <?= sanitize(formatRupiahJalanSehat($rincianBiaya['harga_kupon'])) ?> = <?= sanitize(formatRupiahJalanSehat($rincianBiaya['subtotal_kupon'])) ?></span>
                   <?php endif; ?>
-                  <?php if ($rincianBiaya['subtotal_kaos'] > 0): ?>
-                    <span class="block"><?= $kaos ?>× <?= sanitize(formatRupiahJalanSehat($rincianBiaya['harga_kaos'])) ?> = <?= sanitize(formatRupiahJalanSehat($rincianBiaya['subtotal_kaos'])) ?></span>
+                  <?php if ($rincianBiaya['subtotal_kaos_pendek'] > 0): ?>
+                    <span class="block"><?= (int) $rincianBiaya['qty_pendek'] ?> pendek × <?= sanitize(formatRupiahJalanSehat($rincianBiaya['harga_kaos_pendek'])) ?></span>
+                  <?php endif; ?>
+                  <?php if ($rincianBiaya['subtotal_kaos_panjang'] > 0): ?>
+                    <span class="block"><?= (int) $rincianBiaya['qty_panjang'] ?> panjang × <?= sanitize(formatRupiahJalanSehat($rincianBiaya['harga_kaos_panjang'])) ?></span>
+                  <?php endif; ?>
+                  <?php if ($rincianBiaya['bonus_kupon_kaos'] > 0 && $rincianBiaya['subtotal_kaos'] > 0): ?>
+                    <span class="block text-gray-500">Bonus <?= (int) $rincianBiaya['bonus_kupon_kaos'] ?> kupon termasuk harga kaos</span>
                   <?php endif; ?>
                   <?php if ($rincianBiaya['total'] === 0): ?><span class="text-gray-400">—</span><?php endif; ?>
                 </td>

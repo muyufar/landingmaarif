@@ -5,7 +5,7 @@ declare(strict_types=1);
 /** @var array $row @var array $settings */
 $kupon = (int) $row['jumlah_kupon'];
 $kaos = (int) $row['jumlah_kaos'];
-$rincianBiaya = jalanSehatAdaHarga($settings) ? jalanSehatRincianBiaya($kupon, $kaos, $settings) : null;
+$rincianBiaya = jalanSehatAdaHarga($settings) ? jalanSehatRincianBiayaFromRow($row, $settings) : null;
 $sudahLunas = !empty($row['pembayaran_lunas']);
 $nomorWa = (string) ($row['nomor_wa'] ?? '');
 $waLink = $nomorWa !== '' ? 'https://wa.me/62' . ltrim(normalizeNomorWa($nomorWa), '0') : '';
@@ -80,16 +80,31 @@ $waLink = $nomorWa !== '' ? 'https://wa.me/62' . ltrim(normalizeNomorWa($nomorWa
       </dd>
 
       <?php if ($rincianBiaya !== null): ?>
-        <dt class="text-gray-500">Tagihan kupon</dt>
-        <dd class="sm:col-span-2">
-          <?= $kupon ?> kupon × <?= sanitize(formatRupiahJalanSehat($rincianBiaya['harga_kupon'])) ?>
-          = <strong><?= sanitize(formatRupiahJalanSehat($rincianBiaya['subtotal_kupon'])) ?></strong>
-        </dd>
-        <dt class="text-gray-500">Tagihan kaos</dt>
-        <dd class="sm:col-span-2">
-          <?= $kaos ?> pcs × <?= sanitize(formatRupiahJalanSehat($rincianBiaya['harga_kaos'])) ?>
-          = <strong><?= sanitize(formatRupiahJalanSehat($rincianBiaya['subtotal_kaos'])) ?></strong>
-        </dd>
+        <?php if ($rincianBiaya['subtotal_kupon'] > 0): ?>
+          <dt class="text-gray-500">Tagihan kupon (di luar bonus kaos)</dt>
+          <dd class="sm:col-span-2">
+            <?= (int) $rincianBiaya['qty_kupon_bayar'] ?> × <?= sanitize(formatRupiahJalanSehat($rincianBiaya['harga_kupon'])) ?>
+            = <strong><?= sanitize(formatRupiahJalanSehat($rincianBiaya['subtotal_kupon'])) ?></strong>
+          </dd>
+        <?php endif; ?>
+        <?php if ($rincianBiaya['qty_pendek'] > 0): ?>
+          <dt class="text-gray-500">Kaos lengan pendek</dt>
+          <dd class="sm:col-span-2">
+            <?= (int) $rincianBiaya['qty_pendek'] ?> × <?= sanitize(formatRupiahJalanSehat($rincianBiaya['harga_kaos_pendek'])) ?>
+            = <strong><?= sanitize(formatRupiahJalanSehat($rincianBiaya['subtotal_kaos_pendek'])) ?></strong>
+          </dd>
+        <?php endif; ?>
+        <?php if ($rincianBiaya['qty_panjang'] > 0): ?>
+          <dt class="text-gray-500">Kaos lengan panjang</dt>
+          <dd class="sm:col-span-2">
+            <?= (int) $rincianBiaya['qty_panjang'] ?> × <?= sanitize(formatRupiahJalanSehat($rincianBiaya['harga_kaos_panjang'])) ?>
+            = <strong><?= sanitize(formatRupiahJalanSehat($rincianBiaya['subtotal_kaos_panjang'])) ?></strong>
+          </dd>
+        <?php endif; ?>
+        <?php if ($rincianBiaya['bonus_kupon_kaos'] > 0): ?>
+          <dt class="text-gray-500">Bonus kupon dari kaos</dt>
+          <dd class="sm:col-span-2 text-gray-600"><?= (int) $rincianBiaya['bonus_kupon_kaos'] ?> kupon (sudah termasuk harga kaos, tidak ditagih lagi)</dd>
+        <?php endif; ?>
         <dt class="text-gray-500">Total tagihan</dt>
         <dd class="sm:col-span-2 text-lg font-bold text-green-800"><?= sanitize(formatRupiahJalanSehat($rincianBiaya['total'])) ?></dd>
         <dt class="text-gray-500">Status pembayaran</dt>

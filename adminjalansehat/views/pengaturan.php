@@ -15,8 +15,6 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:
         <p class="text-xs text-gray-500 mt-1">Sesuaikan dengan isi surat edaran. Perubahan langsung tampil di form publik.</p>
       </div>
       <form method="post" class="px-6 py-5 space-y-4">
-        <input type="hidden" name="action" value="save_pengaturan">
-
         <label class="flex items-start gap-3">
           <input type="checkbox" name="pendaftaran_dibuka" value="1" class="mt-1 h-4 w-4 text-green-700"
                  <?= $settings['pendaftaran_dibuka'] === '1' ? 'checked' : '' ?>>
@@ -35,17 +33,38 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:
           </span>
         </label>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div class="rounded-lg border border-green-200 bg-green-50/50 px-4 py-3 text-xs text-gray-700 mb-2">
+          Tarif resmi <strong>SE Revisi 0629/LPM/X/2026</strong>: kupon/pendaftaran Rp 5.000;
+          kaos pendek Rp 80.000; kaos panjang Rp 90.000 (sudah termasuk pendaftaran + 2 kupon/kaos).
+          <a href="<?= sanitize(url('data/jalan_sehat/SE_Revisi_Jalan_Santai_HSN_2026.pdf')) ?>" target="_blank" rel="noopener" class="text-green-800 font-semibold underline">Buka PDF</a>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label for="harga_kupon" class="block text-sm font-semibold text-gray-700 mb-1">Harga / kupon (Rp)</label>
+            <label for="harga_kupon" class="block text-sm font-semibold text-gray-700 mb-1">Kupon / pendaftaran saja (Rp)</label>
             <input type="number" min="0" step="1" id="harga_kupon" name="harga_kupon" value="<?= (int) $settings['harga_kupon'] ?>" class="<?= $inputClass ?>">
           </div>
           <div>
-            <label for="harga_kaos" class="block text-sm font-semibold text-gray-700 mb-1">Harga / kaos (Rp)</label>
-            <input type="number" min="0" step="1" id="harga_kaos" name="harga_kaos" value="<?= (int) $settings['harga_kaos'] ?>" class="<?= $inputClass ?>">
+            <label for="harga_kaos_pendek" class="block text-sm font-semibold text-gray-700 mb-1">Kaos lengan pendek / pcs (Rp)</label>
+            <input type="number" min="0" step="1" id="harga_kaos_pendek" name="harga_kaos_pendek"
+                   value="<?= (int) ($settings['harga_kaos_pendek'] ?? jalanSehatHargaKaosPendek($settings)) ?>" class="<?= $inputClass ?>">
           </div>
-          <p class="col-span-2 text-xs text-gray-500">Isi 0 jika tidak ada harga; estimasi biaya tidak akan ditampilkan.</p>
+          <div>
+            <label for="harga_kaos_panjang" class="block text-sm font-semibold text-gray-700 mb-1">Kaos lengan panjang / pcs (Rp)</label>
+            <input type="number" min="0" step="1" id="harga_kaos_panjang" name="harga_kaos_panjang"
+                   value="<?= (int) ($settings['harga_kaos_panjang'] ?? jalanSehatHargaKaosPanjang($settings)) ?>" class="<?= $inputClass ?>">
+          </div>
+          <div>
+            <label for="harga_kaos" class="block text-sm font-semibold text-gray-700 mb-1">Harga kaos lama (opsional)</label>
+            <input type="number" min="0" step="1" id="harga_kaos" name="harga_kaos" value="<?= (int) $settings['harga_kaos'] ?>" class="<?= $inputClass ?>">
+            <p class="text-xs text-gray-500 mt-1">Cadangan jika pendek/panjang kosong.</p>
+          </div>
         </div>
+        <p class="text-sm">
+          <button type="submit" name="action" value="sync_tarif_se" formnovalidate
+                  class="font-semibold text-green-800 underline hover:text-green-900">
+            Terapkan otomatis tarif dari surat edaran (5.000 / 80.000 / 90.000)
+          </button>
+        </p>
 
         <label class="flex items-start gap-3 rounded-lg border border-green-100 bg-green-50/60 px-4 py-3">
           <input type="checkbox" name="kupon_mengikuti_kaos" value="1" class="mt-1 h-4 w-4 text-green-700"
@@ -86,7 +105,7 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:
           </p>
         </div>
 
-        <button type="submit" class="w-full bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2.5 rounded-lg text-sm">Simpan Pengaturan</button>
+        <button type="submit" name="action" value="save_pengaturan" class="w-full bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2.5 rounded-lg text-sm">Simpan Pengaturan</button>
       </form>
     </div>
   </div>
