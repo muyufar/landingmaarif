@@ -52,7 +52,7 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:
                  <?= ($settings['kupon_mengikuti_kaos'] ?? '1') === '1' ? 'checked' : '' ?>>
           <span>
             <span class="block text-sm font-semibold text-gray-800">Kupon mengikuti kaos (jumlah sendiri)</span>
-            <span class="block text-xs text-gray-600 mt-0.5">Sesuai surat edaran: memesan kaos otomatis mendapat kupon door prize. Jika aktif, saat madrasah mengisi jumlah sendiri, jumlah kupon dihitung dari total kaos (hindari double input). Paket tetap memakai jumlah kupon/kaos masing-masing paket.</span>
+            <span class="block text-xs text-gray-600 mt-0.5">Sesuai surat edaran: bonus kupon per kaos. Form tidak mengunci field kupon (siswa bisa pesan kupon saja). Jika kaos diisi dan kupon masih 0, sistem mengisi bonus saat simpan. Paket tetap memakai jumlah kupon/kaos masing-masing paket.</span>
           </span>
         </label>
 

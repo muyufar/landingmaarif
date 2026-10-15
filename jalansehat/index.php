@@ -343,7 +343,7 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
               <?php else: ?>
                 <p class="text-xs text-gray-500 mb-3">
                   <?php if ($kuponMengikutiKaos): ?>
-                    Isi jumlah kaos per ukuran. Kupon door prize otomatis <?= (int) $kuponPerKaos ?>× total kaos (1 kaos = <?= (int) $kuponPerKaos ?> kupon). Hanya isi kupon manual jika memesan kupon saja tanpa kaos.
+                    Bisa pesan <strong>kupon saja</strong>, <strong>kaos saja</strong>, atau keduanya. Jika memesan kaos: bonus <?= (int) $kuponPerKaos ?> kupon per kaos (1 kaos = <?= (int) $kuponPerKaos ?> kupon) — bisa pakai tombol di bawah atau isi manual.
                   <?php else: ?>
                     Isi angka saja. Tulis <strong>0</strong> jika tidak memesan salah satunya.
                   <?php endif; ?>
@@ -363,10 +363,13 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
                     <p class="text-xs text-gray-500 mt-1"><?= sanitize(formatRupiahJalanSehat($hargaKupon)) ?> / kupon</p>
                   <?php endif; ?>
                   <?php if ($kuponMengikutiKaos): ?>
-                    <p id="kupon-se-hint" class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2 hidden">
-                      Sesuai surat edaran: <strong>1 kaos = <?= (int) $kuponPerKaos ?> kupon</strong> door prize.
-                      Isi ukuran kaos saja — jumlah kupon dihitung otomatis (<?= (int) $kuponPerKaos ?> × total kaos).
+                    <p class="text-xs text-gray-600 mt-2">
+                      Peserta hanya kupon? Isi angka di atas, kaos boleh 0.
                     </p>
+                    <button type="button" id="btn-kupon-dari-kaos"
+                            class="mt-2 text-xs font-semibold text-green-800 underline hover:text-green-900">
+                      Hitung kupon bonus dari kaos (<?= (int) $kuponPerKaos ?> × total kaos)
+                    </button>
                   <?php endif; ?>
                 </div>
                 <div id="kaos-block" class="transition space-y-5">
@@ -500,7 +503,8 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
       const kuponMengikutiKaos = <?= $kuponMengikutiKaos ? 'true' : 'false' ?>;
       const kuponPerKaos = <?= (int) $kuponPerKaos ?>;
       const isEditMode = <?= $editMode ? 'true' : 'false' ?>;
-      const kuponSeHint = document.getElementById('kupon-se-hint');
+      const btnKuponDariKaos = document.getElementById('btn-kupon-dari-kaos');
+      let kuponDiubahManual = false;
 
       // mode: 'none' (belum pilih paket), 'custom', atau 'paket'
       let mode = radios.length === 0 ? 'custom' : 'none';
@@ -561,23 +565,30 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
         }
       }
 
-      function syncKuponDariKaos() {
-        if (!kuponMengikutiKaos || mode !== 'custom') {
+      function hitungKuponBonusDariKaos() {
+        const total = totalUkuran();
+        if (total <= 0) {
+          alert('Isi jumlah kaos per ukuran terlebih dahulu, atau isi kupon manual jika pesanan kupon saja.');
+          return;
+        }
+        kupon.value = String(total * kuponPerKaos);
+        kuponDiubahManual = true;
+        updateRingkasan();
+      }
+
+      function suggestKuponDariKaosJikaKosong() {
+        if (!kuponMengikutiKaos || mode !== 'custom' || kuponDiubahManual) {
           return;
         }
         const total = totalUkuran();
-        if (total > 0) {
+        const k = parseInt(kupon.value, 10);
+        const kuponAngka = Number.isFinite(k) && k > 0 ? k : 0;
+        if (total > 0 && kuponAngka === 0) {
           kupon.value = String(total * kuponPerKaos);
-          kupon.readOnly = true;
-          if (kuponSeHint) kuponSeHint.classList.remove('hidden');
-        } else {
-          kupon.readOnly = false;
-          if (kuponSeHint) kuponSeHint.classList.add('hidden');
         }
       }
 
       function updateRingkasan() {
-        syncKuponDariKaos();
         updateKaosStatus();
         const k = toInt(kupon);
         const s = jumlahKaos();
@@ -614,6 +625,7 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
 
         if (radios.length === 0) {
           mode = 'custom';
+          kupon.readOnly = false;
           setKaosAktif(true);
         } else if (!selected) {
           mode = 'none';
@@ -622,13 +634,14 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
           if (hint) hint.textContent = 'Pilih paket terlebih dahulu. Jumlah akan terisi otomatis sesuai paket.';
         } else if (selected.value === 'custom') {
           mode = 'custom';
+          kupon.readOnly = false;
+          kuponDiubahManual = false;
           setKaosAktif(true);
           if (hint) {
             hint.textContent = kuponMengikutiKaos
-              ? 'Isi jumlah kaos per ukuran. Kupon door prize otomatis ' + kuponPerKaos + '× total kaos (1 kaos = ' + kuponPerKaos + ' kupon).'
+              ? 'Kupon saja, kaos saja, atau keduanya. Bonus kaos: ' + kuponPerKaos + ' kupon per kaos — isi manual atau pakai tombol hitung.'
               : 'Isi jumlah kupon dan jumlah kaos per ukuran sesuai kebutuhan.';
           }
-          if (!kuponMengikutiKaos) kupon.readOnly = false;
         } else {
           mode = 'paket';
           targetKaos = parseInt(selected.dataset.kaos, 10) || 0;
@@ -647,7 +660,19 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
       }
 
       radios.forEach(function (r) { r.addEventListener('change', applyPilihan); });
-      [kupon].concat(ukuranInputs).forEach(function (el) { el.addEventListener('input', updateRingkasan); });
+      kupon.addEventListener('input', function () {
+        kuponDiubahManual = true;
+        updateRingkasan();
+      });
+      ukuranInputs.forEach(function (el) {
+        el.addEventListener('input', function () {
+          suggestKuponDariKaosJikaKosong();
+          updateRingkasan();
+        });
+      });
+      if (btnKuponDariKaos) {
+        btnKuponDariKaos.addEventListener('click', hitungKuponBonusDariKaos);
+      }
       applyPilihan();
 
       form.addEventListener('submit', function (e) {

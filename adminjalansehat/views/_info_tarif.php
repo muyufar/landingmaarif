@@ -34,9 +34,9 @@ $pengaturanUrl = url('adminjalansehat/?page=pengaturan');
       <p class="text-gray-500 text-xs uppercase font-semibold">Bonus kupon (jumlah sendiri)</p>
       <?php if ($ikutKaos): ?>
         <p class="text-base font-semibold text-gray-800 mt-0.5">
-          <strong>1 kaos = <?= $kuponPerKaos ?> kupon</strong> door prize (otomatis di form &amp; saat simpan)
+          <strong>1 kaos = <?= $kuponPerKaos ?> kupon</strong> door prize (bonus; bisa dihitung dari form, kupon saja tetap diisi manual)
         </p>
-        <p class="text-xs text-gray-600 mt-1">Paket tetap memakai jumlah kupon/kaos masing-masing paket. Tagihan per madrasah = (jumlah kupon × harga kupon) + (jumlah kaos × harga kaos).</p>
+        <p class="text-xs text-gray-600 mt-1">Paket tetap memakai jumlah kupon/kaos masing-masing paket. Tagihan = (jumlah kupon × harga kupon) + (jumlah kaos × harga kaos).</p>
       <?php else: ?>
         <p class="text-base text-gray-700 mt-0.5">Kupon tidak disamakan otomatis dengan kaos (mode manual).</p>
       <?php endif; ?>

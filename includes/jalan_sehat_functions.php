@@ -491,7 +491,8 @@ function jalanSehatApplyKuponMengikutiKaos(array &$data, array $settings): void
         return;
     }
     $kaos = (int) ($data['jumlah_kaos'] ?? 0);
-    if ($kaos > 0) {
+    $kupon = (int) ($data['jumlah_kupon'] ?? 0);
+    if ($kaos > 0 && $kupon === 0) {
         $data['jumlah_kupon'] = jalanSehatHitungKuponDariKaos($kaos, $settings);
     }
 }
