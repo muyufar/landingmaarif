@@ -366,9 +366,10 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
                     <p class="text-xs text-gray-600 mt-2">
                       Peserta hanya kupon? Isi angka di atas, kaos boleh 0.
                     </p>
+                    <p id="kupon-live-dari-kaos" class="text-xs font-semibold text-green-800 mt-2 hidden"></p>
                     <button type="button" id="btn-kupon-dari-kaos"
-                            class="mt-2 text-xs font-semibold text-green-800 underline hover:text-green-900">
-                      Hitung kupon bonus dari kaos (<?= (int) $kuponPerKaos ?> × total kaos)
+                            class="mt-1 text-xs font-semibold text-green-800 underline hover:text-green-900">
+                      Hitung ulang kupon dari kaos (<?= (int) $kuponPerKaos ?> × total kaos)
                     </button>
                   <?php endif; ?>
                 </div>
@@ -504,6 +505,7 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
       const kuponPerKaos = <?= (int) $kuponPerKaos ?>;
       const isEditMode = <?= $editMode ? 'true' : 'false' ?>;
       const btnKuponDariKaos = document.getElementById('btn-kupon-dari-kaos');
+      const kuponLiveDariKaos = document.getElementById('kupon-live-dari-kaos');
 
       // mode: 'none' (belum pilih paket), 'custom', atau 'paket'
       let mode = radios.length === 0 ? 'custom' : 'none';
@@ -511,6 +513,11 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
 
       function toInt(el) {
         const n = parseInt(el.value, 10);
+        return Number.isFinite(n) && n > 0 ? n : 0;
+      }
+
+      function readKuponField() {
+        const n = parseInt(kupon.value, 10);
         return Number.isFinite(n) && n > 0 ? n : 0;
       }
 
@@ -572,9 +579,9 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
         updateRingkasan();
       }
 
-      /** Selama ada kaos: kupon bonus selalu = total kaos × kuponPerKaos. Kaos 0: kupon bebas (pesanan kupon saja). */
+      /** Selama ada kaos terisi: kupon bonus = total kaos × kuponPerKaos (custom & saat mengisi ukuran). Kaos 0: kupon bebas. */
       function syncKuponIkutKaos() {
-        if (!kuponMengikutiKaos || mode !== 'custom') {
+        if (!kuponMengikutiKaos || mode === 'none') {
           return;
         }
         const total = totalUkuran();
@@ -584,9 +591,10 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
       }
 
       function updateRingkasan() {
+        syncKuponIkutKaos();
         updateKaosStatus();
-        const k = toInt(kupon);
-        const s = jumlahKaos();
+        const k = readKuponField();
+        const s = mode === 'paket' ? totalUkuran() : jumlahKaos();
         const parts = [];
         if (k > 0) parts.push(k + ' kupon door prize');
         if (s > 0) {
@@ -596,6 +604,16 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
         teks.textContent = parts.length ? parts.join(' + ') : 'Belum ada pesanan';
         teks.className = parts.length ? 'font-bold text-green-800 text-base mt-1' : 'font-semibold text-red-600 text-base mt-1';
         if (biaya) biaya.textContent = rupiah(k * hargaKupon + s * hargaKaos);
+        if (kuponLiveDariKaos && kuponMengikutiKaos) {
+          const totalKaos = totalUkuran();
+          if (totalKaos > 0 && mode !== 'none') {
+            const dariKaos = totalKaos * kuponPerKaos;
+            kuponLiveDariKaos.textContent = 'Total kaos ' + totalKaos + ' pcs → kupon bonus ' + dariKaos + ' (×' + kuponPerKaos + ')';
+            kuponLiveDariKaos.classList.remove('hidden');
+          } else {
+            kuponLiveDariKaos.classList.add('hidden');
+          }
+        }
       }
 
       function applyPilihan() {
@@ -644,7 +662,11 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
         } else {
           mode = 'paket';
           targetKaos = parseInt(selected.dataset.kaos, 10) || 0;
-          kupon.value = selected.dataset.kupon;
+          if (kuponMengikutiKaos && targetKaos > 0) {
+            kupon.value = String(targetKaos * kuponPerKaos);
+          } else {
+            kupon.value = selected.dataset.kupon;
+          }
           kupon.readOnly = true;
           if (targetKaos > 0) {
             setKaosAktif(true);
@@ -663,11 +685,13 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
       kupon.addEventListener('input', function () {
         updateRingkasan();
       });
+      function onUkuranChanged() {
+        syncKuponIkutKaos();
+        updateRingkasan();
+      }
       ukuranInputs.forEach(function (el) {
-        el.addEventListener('input', function () {
-          syncKuponIkutKaos();
-          updateRingkasan();
-        });
+        el.addEventListener('input', onUkuranChanged);
+        el.addEventListener('change', onUkuranChanged);
       });
       if (btnKuponDariKaos) {
         btnKuponDariKaos.addEventListener('click', hitungKuponBonusDariKaos);
@@ -675,6 +699,7 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
       applyPilihan();
 
       form.addEventListener('submit', function (e) {
+        syncKuponIkutKaos();
         const problems = [];
         [
           ['nama_madrasah', 'Nama madrasah wajib diisi.'],
@@ -692,7 +717,7 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
         if (!isEditMode && mode === 'paket' && targetKaos > 0 && totalUkuran() !== targetKaos) {
           problems.push('Rincian ukuran kaos harus berjumlah ' + targetKaos + ' pcs sesuai paket (saat ini ' + totalUkuran() + ' pcs).');
         }
-        if (mode !== 'paket' && toInt(kupon) === 0 && totalUkuran() === 0) {
+        if (mode !== 'paket' && readKuponField() === 0 && totalUkuran() === 0) {
           problems.push('Isi jumlah kupon door prize atau jumlah kaos per ukuran (minimal salah satu lebih dari 0).');
         }
         if (problems.length) {
