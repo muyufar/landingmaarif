@@ -841,7 +841,7 @@ function receiveDistribusiLkpd(int $petugasId, int $pengirimanId, array $input, 
         return ['ok' => false, 'error' => 'Surat jalan distributor: ' . $upDist['error']];
     }
 
-    $upSekolah = uploadDistribusiSuratJalan($files['file_surat_jalan_sekolah'] ?? [], 'sj_sekolah_' . $pengirimanId);
+    $upSekolah = uploadDistribusiSuratJalan($files['file_surat_jalan_sekolah'] ?? [], 'sj_sekolah_' . $pengirimanId, true);
     if ($upSekolah['error'] !== null) {
         return ['ok' => false, 'error' => 'Surat jalan sekolah: ' . $upSekolah['error']];
     }

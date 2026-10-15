@@ -64,7 +64,7 @@ $canQuickFill = $selectedSatuan && array_sum($fillTerimaSiswa) + array_sum($fill
 
   <div class="bg-white rounded-2xl border border-green-100 shadow-lg p-6">
     <h2 class="text-xl font-bold text-green-800 mb-2">Terima Buku — Delivery → Receive / Done</h2>
-    <p class="text-sm text-gray-600">Pilih satuan Delivery, centang/isi jumlah diterima, upload surat jalan sekolah (TTD). Foto surat jalan distributor opsional.</p>
+    <p class="text-sm text-gray-600">Pilih satuan Delivery, centang/isi jumlah diterima, lalu simpan. Upload surat jalan (distributor/sekolah) opsional — bisa dilengkapi nanti.</p>
 
     <form method="get" class="mt-4 flex flex-wrap gap-2">
       <input type="hidden" name="page" value="terima">
@@ -171,8 +171,9 @@ $canQuickFill = $selectedSatuan && array_sum($fillTerimaSiswa) + array_sum($fill
       </div>
 
       <div class="rounded-xl border p-4">
-        <h4 class="font-semibold text-gray-900 mb-2">Upload Surat Jalan Sekolah (TTD & Cap)</h4>
-        <input type="file" name="file_surat_jalan_sekolah" accept="image/*,.pdf,application/pdf" capture="environment" required
+        <h4 class="font-semibold text-gray-900 mb-2">Upload Surat Jalan Sekolah (TTD & Cap) <span class="text-xs font-normal text-gray-600">(opsional)</span></h4>
+        <p class="text-xs text-gray-500 mb-3">Foto surat jalan yang sudah ditandatangani sekolah. Boleh dikosongkan jika hanya mencatat jumlah via centang.</p>
+        <input type="file" name="file_surat_jalan_sekolah" accept="image/*,.pdf,application/pdf" capture="environment"
                class="w-full rounded-lg border px-3 py-2 text-sm bg-white file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:bg-blue-700 file:text-white">
       </div>
 
