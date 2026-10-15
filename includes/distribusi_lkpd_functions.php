@@ -610,10 +610,14 @@ function distribusiSuratJalanDir(): string
     return $dir;
 }
 
-function uploadDistribusiSuratJalan(array $file, string $prefix): array
+function uploadDistribusiSuratJalan(array $file, string $prefix, bool $optional = false): array
 {
     $errorCode = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
     if ($errorCode === UPLOAD_ERR_NO_FILE) {
+        if ($optional) {
+            return ['error' => null, 'path' => null];
+        }
+
         return ['error' => 'File wajib diunggah.', 'path' => null];
     }
     if ($errorCode !== UPLOAD_ERR_OK) {
@@ -832,7 +836,7 @@ function receiveDistribusiLkpd(int $petugasId, int $pengirimanId, array $input, 
         return ['ok' => false, 'error' => 'Isi jumlah buku yang diterima minimal pada satu kelas atau buku guru.'];
     }
 
-    $upDist = uploadDistribusiSuratJalan($files['file_surat_jalan_distributor'] ?? [], 'sj_dist_' . $pengirimanId);
+    $upDist = uploadDistribusiSuratJalan($files['file_surat_jalan_distributor'] ?? [], 'sj_dist_' . $pengirimanId, true);
     if ($upDist['error'] !== null) {
         return ['ok' => false, 'error' => 'Surat jalan distributor: ' . $upDist['error']];
     }

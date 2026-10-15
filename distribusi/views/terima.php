@@ -64,7 +64,7 @@ $canQuickFill = $selectedSatuan && array_sum($fillTerimaSiswa) + array_sum($fill
 
   <div class="bg-white rounded-2xl border border-green-100 shadow-lg p-6">
     <h2 class="text-xl font-bold text-green-800 mb-2">Terima Buku — Delivery → Receive / Done</h2>
-    <p class="text-sm text-gray-600">Pilih satuan yang statusnya Delivery, upload surat jalan (kamera/galeri), dan isi jumlah buku diterima per kelas (LKPD siswa + buku guru).</p>
+    <p class="text-sm text-gray-600">Pilih satuan Delivery, centang/isi jumlah diterima, upload surat jalan sekolah (TTD). Foto surat jalan distributor opsional.</p>
 
     <form method="get" class="mt-4 flex flex-wrap gap-2">
       <input type="hidden" name="page" value="terima">
@@ -156,10 +156,10 @@ $canQuickFill = $selectedSatuan && array_sum($fillTerimaSiswa) + array_sum($fill
       <input type="hidden" name="receive_pengiriman_id" value="<?= (int) $activePengiriman['id'] ?>">
 
       <div class="rounded-xl border border-green-200 bg-green-50 p-4">
-        <h4 class="font-semibold text-green-900 mb-2">Upload Surat Jalan Distributor</h4>
-        <p class="text-xs text-gray-600 mb-3">Foto surat jalan via kamera atau galeri. Sistem akan mencoba membaca jumlah buku per kelas (LKPD + buku guru) secara otomatis.</p>
+        <h4 class="font-semibold text-green-900 mb-2">Upload Surat Jalan Distributor <span class="text-xs font-normal text-gray-600">(opsional)</span></h4>
+        <p class="text-xs text-gray-600 mb-3">Boleh dilewati jika sudah centang / isi manual jumlah buku. Upload foto hanya jika ingin baca otomatis (OCR) dari gambar surat jalan distributor.</p>
         <input type="file" id="file_surat_jalan_distributor" name="file_surat_jalan_distributor"
-               accept="image/*,.pdf,application/pdf" capture="environment" required
+               accept="image/*,.pdf,application/pdf" capture="environment"
                class="w-full rounded-lg border px-3 py-2 text-sm bg-white file:mr-3 file:py-2 file:px-3 file:rounded file:border-0 file:bg-green-700 file:text-white">
         <div class="flex flex-wrap gap-2 mt-2">
           <button type="button" id="btn-baca-ulang-ocr"
@@ -167,7 +167,7 @@ $canQuickFill = $selectedSatuan && array_sum($fillTerimaSiswa) + array_sum($fill
             Baca ulang dari foto
           </button>
         </div>
-        <p id="ocr-status" class="text-xs text-gray-500 mt-2">Upload foto surat jalan untuk isi otomatis, atau isi manual di bawah.</p>
+        <p id="ocr-status" class="text-xs text-gray-500 mt-2">Centang jumlah di bawah, atau upload foto di sini untuk isi otomatis (OCR).</p>
       </div>
 
       <div class="rounded-xl border p-4">
