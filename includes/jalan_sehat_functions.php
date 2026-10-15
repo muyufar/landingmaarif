@@ -296,6 +296,7 @@ function jalanSehatPengaturanDefaults(): array
         'info_surat_edaran' => '',
         'monitor_kaos_aktif' => '0',
         'kupon_mengikuti_kaos' => '1',
+        'kupon_per_kaos' => '2',
     ];
 }
 
@@ -324,6 +325,7 @@ function saveJalanSehatPengaturan(array $input): void
         'info_surat_edaran' => trim((string) ($input['info_surat_edaran'] ?? '')),
         'monitor_kaos_aktif' => !empty($input['monitor_kaos_aktif']) ? '1' : '0',
         'kupon_mengikuti_kaos' => !empty($input['kupon_mengikuti_kaos']) ? '1' : '0',
+        'kupon_per_kaos' => (string) max(1, (int) ($input['kupon_per_kaos'] ?? 2)),
     ];
 
     $stmt = getDb()->prepare(
@@ -462,7 +464,24 @@ function jalanSehatKuponMengikutiKaos(array $settings): bool
     return ($settings['kupon_mengikuti_kaos'] ?? '1') === '1';
 }
 
-/** Isian jumlah sendiri: kupon door prize = jumlah kaos (sesuai SE, hindari double input). */
+/** Jumlah kupon door prize otomatis per 1 kaos (sesuai surat edaran, default 2). */
+function jalanSehatKuponPerKaos(array $settings): int
+{
+    $n = (int) ($settings['kupon_per_kaos'] ?? 2);
+
+    return $n >= 1 ? $n : 2;
+}
+
+function jalanSehatHitungKuponDariKaos(int $kaos, array $settings): int
+{
+    if ($kaos <= 0) {
+        return 0;
+    }
+
+    return $kaos * jalanSehatKuponPerKaos($settings);
+}
+
+/** Isian jumlah sendiri: kupon door prize mengikuti kaos (sesuai SE, hindari double input). */
 function jalanSehatApplyKuponMengikutiKaos(array &$data, array $settings): void
 {
     if (!jalanSehatKuponMengikutiKaos($settings)) {
@@ -471,8 +490,9 @@ function jalanSehatApplyKuponMengikutiKaos(array &$data, array $settings): void
     if ($data['paket_id'] !== null) {
         return;
     }
-    if ((int) ($data['jumlah_kaos'] ?? 0) > 0) {
-        $data['jumlah_kupon'] = (int) $data['jumlah_kaos'];
+    $kaos = (int) ($data['jumlah_kaos'] ?? 0);
+    if ($kaos > 0) {
+        $data['jumlah_kupon'] = jalanSehatHitungKuponDariKaos($kaos, $settings);
     }
 }
 

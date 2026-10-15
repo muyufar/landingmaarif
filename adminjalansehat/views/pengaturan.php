@@ -52,9 +52,17 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:
                  <?= ($settings['kupon_mengikuti_kaos'] ?? '1') === '1' ? 'checked' : '' ?>>
           <span>
             <span class="block text-sm font-semibold text-gray-800">Kupon mengikuti kaos (jumlah sendiri)</span>
-            <span class="block text-xs text-gray-600 mt-0.5">Sesuai surat edaran: memesan kaos otomatis mendapat kupon door prize. Jika aktif, saat madrasah mengisi jumlah sendiri, sistem menyamakan jumlah kupon dengan total kaos (hindari double input). Paket tetap memakai jumlah kupon/kaos masing-masing paket.</span>
+            <span class="block text-xs text-gray-600 mt-0.5">Sesuai surat edaran: memesan kaos otomatis mendapat kupon door prize. Jika aktif, saat madrasah mengisi jumlah sendiri, jumlah kupon dihitung dari total kaos (hindari double input). Paket tetap memakai jumlah kupon/kaos masing-masing paket.</span>
           </span>
         </label>
+
+        <div>
+          <label for="kupon_per_kaos" class="block text-sm font-semibold text-gray-700 mb-1">Kupon door prize per 1 kaos</label>
+          <input type="number" min="1" max="99" step="1" id="kupon_per_kaos" name="kupon_per_kaos"
+                 value="<?= jalanSehatKuponPerKaos($settings) ?>"
+                 class="<?= $inputClass ?> max-w-[8rem]">
+          <p class="text-xs text-gray-500 mt-1">Contoh surat edaran: <strong>1 kaos = 2 kupon</strong>. Hanya dipakai untuk opsi &quot;jumlah sendiri&quot; bila centang di atas aktif.</p>
+        </div>
 
         <div>
           <label for="info_surat_edaran" class="block text-sm font-semibold text-gray-700 mb-1">Ketentuan / kutipan surat edaran</label>

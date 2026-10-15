@@ -65,6 +65,9 @@ function jalanSehatNavClass(string $page, string $current): string
         <?= sanitize($flashError) ?>
       </div>
     <?php endif; ?>
+    <?php if (isJalanSehatAdminLoggedIn() && isset($settings) && is_array($settings) && ($currentPage ?? '') !== 'pengaturan'): ?>
+      <?php require __DIR__ . '/views/_info_tarif.php'; ?>
+    <?php endif; ?>
     <?= $content ?? '' ?>
   </main>
 
