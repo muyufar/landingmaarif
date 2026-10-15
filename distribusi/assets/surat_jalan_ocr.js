@@ -163,4 +163,135 @@ function initSuratJalanOcr() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', initSuratJalanOcr);
+function applyTerimaQuickFillForKelas(form, kelas, checked) {
+  const k = String(kelas);
+  const siswaInput = form.querySelector('[name="terima_kelas_' + k + '"]');
+  if (siswaInput) {
+    const fill = parseInt(siswaInput.getAttribute('data-fill-siswa') || '0', 10);
+    if (fill > 0) {
+      siswaInput.value = checked ? String(fill) : '0';
+    }
+  }
+  const guruInput = form.querySelector('[name="terima_guru_kelas_' + k + '"]');
+  if (guruInput) {
+    const fillG = parseInt(guruInput.getAttribute('data-fill-guru') || '0', 10);
+    if (fillG > 0) {
+      guruInput.value = checked ? String(fillG) : '0';
+    }
+  }
+}
+
+function syncTerimaQuickCheckboxes(form) {
+  const master = document.getElementById('terima-semua-sesuai-kirim');
+  if (!master) return;
+  const kelasChecks = form.querySelectorAll('.terima-kelas-quick');
+  const siswaChecks = form.querySelectorAll('.terima-siswa-quick');
+  const guruChecks = form.querySelectorAll('.terima-guru-quick');
+  let allOn = true;
+  kelasChecks.forEach(function (cb) {
+    if (!cb.checked) allOn = false;
+  });
+  siswaChecks.forEach(function (cb) {
+    if (!cb.checked && parseInt(cb.closest('div')?.querySelector('[data-fill-siswa]')?.getAttribute('data-fill-siswa') || '0', 10) > 0) {
+      allOn = false;
+    }
+  });
+  guruChecks.forEach(function (cb) {
+    if (!cb.checked) allOn = false;
+  });
+  master.checked = kelasChecks.length > 0 ? allOn : master.checked;
+}
+
+function initTerimaQuickFill() {
+  const form = document.getElementById('form-terima-sj');
+  if (!form) return;
+
+  const master = document.getElementById('terima-semua-sesuai-kirim');
+
+  function setAll(checked) {
+    form.querySelectorAll('.terima-kelas-quick, .terima-siswa-quick, .terima-guru-quick').forEach(function (cb) {
+      cb.checked = checked;
+    });
+    for (let k = 1; k <= 6; k++) {
+      applyTerimaQuickFillForKelas(form, k, checked);
+    }
+  }
+
+  if (master) {
+    master.addEventListener('change', function () {
+      setAll(master.checked);
+    });
+  }
+
+  form.querySelectorAll('.terima-kelas-quick').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      const k = cb.getAttribute('data-kelas');
+      applyTerimaQuickFillForKelas(form, k, cb.checked);
+      const siswaQuick = form.querySelector('.terima-siswa-quick[data-kelas="' + k + '"]');
+      const guruQuick = form.querySelector('.terima-guru-quick[data-kelas="' + k + '"]');
+      if (siswaQuick) siswaQuick.checked = cb.checked;
+      if (guruQuick) guruQuick.checked = cb.checked;
+      syncTerimaQuickCheckboxes(form);
+    });
+  });
+
+  form.querySelectorAll('.terima-siswa-quick').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      const k = cb.getAttribute('data-kelas');
+      const input = form.querySelector('[name="terima_kelas_' + k + '"]');
+      if (input) {
+        const fill = parseInt(input.getAttribute('data-fill-siswa') || '0', 10);
+        input.value = cb.checked && fill > 0 ? String(fill) : '0';
+      }
+      syncTerimaQuickCheckboxes(form);
+    });
+  });
+
+  form.querySelectorAll('.terima-guru-quick').forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      const k = cb.getAttribute('data-kelas');
+      const input = form.querySelector('[name="terima_guru_kelas_' + k + '"]');
+      if (input) {
+        const fill = parseInt(input.getAttribute('data-fill-guru') || '0', 10);
+        input.value = cb.checked && fill > 0 ? String(fill) : '0';
+      }
+      syncTerimaQuickCheckboxes(form);
+    });
+  });
+
+  form.querySelectorAll('.terima-kelas-input, .terima-guru-input').forEach(function (input) {
+    input.addEventListener('input', function () {
+      const name = input.getAttribute('name') || '';
+      let k = null;
+      if (name.indexOf('terima_kelas_') === 0) {
+        k = name.replace('terima_kelas_', '');
+        const fill = parseInt(input.getAttribute('data-fill-siswa') || '0', 10);
+        const quick = form.querySelector('.terima-siswa-quick[data-kelas="' + k + '"]');
+        if (quick) quick.checked = fill > 0 && parseInt(input.value || '0', 10) === fill;
+      } else if (name.indexOf('terima_guru_kelas_') === 0) {
+        k = name.replace('terima_guru_kelas_', '');
+        const fill = parseInt(input.getAttribute('data-fill-guru') || '0', 10);
+        const quick = form.querySelector('.terima-guru-quick[data-kelas="' + k + '"]');
+        if (quick) quick.checked = fill > 0 && parseInt(input.value || '0', 10) === fill;
+      }
+      if (k) {
+        const kelasCb = form.querySelector('.terima-kelas-quick[data-kelas="' + k + '"]');
+        if (kelasCb) {
+          const siswaInput = form.querySelector('[name="terima_kelas_' + k + '"]');
+          const guruInput = form.querySelector('[name="terima_guru_kelas_' + k + '"]');
+          const fs = parseInt(siswaInput?.getAttribute('data-fill-siswa') || '0', 10);
+          const fg = parseInt(guruInput?.getAttribute('data-fill-guru') || '0', 10);
+          const vs = parseInt(siswaInput?.value || '0', 10);
+          const vg = guruInput ? parseInt(guruInput.value || '0', 10) : 0;
+          kelasCb.checked = (fs <= 0 || vs === fs) && (fg <= 0 || vg === fg) && (fs > 0 || fg > 0);
+        }
+      }
+      syncTerimaQuickCheckboxes(form);
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  initSuratJalanOcr();
+  initTerimaQuickFill();
+});
