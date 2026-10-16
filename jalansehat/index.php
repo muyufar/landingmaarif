@@ -134,6 +134,7 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
           <?php
             $kuponOk = (int) $lastSubmission['jumlah_kupon'];
             $kaosOk = (int) $lastSubmission['jumlah_kaos'];
+            $rincianBiayaOk = $adaHarga ? jalanSehatRincianBiayaFromRow($lastSubmission, $settings) : null;
           ?>
           <div class="rounded-xl bg-green-50 border border-green-200 px-6 py-5 text-green-800">
             <h3 class="font-semibold text-lg mb-1"><?= $editUpdated ? 'Perubahan Berhasil Disimpan!' : 'Pendaftaran Berhasil Tersimpan!' ?></h3>
@@ -157,9 +158,36 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
                 <?php $rincianOk = formatRincianUkuranKaos($lastSubmission); ?>
                 <?php if ($rincianOk !== ''): ?><span class="font-normal text-gray-600">(<?= sanitize($rincianOk) ?>)</span><?php endif; ?>
               </dd>
-              <?php if ($adaHarga): ?>
+              <?php if ($rincianBiayaOk !== null): ?>
+                <?php if ($rincianBiayaOk['qty_pendek'] > 0): ?>
+                  <dt class="text-gray-500">Kaos lengan pendek</dt>
+                  <dd class="sm:col-span-2 text-gray-800">
+                    <?= (int) $rincianBiayaOk['qty_pendek'] ?> × <?= sanitize(formatRupiahJalanSehat($rincianBiayaOk['harga_kaos_pendek'])) ?>
+                    = <?= sanitize(formatRupiahJalanSehat($rincianBiayaOk['subtotal_kaos_pendek'])) ?>
+                  </dd>
+                <?php endif; ?>
+                <?php if ($rincianBiayaOk['qty_panjang'] > 0): ?>
+                  <dt class="text-gray-500">Kaos lengan panjang</dt>
+                  <dd class="sm:col-span-2 text-gray-800">
+                    <?= (int) $rincianBiayaOk['qty_panjang'] ?> × <?= sanitize(formatRupiahJalanSehat($rincianBiayaOk['harga_kaos_panjang'])) ?>
+                    = <?= sanitize(formatRupiahJalanSehat($rincianBiayaOk['subtotal_kaos_panjang'])) ?>
+                  </dd>
+                <?php endif; ?>
+                <?php if ($rincianBiayaOk['bonus_kupon_kaos'] > 0): ?>
+                  <dt class="text-gray-500">Bonus kupon dari kaos</dt>
+                  <dd class="sm:col-span-2 text-gray-600">
+                    <?= (int) $rincianBiayaOk['bonus_kupon_kaos'] ?> kupon (sudah termasuk harga kaos, tidak ditagih lagi)
+                  </dd>
+                <?php endif; ?>
+                <?php if ($rincianBiayaOk['subtotal_kupon'] > 0): ?>
+                  <dt class="text-gray-500">Kupon tambahan</dt>
+                  <dd class="sm:col-span-2 text-gray-800">
+                    <?= (int) $rincianBiayaOk['qty_kupon_bayar'] ?> × <?= sanitize(formatRupiahJalanSehat($rincianBiayaOk['harga_kupon'])) ?>
+                    = <?= sanitize(formatRupiahJalanSehat($rincianBiayaOk['subtotal_kupon'])) ?>
+                  </dd>
+                <?php endif; ?>
                 <dt class="text-gray-500">Estimasi biaya</dt>
-                <dd class="sm:col-span-2 font-bold text-green-800"><?= sanitize(formatRupiahJalanSehat(hitungBiayaJalanSehat($kuponOk, $kaosOk, $settings))) ?></dd>
+                <dd class="sm:col-span-2 font-bold text-green-800"><?= sanitize(formatRupiahJalanSehat($rincianBiayaOk['total'])) ?></dd>
               <?php endif; ?>
             </dl>
             <div class="flex flex-wrap gap-3 mt-4">
