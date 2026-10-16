@@ -46,6 +46,22 @@ if ($showRekap) {
         $rows = loadJalanSehatPendaftaran();
         $rekap = getJalanSehatRekapKaosPencetak($rows);
         $updatedAt = date('d/m/Y H:i');
+
+        if (isset($_GET['export']) && $_GET['export'] === 'xls') {
+            $exportFilters = [
+                'kecamatan' => trim((string) ($_GET['kecamatan'] ?? '')),
+                'jenjang' => trim((string) ($_GET['jenjang'] ?? '')),
+                'status' => trim((string) ($_GET['status'] ?? 'all')),
+                'q' => trim((string) ($_GET['q'] ?? '')),
+            ];
+            if (!in_array($exportFilters['status'], ['all', 'pending', 'done'], true)) {
+                $exportFilters['status'] = 'all';
+            }
+            exportJalanSehatMonitorKaosXls(
+                filterJalanSehatMonitorRekap($rekap, $exportFilters),
+                $exportFilters
+            );
+        }
     } catch (PDOException $e) {
         $dbError = true;
         $showRekap = false;
@@ -93,7 +109,13 @@ if ($showRekap) {
         </div>
       </div>
       <?php if ($showRekap): ?>
-        <button type="button" onclick="window.print()" class="text-sm bg-white text-green-900 hover:bg-green-50 font-semibold px-4 py-2 rounded-lg">Cetak / PDF</button>
+        <div class="flex flex-wrap items-center gap-2">
+          <a id="btn-export-xls" href="<?= url('jalansehat/monitor?export=xls') ?>"
+             class="text-sm bg-emerald-500 hover:bg-emerald-400 text-white font-semibold px-4 py-2 rounded-lg">
+            Export Excel
+          </a>
+          <button type="button" onclick="window.print()" class="text-sm bg-white text-green-900 hover:bg-green-50 font-semibold px-4 py-2 rounded-lg">Cetak / PDF</button>
+        </div>
       <?php endif; ?>
     </div>
   </header>
@@ -425,6 +447,18 @@ if ($showRekap) {
         }
       }
 
+      function updateExportLink(state) {
+        var link = document.getElementById('btn-export-xls');
+        if (!link) return;
+        var params = new URLSearchParams();
+        params.set('export', 'xls');
+        if (state.kecamatan) params.set('kecamatan', state.kecamatan);
+        if (state.jenjang) params.set('jenjang', state.jenjang);
+        if (state.status && state.status !== 'all') params.set('status', state.status);
+        if (state.q) params.set('q', searchInput ? searchInput.value.trim() : state.q);
+        link.href = monitorUrl + (monitorUrl.indexOf('?') >= 0 ? '&' : '?') + params.toString();
+      }
+
       function applyFilters() {
         var state = filterState();
         var no = 0;
@@ -438,6 +472,7 @@ if ($showRekap) {
           }
         });
         updateSummaryFromFilter(state);
+        updateExportLink(state);
       }
 
       function refreshProgress() {

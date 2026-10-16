@@ -1768,6 +1768,174 @@ function jalanSehatAdminFormScripts(array $settings): string
     return ob_get_clean();
 }
 
+/**
+ * Filter rekap monitor kaos (kecamatan, jenjang, status kerja, pencarian nama).
+ *
+ * @param array{kecamatan?: string, jenjang?: string, status?: string, q?: string} $filters
+ * @return array rekap dengan total dihitung ulang dari baris terfilter
+ */
+function filterJalanSehatMonitorRekap(array $rekap, array $filters = []): array
+{
+    $byJenis = jalanSehatUkuranKaosByJenis();
+    $sizes = array_keys($byJenis['pendek']['columns']);
+    $kecamatan = trim((string) ($filters['kecamatan'] ?? ''));
+    $jenjang = trim((string) ($filters['jenjang'] ?? ''));
+    $status = trim((string) ($filters['status'] ?? 'all'));
+    $q = strtolower(trim((string) ($filters['q'] ?? '')));
+
+    $filtered = [];
+    foreach ($rekap['per_madrasah'] as $row) {
+        $blob = strtolower($row['nama_madrasah'] . ' ' . $row['kecamatan']);
+        if ($q !== '' && !str_contains($blob, $q)) {
+            continue;
+        }
+        if ($kecamatan !== '' && (string) $row['kecamatan'] !== $kecamatan) {
+            continue;
+        }
+        if ($jenjang !== '' && (string) $row['jenjang'] !== $jenjang) {
+            continue;
+        }
+        $selesai = !empty($row['selesai']);
+        if ($status === 'done' && !$selesai) {
+            continue;
+        }
+        if ($status === 'pending' && $selesai) {
+            continue;
+        }
+        $filtered[] = $row;
+    }
+
+    $out = [
+        'total_pcs' => 0,
+        'total_pendek' => 0,
+        'total_panjang' => 0,
+        'madrasah_ada_kaos' => count($filtered),
+        'madrasah_selesai' => 0,
+        'per_ukuran' => [
+            'pendek' => array_fill_keys($sizes, 0),
+            'panjang' => array_fill_keys($sizes, 0),
+        ],
+        'per_madrasah' => $filtered,
+    ];
+
+    foreach ($filtered as $row) {
+        $out['total_pcs'] += (int) $row['total'];
+        $out['total_pendek'] += (int) $row['pendek'];
+        $out['total_panjang'] += (int) $row['panjang'];
+        if (!empty($row['selesai'])) {
+            $out['madrasah_selesai']++;
+        }
+        foreach ($sizes as $sz) {
+            $out['per_ukuran']['pendek'][$sz] += (int) ($row['ukuran_pendek'][$sz] ?? 0);
+            $out['per_ukuran']['panjang'][$sz] += (int) ($row['ukuran_panjang'][$sz] ?? 0);
+        }
+    }
+
+    return $out;
+}
+
+/** Export Excel untuk halaman monitor kaos (konveksi). */
+function exportJalanSehatMonitorKaosXls(array $rekap, array $filters = []): void
+{
+    $filename = 'monitor_kaos_jalan_sehat_' . date('Y-m-d_His') . '.xls';
+    $byJenis = jalanSehatUkuranKaosByJenis();
+    $sizes = array_keys($byJenis['pendek']['columns']);
+    $escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+    $pu = $rekap['per_ukuran']['pendek'];
+    $pj = $rekap['per_ukuran']['panjang'];
+
+    $filterLabels = [];
+    if (($filters['kecamatan'] ?? '') !== '') {
+        $filterLabels[] = 'Kecamatan: ' . $filters['kecamatan'];
+    }
+    if (($filters['jenjang'] ?? '') !== '') {
+        $filterLabels[] = 'Jenjang: ' . $filters['jenjang'];
+    }
+    if (($filters['status'] ?? 'all') === 'done') {
+        $filterLabels[] = 'Status: Sudah selesai';
+    } elseif (($filters['status'] ?? 'all') === 'pending') {
+        $filterLabels[] = 'Status: Belum dikerjakan';
+    }
+    if (($filters['q'] ?? '') !== '') {
+        $filterLabels[] = 'Cari: ' . $filters['q'];
+    }
+
+    header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: max-age=0');
+
+    echo "\xEF\xBB\xBF";
+    echo '<html><head><meta charset="UTF-8"></head><body>';
+    echo '<h2>' . $escape('Monitor Kaos — Jalan Sehat LP Ma\'arif NU Kab. Magelang') . '</h2>';
+    echo '<p>' . $escape('Diekspor: ' . date('d/m/Y H:i') . ' WIB') . '</p>';
+    if ($filterLabels !== []) {
+        echo '<p>' . $escape('Filter: ' . implode(' · ', $filterLabels)) . '</p>';
+    }
+
+    echo '<table border="1"><tr><th colspan="2">' . $escape('RINGKASAN') . '</th></tr>';
+    echo '<tr><td>Total kaos (pcs)</td><td>' . (int) $rekap['total_pcs'] . '</td></tr>';
+    echo '<tr><td>Lengan pendek</td><td>' . (int) $rekap['total_pendek'] . '</td></tr>';
+    echo '<tr><td>Lengan panjang</td><td>' . (int) $rekap['total_panjang'] . '</td></tr>';
+    echo '<tr><td>Madrasah pesan kaos</td><td>' . (int) $rekap['madrasah_ada_kaos'] . '</td></tr>';
+    echo '<tr><td>Sudah dikerjakan</td><td>' . (int) $rekap['madrasah_selesai'] . '</td></tr>';
+    echo '</table><br>';
+
+    echo '<table border="1"><tr><th>' . $escape('Jenis kaos') . '</th>';
+    foreach ($sizes as $sz) {
+        echo '<th>' . $escape($sz) . '</th>';
+    }
+    echo '<th>' . $escape('Jumlah') . '</th></tr>';
+    echo '<tr><td>' . $escape('Lengan pendek') . '</td>';
+    foreach ($sizes as $sz) {
+        echo '<td>' . (int) $pu[$sz] . '</td>';
+    }
+    echo '<td>' . (int) $rekap['total_pendek'] . '</td></tr>';
+    echo '<tr><td>' . $escape('Lengan panjang') . '</td>';
+    foreach ($sizes as $sz) {
+        echo '<td>' . (int) $pj[$sz] . '</td>';
+    }
+    echo '<td>' . (int) $rekap['total_panjang'] . '</td></tr>';
+    echo '</table><br>';
+
+    echo '<table border="1">';
+    echo '<tr>';
+    echo '<th rowspan="2">' . $escape('No') . '</th>';
+    echo '<th rowspan="2">' . $escape('Status') . '</th>';
+    echo '<th rowspan="2">' . $escape('Madrasah') . '</th>';
+    echo '<th rowspan="2">' . $escape('Jenjang') . '</th>';
+    echo '<th rowspan="2">' . $escape('Kecamatan') . '</th>';
+    echo '<th colspan="' . count($sizes) . '">' . $escape('Lengan pendek') . '</th>';
+    echo '<th colspan="' . count($sizes) . '">' . $escape('Lengan panjang') . '</th>';
+    echo '<th rowspan="2">' . $escape('Total') . '</th>';
+    echo '</tr><tr>';
+    foreach ($sizes as $sz) {
+        echo '<th>' . $escape('Pdk ' . $sz) . '</th>';
+    }
+    foreach ($sizes as $sz) {
+        echo '<th>' . $escape('Pjg ' . $sz) . '</th>';
+    }
+    echo '</tr>';
+
+    foreach ($rekap['per_madrasah'] as $index => $m) {
+        echo '<tr>';
+        echo '<td>' . ($index + 1) . '</td>';
+        echo '<td>' . $escape(!empty($m['selesai']) ? 'Selesai' : 'Belum') . '</td>';
+        echo '<td>' . $escape((string) $m['nama_madrasah']) . '</td>';
+        echo '<td>' . $escape((string) ($m['jenjang'] ?? '')) . '</td>';
+        echo '<td>' . $escape((string) $m['kecamatan']) . '</td>';
+        foreach ($sizes as $sz) {
+            echo '<td>' . (int) ($m['ukuran_pendek'][$sz] ?? 0) . '</td>';
+        }
+        foreach ($sizes as $sz) {
+            echo '<td>' . (int) ($m['ukuran_panjang'][$sz] ?? 0) . '</td>';
+        }
+        echo '<td>' . (int) $m['total'] . '</td>';
+        echo '</tr>';
+    }
+    echo '</table></body></html>';
+    exit;
+}
+
 function exportJalanSehatXls(array $rows, array $settings): void
 {
     $filename = 'pendaftaran_jalan_sehat_hsn2026_' . date('Y-m-d_His') . '.xls';
