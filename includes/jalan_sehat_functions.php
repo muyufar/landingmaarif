@@ -1288,6 +1288,22 @@ function jalanSehatUrutanOptions(): array
     ];
 }
 
+function jalanSehatJenisPesananFilterOptions(): array
+{
+    return [
+        '' => 'Semua jenis pesanan',
+        'kupon_saja' => 'Kupon saja (tanpa kaos)',
+        'dengan_kaos' => 'Dengan kaos',
+    ];
+}
+
+function jalanSehatNormalizeJenisPesananFilter(string $value): string
+{
+    $value = trim($value);
+
+    return array_key_exists($value, jalanSehatJenisPesananFilterOptions()) ? $value : '';
+}
+
 /** @return list<string> */
 function jalanSehatJenjangOptions(): array
 {
@@ -1356,7 +1372,7 @@ function jalanSehatJenjangSqlCondition(string $jenjang): string
 }
 
 /**
- * @param array{paket?: string, kecamatan?: string, kelurahan?: string, urut?: string, jenjang?: string} $filters
+ * @param array{paket?: string, kecamatan?: string, kelurahan?: string, urut?: string, jenjang?: string, jenis_pesanan?: string} $filters
  */
 function loadJalanSehatPendaftaran(string $search = '', array $filters = []): array
 {
@@ -1399,6 +1415,13 @@ function loadJalanSehatPendaftaran(string $search = '', array $filters = []): ar
         if ($jenjangSql !== '') {
             $sql .= ' AND ' . $jenjangSql;
         }
+    }
+
+    $jenisPesanan = jalanSehatNormalizeJenisPesananFilter((string) ($filters['jenis_pesanan'] ?? ''));
+    if ($jenisPesanan === 'kupon_saja') {
+        $sql .= ' AND jumlah_kaos = 0 AND jumlah_kupon > 0';
+    } elseif ($jenisPesanan === 'dengan_kaos') {
+        $sql .= ' AND jumlah_kaos > 0';
     }
 
     $sql .= match ($filters['urut'] ?? 'terbaru') {

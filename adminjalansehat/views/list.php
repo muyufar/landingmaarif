@@ -13,7 +13,12 @@ $selectClass = 'rounded-lg border border-gray-300 px-3 py-2 text-sm';
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
       <div>
         <h2 class="text-xl font-bold text-green-800">Data Pendaftar Jalan Sehat</h2>
-        <p class="text-sm text-gray-500 mt-1">Total: <strong><?= count($rows) ?></strong> madrasah</p>
+        <p class="text-sm text-gray-500 mt-1">
+          Total: <strong><?= count($rows) ?></strong> madrasah
+          <?php if (($filters['jenis_pesanan'] ?? '') !== ''): ?>
+            <span class="text-green-800">· <?= sanitize(jalanSehatJenisPesananFilterOptions()[$filters['jenis_pesanan']] ?? '') ?></span>
+          <?php endif; ?>
+        </p>
       </div>
       <div class="flex flex-wrap gap-2">
         <a href="<?= url('adminjalansehat/?page=tambah') ?>"
@@ -23,7 +28,7 @@ $selectClass = 'rounded-lg border border-gray-300 px-3 py-2 text-sm';
       </div>
     </div>
 
-    <form method="get" id="filter-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-3">
+    <form method="get" id="filter-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-9 gap-3">
       <input type="hidden" name="page" value="list">
       <input type="text" name="q" value="<?= sanitize($search) ?>" placeholder="Cari madrasah, kepala, alamat, WA..."
              class="rounded-lg border border-gray-300 px-3 py-2 text-sm sm:col-span-2 xl:col-span-2 focus:ring-2 focus:ring-green-600">
@@ -62,7 +67,14 @@ $selectClass = 'rounded-lg border border-gray-300 px-3 py-2 text-sm';
         <?php endforeach; ?>
         <option value="custom" <?= $paketFilter === 'custom' ? 'selected' : '' ?>>Jumlah sendiri</option>
       </select>
-      <div class="flex gap-2">
+      <select name="jenis_pesanan" class="<?= $selectClass ?>" title="Pisahkan pesanan kupon saja vs yang memesan kaos">
+        <?php foreach (jalanSehatJenisPesananFilterOptions() as $jenisKey => $jenisLabel): ?>
+          <option value="<?= sanitize($jenisKey) ?>" <?= ($filters['jenis_pesanan'] ?? '') === $jenisKey ? 'selected' : '' ?>>
+            <?= sanitize($jenisLabel) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+      <div class="flex gap-2 xl:col-span-2">
         <button type="submit" class="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Filter</button>
         <a href="<?= url('adminjalansehat/?page=list') ?>" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg text-sm font-medium">Reset</a>
       </div>

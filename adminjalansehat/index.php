@@ -168,6 +168,7 @@ try {
         'kelurahan' => trim($_GET['kelurahan'] ?? ''),
         'urut' => array_key_exists($_GET['urut'] ?? '', jalanSehatUrutanOptions()) ? (string) $_GET['urut'] : 'terbaru',
         'jenjang' => $jenjangFilter,
+        'jenis_pesanan' => jalanSehatNormalizeJenisPesananFilter(trim($_GET['jenis_pesanan'] ?? '')),
     ];
 
     if (isset($_GET['export']) && $_GET['export'] === 'xls') {
