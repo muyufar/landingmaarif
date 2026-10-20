@@ -653,8 +653,11 @@ function jalanSehatHitungKuponDariKaos(int $kaos, array $settings): int
 }
 
 /** Isian jumlah sendiri: kupon door prize mengikuti kaos (sesuai SE, hindari double input). */
-function jalanSehatApplyKuponMengikutiKaos(array &$data, array $settings): void
+function jalanSehatApplyKuponMengikutiKaos(array &$data, array $settings, bool $fromAdmin = false): void
 {
+    if ($fromAdmin) {
+        return;
+    }
     if (!jalanSehatKuponMengikutiKaos($settings)) {
         return;
     }
@@ -1132,7 +1135,7 @@ function validateJalanSehat(array $input, array $settings, array $paketAktif, ?i
         $errors[] = 'Isi jumlah kupon door prize atau jumlah kaos per ukuran (minimal salah satu lebih dari 0).';
     }
 
-    jalanSehatApplyKuponMengikutiKaos($data, $settings);
+    jalanSehatApplyKuponMengikutiKaos($data, $settings, $fromAdmin);
 
     if (!$isUpdate && $errors === []) {
         $dupNama = getJalanSehatPendaftaranByNamaMadrasah($data['nama_madrasah'], null);
@@ -1779,10 +1782,16 @@ function jalanSehatAdminFormScripts(array $settings): string
   function update() {
     const t = totalKaos();
     if (totalEl) totalEl.textContent = String(t);
-    syncKuponDariKaos();
   }
   inputs.forEach(function (el) { el.addEventListener('input', update); });
   if (paketSelect) paketSelect.addEventListener('change', update);
+  var btnSync = document.getElementById('admin-sync-kupon-kaos');
+  if (btnSync) {
+    btnSync.addEventListener('click', function (e) {
+      e.preventDefault();
+      syncKuponDariKaos();
+    });
+  }
   update();
 })();
 </script>

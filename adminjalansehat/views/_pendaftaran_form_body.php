@@ -51,6 +51,10 @@ if ($pilihanPaket === '') {
   <div>
     <label class="block text-sm font-semibold text-gray-700 mb-1">Kupon door prize</label>
     <input type="number" name="jumlah_kupon" min="0" id="jumlah_kupon" value="<?= (int) ($formData['jumlah_kupon'] ?? 0) ?>" class="<?= $inputClass ?>">
+    <p class="text-xs text-gray-500 mt-1">Admin boleh mengubah manual. Form publik otomatis; di sini tidak ditimpa saat simpan.</p>
+    <button type="button" id="admin-sync-kupon-kaos" class="text-xs font-semibold text-green-800 underline hover:text-green-900 mt-1">
+      Hitung kupon bonus dari total kaos (×<?= jalanSehatKuponPerKaos($settings ?? getJalanSehatPengaturan()) ?>)
+    </button>
   </div>
 </div>
 
