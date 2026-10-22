@@ -90,9 +90,9 @@ require_once dirname(__DIR__) . '/includes/functions.php';
       <a href="<?= url('twibbon') ?>"
          class="group bg-white rounded-2xl shadow-lg border border-green-100 p-8 hover:shadow-xl hover:border-green-300 transition">
         <div class="text-4xl mb-4">🖼️</div>
-        <h3 class="text-xl font-bold text-green-800 group-hover:text-green-700 mb-2">Bikin Twibbon Harlah Ke-97</h3>
+        <h3 class="text-xl font-bold text-green-800 group-hover:text-green-700 mb-2">Bikin Twibbon</h3>
         <p class="text-gray-600 text-sm leading-relaxed">
-          Upload foto Anda dan buat twibbon perayaan Harlah LP Ma'arif NU ke-97 siap dibagikan di media sosial.
+          Pilih twibbon Harlah Ke-97 atau Hari Santri 2026 — upload foto, sesuaikan posisi, unduh siap share.
         </p>
         <span class="inline-block mt-5 text-green-700 font-semibold text-sm">Buat Twibbon →</span>
       </a>

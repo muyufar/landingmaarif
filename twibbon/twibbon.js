@@ -5,9 +5,19 @@
   if (!cfg) return;
 
   var SIZE = cfg.size;
-  var HOLE = cfg.hole || { x: 250, y: 0, w: 2150, h: 1912 };
-  var HOLE_CX = HOLE.x + HOLE.w / 2;
-  var HOLE_CY = HOLE.y + HOLE.h / 2;
+  var HOLE = cfg.hole || { type: 'rect', x: 250, y: 0, w: 2150, h: 1912 };
+  var HOLE_CX;
+  var HOLE_CY;
+
+  if (HOLE.type === 'circle') {
+    HOLE_CX = HOLE.cx;
+    HOLE_CY = HOLE.cy;
+    HOLE.w = HOLE.r * 2;
+    HOLE.h = HOLE.r * 2;
+  } else {
+    HOLE_CX = HOLE.x + HOLE.w / 2;
+    HOLE_CY = HOLE.y + HOLE.h / 2;
+  }
 
   var photoInput = document.getElementById('photo-input');
   var fileNameEl = document.getElementById('file-name');
@@ -62,14 +72,28 @@
     };
   }
 
+  function clipPhotoArea(ctx) {
+    ctx.beginPath();
+    if (HOLE.type === 'circle') {
+      ctx.arc(HOLE.cx, HOLE.cy, HOLE.r, 0, Math.PI * 2);
+    } else {
+      ctx.rect(HOLE.x, HOLE.y, HOLE.w, HOLE.h);
+    }
+    ctx.closePath();
+    ctx.clip();
+  }
+
   function render(targetCtx) {
     targetCtx.clearRect(0, 0, SIZE, SIZE);
     targetCtx.fillStyle = '#ffffff';
     targetCtx.fillRect(0, 0, SIZE, SIZE);
 
     if (userPhoto) {
+      targetCtx.save();
+      clipPhotoArea(targetCtx);
       var rect = coverRect(userPhoto, zoom, offsetX, offsetY);
       targetCtx.drawImage(userPhoto, rect.dx, rect.dy, rect.dw, rect.dh);
+      targetCtx.restore();
     }
 
     if (templateImg) {
@@ -166,7 +190,7 @@
       if (!blob) return;
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'Twibbon_Harlah97_LP_Maarif_NU.png';
+      a.download = cfg.downloadName || 'Twibbon_LP_Maarif_NU.png';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -201,6 +225,7 @@
 
   loadImage(cfg.templateUrl).then(function (img) {
     templateImg = img;
+    if (userPhoto) renderPreview();
   }).catch(function () {
     alert('Gagal memuat template twibbon. Muat ulang halaman.');
   });
