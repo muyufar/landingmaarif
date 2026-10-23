@@ -124,6 +124,9 @@ $waLink = $nomorWa !== '' ? 'https://wa.me/62' . ltrim(normalizeNomorWa($nomorWa
     </dl>
 
     <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 flex flex-wrap justify-end gap-3">
+      <a href="<?= url('adminjalansehat/?page=nota&id=' . (int) $row['id'] . '&print=1') ?>"
+         target="_blank" rel="noopener"
+         class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Cetak Nota</a>
       <a href="<?= url('adminjalansehat/?page=edit&id=' . (int) $row['id']) ?>"
          class="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Edit Data</a>
       <form method="post" onsubmit="return confirm('Hapus pendaftaran ini?');">

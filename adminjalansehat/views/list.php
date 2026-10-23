@@ -178,6 +178,9 @@ $selectClass = 'rounded-lg border border-gray-300 px-3 py-2 text-sm';
                    class="text-green-700 hover:underline font-medium">Detail</a>
                 <a href="<?= url('adminjalansehat/?page=edit&id=' . (int) $row['id']) ?>"
                    class="ml-2 text-green-700 hover:underline font-medium">Edit</a>
+                <a href="<?= url('adminjalansehat/?page=nota&id=' . (int) $row['id'] . '&print=1') ?>"
+                   target="_blank" rel="noopener"
+                   class="ml-2 text-blue-700 hover:underline font-medium">Nota</a>
                 <form method="post" class="inline" onsubmit="return confirm('Hapus pendaftaran <?= sanitize(addslashes((string) $row['nama_madrasah'])) ?>?');">
                   <input type="hidden" name="action" value="delete_pendaftaran">
                   <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">

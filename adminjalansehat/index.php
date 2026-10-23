@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_password']) && 
 
 syncMaarifAdminSession();
 
-if (!in_array($currentPage, ['dashboard', 'list', 'detail', 'edit', 'tambah', 'pengaturan'], true)) {
+if (!in_array($currentPage, ['dashboard', 'list', 'detail', 'edit', 'tambah', 'pengaturan', 'nota'], true)) {
     $currentPage = 'dashboard';
 }
 
@@ -197,6 +197,18 @@ try {
         ob_start();
         require __DIR__ . '/views/list.php';
         $content = ob_get_clean();
+    } elseif ($currentPage === 'nota') {
+        if (!isJalanSehatAdminLoggedIn()) {
+            header('Location: ' . url('adminjalansehat/'));
+            exit;
+        }
+        $row = getJalanSehatPendaftaranById((int) ($_GET['id'] ?? 0));
+        if ($row === null) {
+            header('Location: ' . url('adminjalansehat/?page=list'));
+            exit;
+        }
+        require __DIR__ . '/views/nota.php';
+        exit;
     } elseif ($currentPage === 'detail') {
         $row = getJalanSehatPendaftaranById((int) ($_GET['id'] ?? 0));
         if ($row === null) {
