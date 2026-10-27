@@ -35,6 +35,7 @@ function ensureJalanSehatTables(): void
           `kaos_xl` int(10) UNSIGNED NOT NULL DEFAULT 0,
           `kaos_xxl` int(10) UNSIGNED NOT NULL DEFAULT 0,
           `kaos_xxxl` int(10) UNSIGNED NOT NULL DEFAULT 0,
+          `kaos_xxxxl` int(10) UNSIGNED NOT NULL DEFAULT 0,
           `catatan` text DEFAULT NULL,
           `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
           `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -150,9 +151,13 @@ function ensureJalanSehatSchemaMigrations(): void
         $previousColumn = $column;
     }
 
-    $afterKonveksi = in_array('kaos_panjang_xxxl', $existingColumns, true)
-        ? 'kaos_panjang_xxxl'
-        : (in_array('kaos_xxxl', $existingColumns, true) ? 'kaos_xxxl' : 'jumlah_kaos');
+    $afterKonveksi = 'jumlah_kaos';
+    foreach (array_reverse(array_values(jalanSehatUkuranKaos())) as $sizeColumn) {
+        if (in_array($sizeColumn, $existingColumns, true)) {
+            $afterKonveksi = $sizeColumn;
+            break;
+        }
+    }
     jalanSehatAddColumnIfMissing(
         $pdo,
         $existingColumns,
@@ -225,6 +230,7 @@ function jalanSehatUkuranKaosByJenis(): array
                 'XL' => 'kaos_xl',
                 'XXL' => 'kaos_xxl',
                 'XXXL' => 'kaos_xxxl',
+                'XXXXL' => 'kaos_xxxxl',
             ],
         ],
         'panjang' => [
@@ -236,6 +242,7 @@ function jalanSehatUkuranKaosByJenis(): array
                 'XL' => 'kaos_panjang_xl',
                 'XXL' => 'kaos_panjang_xxl',
                 'XXXL' => 'kaos_panjang_xxxl',
+                'XXXXL' => 'kaos_panjang_xxxxl',
             ],
         ],
     ];
@@ -251,6 +258,7 @@ function jalanSehatPanduanUkuranKaos(): array
         'XL' => ['lebar' => 55, 'tinggi' => 74],
         'XXL' => ['lebar' => 59, 'tinggi' => 76],
         'XXXL' => ['lebar' => 63, 'tinggi' => 78],
+        'XXXXL' => ['lebar' => 67, 'tinggi' => 80],
     ];
 }
 

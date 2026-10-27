@@ -271,7 +271,7 @@ if ($showRekap) {
                 </tbody>
               </table>
             </div>
-            <p class="text-xs text-gray-500 mt-2">Angka di atas = jumlah lembar kaos yang harus disiapkan per ukuran (S–XXXL).</p>
+            <p class="text-xs text-gray-500 mt-2">Angka di atas = jumlah lembar kaos yang harus disiapkan per ukuran (S–XXXXL).</p>
           </section>
 
           <section>

@@ -68,7 +68,7 @@ if ($pilihanPaket === '') {
   <?php foreach (jalanSehatUkuranKaosByJenis() as $jenisInfo): ?>
     <div class="mb-4 rounded-lg border border-gray-200 p-3">
       <p class="text-xs font-semibold text-gray-600 mb-2"><?= sanitize($jenisInfo['label']) ?></p>
-      <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+      <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2">
         <?php foreach ($jenisInfo['columns'] as $label => $column): ?>
           <label class="text-center text-sm">
             <span class="block font-bold text-green-800"><?= sanitize($label) ?></span>

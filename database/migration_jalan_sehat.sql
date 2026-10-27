@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS `jalan_sehat_pendaftaran` (
   `kaos_xl` int(10) UNSIGNED NOT NULL DEFAULT 0,
   `kaos_xxl` int(10) UNSIGNED NOT NULL DEFAULT 0,
   `kaos_xxxl` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `kaos_xxxxl` int(10) UNSIGNED NOT NULL DEFAULT 0,
   `catatan` text DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

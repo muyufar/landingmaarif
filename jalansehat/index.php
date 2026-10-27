@@ -464,7 +464,7 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
                   <?php foreach (jalanSehatUkuranKaosByJenis() as $jenisKey => $jenisInfo): ?>
                     <div class="rounded-lg bg-white p-4 shadow-sm">
                       <p class="text-sm font-bold text-green-800 mb-3"><?= sanitize($jenisInfo['label']) ?></p>
-                      <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                      <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2">
                         <?php foreach ($jenisInfo['columns'] as $label => $column): ?>
                           <label class="block rounded-lg bg-white p-2 text-center shadow-sm focus-within:ring-2 focus-within:ring-green-600">
                             <span class="block text-sm font-bold text-green-800"><?= sanitize($label) ?></span>

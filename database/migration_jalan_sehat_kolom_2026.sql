@@ -13,3 +13,7 @@ ALTER TABLE `jalan_sehat_pendaftaran`
   ADD COLUMN IF NOT EXISTS `kaos_panjang_xxxl` int(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `kaos_panjang_xxl`,
   ADD COLUMN IF NOT EXISTS `kaos_konveksi_selesai` tinyint(1) NOT NULL DEFAULT 0 AFTER `kaos_panjang_xxxl`,
   ADD COLUMN IF NOT EXISTS `pembayaran_lunas` tinyint(1) NOT NULL DEFAULT 0 AFTER `kaos_konveksi_selesai`;
+
+ALTER TABLE `jalan_sehat_pendaftaran`
+  ADD COLUMN IF NOT EXISTS `kaos_xxxxl` int(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `kaos_xxxl`,
+  ADD COLUMN IF NOT EXISTS `kaos_panjang_xxxxl` int(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `kaos_panjang_xxxl`;
