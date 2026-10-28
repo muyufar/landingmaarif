@@ -224,11 +224,16 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
             <strong>Jalan Sehat Hari Santri Nasional 2026 PCNU Kabupaten Magelang</strong>.
             Satu formulir untuk satu madrasah.
           </p>
-          <p class="text-sm mb-6">
-            <a href="<?= url('jalansehat/ubah') ?>" class="text-green-700 font-semibold hover:underline">Sudah daftar? Ubah data dengan nomor HP</a>
-            <span class="text-gray-300 mx-1">·</span>
-            <a href="<?= url('jalansehat/tanda-terima') ?>" class="text-green-700 font-semibold hover:underline">Tanda terima elektronik pengambilan kaos</a>
-          </p>
+          <div class="flex flex-wrap gap-3 mb-6">
+            <a href="<?= url('jalansehat/ubah') ?>"
+               class="inline-flex items-center border border-green-700 text-green-800 font-semibold px-4 py-2.5 rounded-lg hover:bg-green-50 transition text-sm">
+              Sudah daftar? Ubah data dengan nomor HP
+            </a>
+            <a href="<?= url('jalansehat/tanda-terima') ?>"
+               class="inline-flex items-center bg-green-700 hover:bg-green-800 text-white font-semibold px-4 py-2.5 rounded-lg transition text-sm">
+              Tanda terima elektronik pengambilan kaos
+            </a>
+          </div>
         <?php endif; ?>
 
         <?php if (!empty($errors)): ?>
