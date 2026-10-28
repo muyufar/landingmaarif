@@ -199,6 +199,10 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
                  class="inline-block border border-green-700 text-green-800 font-semibold px-5 py-2.5 rounded-lg hover:bg-green-50 transition">
                 Ubah data lagi
               </a>
+              <a href="<?= url('jalansehat/tanda-terima') ?>"
+                 class="inline-block border border-green-700 text-green-800 font-semibold px-5 py-2.5 rounded-lg hover:bg-green-50 transition">
+                Tanda terima elektronik
+              </a>
             </div>
           </div>
         <?php elseif (!$pendaftaranDibuka && !$editMode): ?>
@@ -222,6 +226,8 @@ $inputClass = 'w-full rounded-lg border border-gray-300 px-4 py-3 focus:outline-
           </p>
           <p class="text-sm mb-6">
             <a href="<?= url('jalansehat/ubah') ?>" class="text-green-700 font-semibold hover:underline">Sudah daftar? Ubah data dengan nomor HP</a>
+            <span class="text-gray-300 mx-1">·</span>
+            <a href="<?= url('jalansehat/tanda-terima') ?>" class="text-green-700 font-semibold hover:underline">Tanda terima elektronik pengambilan kaos</a>
           </p>
         <?php endif; ?>
 
