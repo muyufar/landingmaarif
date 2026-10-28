@@ -14,7 +14,11 @@ $namaPenerima = trim((string) ($row['kaos_diambil_nama'] ?? ''));
 if ($namaPenerima === '') {
     $namaPenerima = (string) ($row['nama_kepala'] ?? '');
 }
-$jabatanPenerima = trim((string) ($row['kaos_diambil_jabatan'] ?? ''));
+$jabatanMentah = trim((string) ($row['kaos_diambil_jabatan'] ?? ''));
+$jabatanPenerima = jalanSehatJabatanPenerimaTampil($jabatanMentah);
+if ($jabatanPenerima === '' && strcasecmp($jabatanMentah, 'Konfirmasi elektronik') === 0) {
+    $jabatanPenerima = 'Kepala Madrasah';
+}
 $hpPenerima = trim((string) ($row['kaos_diambil_hp'] ?? ''));
 if ($hpPenerima === '') {
     $hpPenerima = trim((string) (($row['nomor_hp_kepala'] ?? '') !== '' ? $row['nomor_hp_kepala'] : ($row['nomor_wa'] ?? '')));

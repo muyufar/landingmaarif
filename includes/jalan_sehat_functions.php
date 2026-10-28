@@ -1321,6 +1321,16 @@ function formatTanggalIndonesia(?string $datetime = null): string
     return (int) date('j', $timestamp) . ' ' . $bulan[(int) date('n', $timestamp)] . ' ' . date('Y', $timestamp);
 }
 
+function jalanSehatJabatanPenerimaTampil(?string $jabatan): string
+{
+    $jabatan = trim((string) $jabatan);
+    if ($jabatan === '' || strcasecmp($jabatan, 'Konfirmasi elektronik') === 0) {
+        return '';
+    }
+
+    return $jabatan;
+}
+
 function nomorSuratTandaTerimaKaos(array $row): string
 {
     $saat = (string) ($row['kaos_diambil_pada'] ?? '');

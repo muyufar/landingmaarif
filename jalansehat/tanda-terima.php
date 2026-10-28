@@ -88,9 +88,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($nama === '') {
                     $nama = (string) ($current['nama_kepala'] ?? '');
                 }
+                $jabatan = trim((string) ($_POST['penerima_jabatan'] ?? ''));
+                if ($jabatan === '' || strcasecmp($jabatan, 'Konfirmasi elektronik') === 0) {
+                    $jabatan = 'Kepala Madrasah';
+                }
                 $result = saveJalanSehatTandaTerimaKaos($id, [
                     'penerima_nama' => $nama,
-                    'penerima_jabatan' => 'Konfirmasi elektronik',
+                    'penerima_jabatan' => $jabatan,
                     'penerima_hp' => $phone,
                     'tanggal_ambil' => date('Y-m-d'),
                 ]);
@@ -215,7 +219,12 @@ $verifiedPhone = (string) ($_SESSION[JALAN_SEHAT_TERIMA_PHONE] ?? '');
         $qty = jalanSehatTotalKaosByJenis($row);
         $sizes = array_keys(jalanSehatUkuranKaosByJenis()['pendek']['columns']);
         $sudah = !empty($row['kaos_diambil_pada']);
-        $elektronik = $sudah && trim((string) ($row['kaos_diambil_jabatan'] ?? '')) === 'Konfirmasi elektronik';
+        $jabatanTersimpan = trim((string) ($row['kaos_diambil_jabatan'] ?? ''));
+        $elektronik = $sudah && strcasecmp($jabatanTersimpan, 'Konfirmasi elektronik') === 0;
+        $jabatanTampil = jalanSehatJabatanPenerimaTampil($jabatanTersimpan);
+        if ($jabatanTampil === '' && $elektronik) {
+            $jabatanTampil = 'Kepala Madrasah';
+        }
         $nomorSurat = nomorSuratTandaTerimaKaos($row);
         $rincian = formatRincianUkuranKaos($row);
       ?>
@@ -307,7 +316,8 @@ $verifiedPhone = (string) ($_SESSION[JALAN_SEHAT_TERIMA_PHONE] ?? '');
               <p class="font-semibold">Penerimaan tercatat</p>
               <p class="mt-1">Pada <?= sanitize(formatTanggalIndonesia((string) $row['kaos_diambil_pada'])) ?>,
                 diterima oleh <?= sanitize((string) ($row['kaos_diambil_nama'] ?? '')) ?>
-                <?php if (!empty($row['kaos_diambil_hp'])): ?>(<?= sanitize((string) $row['kaos_diambil_hp']) ?>)<?php endif; ?>.</p>
+                <?php if ($jabatanTampil !== ''): ?>, <?= sanitize($jabatanTampil) ?><?php endif; ?>
+                <?php if (!empty($row['kaos_diambil_hp'])): ?> (<?= sanitize((string) $row['kaos_diambil_hp']) ?>)<?php endif; ?>.</p>
               <?php if ($elektronik): ?>
                 <p class="mt-1 text-xs">Konfirmasi ini dilakukan secara elektronik menggunakan nomor HP pendaftaran. Dokumen ini berlaku sebagai tanda terima.</p>
               <?php endif; ?>
@@ -323,6 +333,12 @@ $verifiedPhone = (string) ($_SESSION[JALAN_SEHAT_TERIMA_PHONE] ?? '');
                 <label for="penerima_nama" class="block text-xs font-semibold text-gray-700 mb-1">Nama yang menerima</label>
                 <input id="penerima_nama" name="penerima_nama" required maxlength="150"
                        value="<?= sanitize((string) $row['nama_kepala']) ?>"
+                       class="w-full rounded-lg border border-gray-300 px-3 py-2 bg-white">
+              </div>
+              <div>
+                <label for="penerima_jabatan" class="block text-xs font-semibold text-gray-700 mb-1">Jabatan</label>
+                <input id="penerima_jabatan" name="penerima_jabatan" required maxlength="120"
+                       value="Kepala Madrasah"
                        class="w-full rounded-lg border border-gray-300 px-3 py-2 bg-white">
               </div>
               <button type="submit" class="bg-green-700 hover:bg-green-800 text-white font-semibold px-5 py-3 rounded-lg">
