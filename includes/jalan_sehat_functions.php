@@ -172,6 +172,13 @@ function ensureJalanSehatSchemaMigrations(): void
         'tinyint(1) NOT NULL DEFAULT 0',
         in_array('kaos_konveksi_selesai', $existingColumns, true) ? 'kaos_konveksi_selesai' : $afterKonveksi
     );
+    $afterBayar = in_array('pembayaran_lunas', $existingColumns, true)
+        ? 'pembayaran_lunas'
+        : (in_array('kaos_konveksi_selesai', $existingColumns, true) ? 'kaos_konveksi_selesai' : $afterKonveksi);
+    jalanSehatAddColumnIfMissing($pdo, $existingColumns, 'kaos_diambil_pada', 'datetime DEFAULT NULL', $afterBayar);
+    jalanSehatAddColumnIfMissing($pdo, $existingColumns, 'kaos_diambil_nama', 'varchar(150) DEFAULT NULL', 'kaos_diambil_pada');
+    jalanSehatAddColumnIfMissing($pdo, $existingColumns, 'kaos_diambil_jabatan', 'varchar(120) DEFAULT NULL', 'kaos_diambil_nama');
+    jalanSehatAddColumnIfMissing($pdo, $existingColumns, 'kaos_diambil_hp', 'varchar(30) DEFAULT NULL', 'kaos_diambil_jabatan');
 
         jalanSehatBackfillPhoneNormColumns($pdo);
     } catch (PDOException) {
@@ -1299,6 +1306,103 @@ function jalanSehatUrutanOptions(): array
     ];
 }
 
+function formatTanggalIndonesia(?string $datetime = null): string
+{
+    $timestamp = $datetime !== null && $datetime !== '' ? strtotime($datetime) : time();
+    if ($timestamp === false) {
+        $timestamp = time();
+    }
+    $bulan = [
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+    ];
+
+    return (int) date('j', $timestamp) . ' ' . $bulan[(int) date('n', $timestamp)] . ' ' . date('Y', $timestamp);
+}
+
+function nomorSuratTandaTerimaKaos(array $row): string
+{
+    $saat = (string) ($row['kaos_diambil_pada'] ?? '');
+    $tahun = $saat !== '' ? date('Y', strtotime($saat) ?: time()) : date('Y');
+
+    return 'STT-JS/' . str_pad((string) (int) ($row['id'] ?? 0), 5, '0', STR_PAD_LEFT) . '/' . $tahun;
+}
+
+/**
+ * @return array{ok: bool, message: string}
+ */
+function saveJalanSehatTandaTerimaKaos(int $id, array $input): array
+{
+    ensureJalanSehatSchema();
+    if ($id < 1 || getJalanSehatPendaftaranById($id) === null) {
+        return ['ok' => false, 'message' => 'Data pendaftaran tidak ditemukan.'];
+    }
+
+    $nama = trim((string) ($input['penerima_nama'] ?? ''));
+    $jabatan = trim((string) ($input['penerima_jabatan'] ?? ''));
+    $hp = trim((string) ($input['penerima_hp'] ?? ''));
+    $tanggal = trim((string) ($input['tanggal_ambil'] ?? ''));
+
+    if ($nama === '') {
+        return ['ok' => false, 'message' => 'Nama penerima wajib diisi.'];
+    }
+    if ($tanggal === '' || strtotime($tanggal) === false) {
+        return ['ok' => false, 'message' => 'Tanggal pengambilan tidak valid.'];
+    }
+    if ($hp !== '') {
+        $hpNorm = normalizeNomorWa($hp);
+        if (strlen($hpNorm) < 9 || strlen($hpNorm) > 15) {
+            return ['ok' => false, 'message' => 'Nomor HP penerima tidak valid.'];
+        }
+        $hp = $hpNorm;
+    }
+
+    $columns = array_flip(jalanSehatPendaftaranColumnNames(null, true));
+    $sets = [];
+    $params = [':id' => $id];
+    $values = [
+        'kaos_diambil_pada' => date('Y-m-d H:i:s', strtotime($tanggal . ' ' . date('H:i:s'))),
+        'kaos_diambil_nama' => $nama,
+        'kaos_diambil_jabatan' => $jabatan !== '' ? $jabatan : null,
+        'kaos_diambil_hp' => $hp !== '' ? $hp : null,
+    ];
+    foreach ($values as $column => $value) {
+        if (!isset($columns[$column])) {
+            return ['ok' => false, 'message' => 'Kolom tanda terima belum tersedia di database.'];
+        }
+        $sets[] = '`' . $column . '` = :' . $column;
+        $params[':' . $column] = $value;
+    }
+
+    $stmt = getDb()->prepare('UPDATE jalan_sehat_pendaftaran SET ' . implode(', ', $sets) . ' WHERE id = :id');
+    $stmt->execute($params);
+
+    return ['ok' => true, 'message' => 'Tanda terima pengambilan kaos tersimpan.'];
+}
+
+function batalJalanSehatTandaTerimaKaos(int $id): bool
+{
+    ensureJalanSehatSchema();
+    if ($id < 1) {
+        return false;
+    }
+    $columns = array_flip(jalanSehatPendaftaranColumnNames(null, true));
+    $sets = [];
+    foreach (['kaos_diambil_pada', 'kaos_diambil_nama', 'kaos_diambil_jabatan', 'kaos_diambil_hp'] as $column) {
+        if (isset($columns[$column])) {
+            $sets[] = '`' . $column . '` = NULL';
+        }
+    }
+    if ($sets === []) {
+        return false;
+    }
+    $stmt = getDb()->prepare('UPDATE jalan_sehat_pendaftaran SET ' . implode(', ', $sets) . ' WHERE id = :id');
+    $stmt->execute([':id' => $id]);
+
+    return $stmt->rowCount() > 0;
+}
+
 function jalanSehatJenisPesananFilterOptions(): array
 {
     return [
@@ -1383,7 +1487,7 @@ function jalanSehatJenjangSqlCondition(string $jenjang): string
 }
 
 /**
- * @param array{paket?: string, kecamatan?: string, kelurahan?: string, urut?: string, jenjang?: string, jenis_pesanan?: string} $filters
+ * @param array{paket?: string, kecamatan?: string, kelurahan?: string, urut?: string, jenjang?: string, jenis_pesanan?: string, pengambilan?: string} $filters
  */
 function loadJalanSehatPendaftaran(string $search = '', array $filters = []): array
 {
@@ -1433,6 +1537,14 @@ function loadJalanSehatPendaftaran(string $search = '', array $filters = []): ar
         $sql .= ' AND jumlah_kaos = 0 AND jumlah_kupon > 0';
     } elseif ($jenisPesanan === 'dengan_kaos') {
         $sql .= ' AND jumlah_kaos > 0';
+    }
+
+    $pengambilan = (string) ($filters['pengambilan'] ?? '');
+    if (in_array($pengambilan, ['sudah', 'belum'], true)
+        && in_array('kaos_diambil_pada', jalanSehatPendaftaranColumnNames(), true)) {
+        $sql .= $pengambilan === 'sudah'
+            ? ' AND kaos_diambil_pada IS NOT NULL'
+            : ' AND kaos_diambil_pada IS NULL AND jumlah_kaos > 0';
     }
 
     $sql .= match ($filters['urut'] ?? 'terbaru') {

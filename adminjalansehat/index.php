@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['admin_password']) && 
 
 syncMaarifAdminSession();
 
-if (!in_array($currentPage, ['dashboard', 'list', 'detail', 'edit', 'tambah', 'pengaturan', 'nota'], true)) {
+if (!in_array($currentPage, ['dashboard', 'list', 'detail', 'edit', 'tambah', 'pengaturan', 'nota', 'tanda-terima'], true)) {
     $currentPage = 'dashboard';
 }
 
@@ -41,6 +41,7 @@ $paketFormData = null;
 $pendaftaranFormErrors = [];
 $pendaftaranFormData = null;
 $pendaftaranDuplicateRow = null;
+$tandaTerimaError = '';
 
 if (isJalanSehatAdminLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $action = (string) $_POST['action'];
@@ -98,6 +99,21 @@ if (isJalanSehatAdminLoggedIn() && $_SERVER['REQUEST_METHOD'] === 'POST' && isse
             $lunas = ($_POST['lunas'] ?? '') === '1';
             echo json_encode(setJalanSehatPembayaranLunas($id, $lunas), JSON_UNESCAPED_UNICODE);
             exit;
+        } elseif ($action === 'save_tanda_terima') {
+            $terimaId = (int) ($_POST['id'] ?? 0);
+            $terimaResult = saveJalanSehatTandaTerimaKaos($terimaId, $_POST);
+            if ($terimaResult['ok']) {
+                header('Location: ' . url('adminjalansehat/?page=tanda-terima&id=' . $terimaId . '&print=1'));
+                exit;
+            }
+            $tandaTerimaError = $terimaResult['message'];
+            $currentPage = 'tanda-terima';
+            $_GET['id'] = (string) $terimaId;
+        } elseif ($action === 'batal_tanda_terima') {
+            $terimaId = (int) ($_POST['id'] ?? 0);
+            batalJalanSehatTandaTerimaKaos($terimaId);
+            header('Location: ' . url('adminjalansehat/?page=tanda-terima&id=' . $terimaId . '&msg=batal_terima'));
+            exit;
         } elseif ($action === 'create_pendaftaran') {
             $settingsPost = getJalanSehatPengaturan();
             $paketAktifPost = loadJalanSehatPaket(true);
@@ -125,6 +141,7 @@ $flashMessages = [
     'paket_deleted' => 'Paket berhasil dihapus.',
     'updated' => 'Data pendaftaran berhasil diperbarui.',
     'created' => 'Pendaftaran manual berhasil disimpan.',
+    'batal_terima' => 'Status pengambilan kaos dibatalkan.',
 ];
 if (isset($_GET['msg'], $flashMessages[$_GET['msg']])) {
     $flashMessage = $flashMessages[$_GET['msg']];
@@ -156,6 +173,7 @@ if (!isJalanSehatAdminLoggedIn()) {
 
 try {
     $settings = getJalanSehatPengaturan();
+    ensureJalanSehatSchema();
 
     $search = trim($_GET['q'] ?? '');
     $jenjangFilter = jalanSehatNormalizeJenjangFilter(trim($_GET['jenjang'] ?? ''));
@@ -169,6 +187,7 @@ try {
         'urut' => array_key_exists($_GET['urut'] ?? '', jalanSehatUrutanOptions()) ? (string) $_GET['urut'] : 'terbaru',
         'jenjang' => $jenjangFilter,
         'jenis_pesanan' => jalanSehatNormalizeJenisPesananFilter(trim($_GET['jenis_pesanan'] ?? '')),
+        'pengambilan' => in_array($_GET['pengambilan'] ?? '', ['sudah', 'belum'], true) ? (string) $_GET['pengambilan'] : '',
     ];
 
     if (isset($_GET['export']) && $_GET['export'] === 'xls') {
@@ -208,6 +227,14 @@ try {
             exit;
         }
         require __DIR__ . '/views/nota.php';
+        exit;
+    } elseif ($currentPage === 'tanda-terima') {
+        $row = getJalanSehatPendaftaranById((int) ($_GET['id'] ?? 0));
+        if ($row === null) {
+            header('Location: ' . url('adminjalansehat/?page=list'));
+            exit;
+        }
+        require __DIR__ . '/views/tanda_terima.php';
         exit;
     } elseif ($currentPage === 'detail') {
         $row = getJalanSehatPendaftaranById((int) ($_GET['id'] ?? 0));

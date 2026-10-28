@@ -67,6 +67,11 @@ $selectClass = 'rounded-lg border border-gray-300 px-3 py-2 text-sm';
         <?php endforeach; ?>
         <option value="custom" <?= $paketFilter === 'custom' ? 'selected' : '' ?>>Jumlah sendiri</option>
       </select>
+      <select name="pengambilan" class="<?= $selectClass ?>">
+        <option value="">Semua pengambilan</option>
+        <option value="belum" <?= ($filters['pengambilan'] ?? '') === 'belum' ? 'selected' : '' ?>>Kaos belum diambil</option>
+        <option value="sudah" <?= ($filters['pengambilan'] ?? '') === 'sudah' ? 'selected' : '' ?>>Kaos sudah diambil</option>
+      </select>
       <select name="jenis_pesanan" class="<?= $selectClass ?>" title="Pisahkan pesanan kupon saja vs yang memesan kaos">
         <?php foreach (jalanSehatJenisPesananFilterOptions() as $jenisKey => $jenisLabel): ?>
           <option value="<?= sanitize($jenisKey) ?>" <?= ($filters['jenis_pesanan'] ?? '') === $jenisKey ? 'selected' : '' ?>>
@@ -181,6 +186,10 @@ $selectClass = 'rounded-lg border border-gray-300 px-3 py-2 text-sm';
                 <a href="<?= url('adminjalansehat/?page=nota&id=' . (int) $row['id'] . '&print=1') ?>"
                    target="_blank" rel="noopener"
                    class="ml-2 text-blue-700 hover:underline font-medium">Nota</a>
+                <?php if ((int) $row['jumlah_kaos'] > 0): ?>
+                  <a href="<?= url('adminjalansehat/?page=tanda-terima&id=' . (int) $row['id']) ?>"
+                     class="ml-2 <?= !empty($row['kaos_diambil_pada']) ? 'text-emerald-700' : 'text-amber-700' ?> hover:underline font-medium">Tanda terima</a>
+                <?php endif; ?>
                 <form method="post" class="inline" onsubmit="return confirm('Hapus pendaftaran <?= sanitize(addslashes((string) $row['nama_madrasah'])) ?>?');">
                   <input type="hidden" name="action" value="delete_pendaftaran">
                   <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">

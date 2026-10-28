@@ -119,11 +119,26 @@ $waLink = $nomorWa !== '' ? 'https://wa.me/62' . ltrim(normalizeNomorWa($nomorWa
         </dd>
       <?php endif; ?>
 
+      <dt class="text-gray-500">Pengambilan kaos</dt>
+      <dd class="sm:col-span-2">
+        <?php if (!empty($row['kaos_diambil_pada'])): ?>
+          <span class="font-semibold text-emerald-800">Sudah diambil</span>
+          <span class="text-gray-600">pada <?= sanitize(formatTanggalIndonesia((string) $row['kaos_diambil_pada'])) ?>
+            oleh <?= sanitize((string) ($row['kaos_diambil_nama'] ?? '')) ?></span>
+        <?php elseif ($kaos > 0): ?>
+          <span class="font-semibold text-amber-800">Belum diambil</span>
+        <?php else: ?>
+          <span class="text-gray-500">Tidak memesan kaos</span>
+        <?php endif; ?>
+      </dd>
+
       <dt class="text-gray-500">Catatan</dt>
       <dd class="sm:col-span-2"><?= !empty($row['catatan']) ? nl2br(sanitize((string) $row['catatan'])) : '-' ?></dd>
     </dl>
 
     <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 flex flex-wrap justify-end gap-3">
+      <a href="<?= url('adminjalansehat/?page=tanda-terima&id=' . (int) $row['id']) ?>"
+         class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Tanda Terima Kaos</a>
       <a href="<?= url('adminjalansehat/?page=nota&id=' . (int) $row['id'] . '&print=1') ?>"
          target="_blank" rel="noopener"
          class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium">Cetak Nota</a>

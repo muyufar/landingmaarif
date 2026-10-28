@@ -17,3 +17,9 @@ ALTER TABLE `jalan_sehat_pendaftaran`
 ALTER TABLE `jalan_sehat_pendaftaran`
   ADD COLUMN IF NOT EXISTS `kaos_xxxxl` int(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `kaos_xxxl`,
   ADD COLUMN IF NOT EXISTS `kaos_panjang_xxxxl` int(10) UNSIGNED NOT NULL DEFAULT 0 AFTER `kaos_panjang_xxxl`;
+
+ALTER TABLE `jalan_sehat_pendaftaran`
+  ADD COLUMN IF NOT EXISTS `kaos_diambil_pada` datetime DEFAULT NULL AFTER `pembayaran_lunas`,
+  ADD COLUMN IF NOT EXISTS `kaos_diambil_nama` varchar(150) DEFAULT NULL AFTER `kaos_diambil_pada`,
+  ADD COLUMN IF NOT EXISTS `kaos_diambil_jabatan` varchar(120) DEFAULT NULL AFTER `kaos_diambil_nama`,
+  ADD COLUMN IF NOT EXISTS `kaos_diambil_hp` varchar(30) DEFAULT NULL AFTER `kaos_diambil_jabatan`;
